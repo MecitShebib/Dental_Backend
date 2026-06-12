@@ -13,7 +13,7 @@ class DashboardController extends Controller
     {
         $request->validate([
             'date_from' => ['required', 'date_format:Y-m-d'],
-            'date_to'   => ['required', 'date_format:Y-m-d'],
+            'date_to'   => ['required', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'doctor_id' => ['nullable', 'exists:users,id'],
         ]);
 
@@ -31,10 +31,13 @@ class DashboardController extends Controller
         $byStatus = (clone $apptBase)
             ->selectRaw('status, count(*) as cnt')
             ->groupBy('status')
-            ->pluck('cnt', 'status')
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                ($row->getRawOriginal('status') ?? $row->status?->value ?? (string) $row->status) => (int) $row->cnt,
+            ])
             ->toArray();
 
-        $statusKeys = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
+        $statusKeys = ['scheduled', 'completed', 'cancelled', 'no_show'];
         $appointmentsByStatus = array_combine(
             $statusKeys,
             array_map(fn ($k) => (int) ($byStatus[$k] ?? 0), $statusKeys)
@@ -54,13 +57,15 @@ class DashboardController extends Controller
         $byMethod = (clone $payBase)
             ->selectRaw('payment_method, sum(amount) as total')
             ->groupBy('payment_method')
-            ->pluck('total', 'payment_method')
-            ->map(fn ($v) => (float) $v)
+            ->get()
+            ->mapWithKeys(fn ($row) => [
+                ($row->getRawOriginal('payment_method') ?? $row->payment_method?->value ?? (string) $row->payment_method) => (float) $row->total,
+            ])
             ->toArray();
 
         $byDay = (clone $payBase)
             ->selectRaw('DATE(payment_date) as date, sum(amount) as amount')
-            ->groupBy('date')
+            ->groupByRaw('DATE(payment_date)')
             ->orderBy('date')
             ->get()
             ->map(fn ($row) => ['date' => $row->date, 'amount' => (float) $row->amount])
