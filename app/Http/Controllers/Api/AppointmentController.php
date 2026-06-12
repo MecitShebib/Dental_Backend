@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\AppointmentType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Appointment\IndexAppointmentRequest;
 use App\Http\Requests\Appointment\StoreAppointmentRequest;
 use App\Http\Requests\Appointment\UpdateAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
@@ -18,7 +19,7 @@ class AppointmentController extends Controller
     {
     }
 
-    public function index()
+    public function index(IndexAppointmentRequest $request)
     {
         $appointments = Appointment::query()
             ->with(['client', 'doctor'])
