@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class VisitResource extends JsonResource
 {
@@ -21,6 +22,7 @@ class VisitResource extends JsonResource
             'duration_minutes' => $this->duration_minutes,
             'summary' => $this->summary,
             'notes' => $this->notes,
+            'odontogram_image_url' => $this->odontogram_image_path ? Storage::disk('public')->url($this->odontogram_image_path) : null,
             'attendance_status' => $this->attendance_status?->value ?? $this->attendance_status,
         ];
     }
