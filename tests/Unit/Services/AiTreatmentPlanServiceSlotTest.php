@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AiTreatmentPlanService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class AiTreatmentPlanServiceSlotTest extends TestCase
@@ -67,8 +68,8 @@ class AiTreatmentPlanServiceSlotTest extends TestCase
             'slot_minutes' => 30,
         ])->workingDays()->create(['weekday' => 'monday']);
 
-        // A doctor who only works Mondays and only has one 30-minute slot: booking every
-        // Monday for the next 3 weeks exhausts a 14-day search window (2 Mondays).
+        // A doctor who only works Mondays and only has one 30-minute slot: booking the
+        // next 2 Mondays exhausts a 14-day search window.
         $firstMonday = Carbon::now()->next(Carbon::MONDAY);
         foreach ([0, 1] as $weeksToAdd) {
             Appointment::create([
@@ -82,7 +83,7 @@ class AiTreatmentPlanServiceSlotTest extends TestCase
             ]);
         }
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         app(AiTreatmentPlanService::class)->resolveSessionSlot($doctor, $firstMonday, 30, 14);
     }
