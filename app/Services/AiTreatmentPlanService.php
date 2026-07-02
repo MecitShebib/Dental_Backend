@@ -115,4 +115,70 @@ class AiTreatmentPlanService
             'sessions' => ["No available slot found for the doctor within {$searchDays} days starting from {$fromDate->toDateString()}."],
         ]);
     }
+
+    public function buildOdontogramStatus(array $teeth): array
+    {
+        $status = [
+            'version' => '1.3',
+            'globals' => [
+                'wisdomVisible' => true,
+                'showBase' => true,
+                'occlusalVisible' => true,
+                'showHealthyPulp' => true,
+                'edentulous' => false,
+            ],
+            'teeth' => [],
+        ];
+
+        $fieldMap = [
+            'tooth_selection' => 'toothSelection',
+            'crown_material' => 'crownMaterial',
+            'bridge_unit' => 'bridgeUnit',
+            'endo' => 'endo',
+            'filling_material' => 'fillingMaterial',
+        ];
+
+        foreach ($teeth as $tooth) {
+            $toothNo = (string) $tooth['tooth_number'];
+            $state = [];
+
+            foreach ($fieldMap as $aiField => $widgetField) {
+                if (! empty($tooth[$aiField])) {
+                    $state[$widgetField] = $tooth[$aiField];
+                }
+            }
+
+            if (! empty($tooth['filling_surfaces'])) {
+                $state['fillingSurfaces'] = array_values($tooth['filling_surfaces']);
+            }
+
+            if (! empty($tooth['caries'])) {
+                $state['caries'] = array_values($tooth['caries']);
+            }
+
+            if (! empty($tooth['mods'])) {
+                $state['mods'] = array_values($tooth['mods']);
+            }
+
+            foreach ($tooth['indicator_flags'] ?? [] as $flag) {
+                $state[$flag] = true;
+            }
+
+            $status['teeth'][$toothNo] = $state;
+        }
+
+        return $status;
+    }
+
+    public function buildPlannedSummary(array $odontogramStatus): string
+    {
+        return json_encode([
+            '__visit_odontogram__' => true,
+            'companyVersion' => 2,
+            'activeTreatment' => 'consultation',
+            'selectedTeeth' => [],
+            'odontogramV2Status' => $odontogramStatus,
+            'odontogramV2PricingOverrides' => [],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
 }
