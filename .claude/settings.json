@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Users\\\\MK\\\\Desktop\\\\Dental_FrontEnd\" 2>/dev/null | head -50)",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/**)",
+      "WebFetch(domain:react-odontogram-modul.vercel.app)",
+      "Bash(cat \"C:\\\\Users\\\\MK\\\\Desktop\\\\Dental_FrontEnd\\\\app\\\\frontend\\\\package.json\")",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/**)",
+      "Bash(grep -n \"OdontogramV2Widget\\\\b\" -r \"C:\\\\Users\\\\MK\\\\Desktop\\\\Dental_FrontEnd\\\\app\\\\frontend\\\\src\\\\components\\\\OdontogramV2Widget.jsx\" | head -5; echo \"---\"; sed -n '1,60p' \"C:\\\\Users\\\\MK\\\\Desktop\\\\Dental_FrontEnd\\\\app\\\\frontend\\\\src\\\\components\\\\OdontogramV2Widget.jsx\")",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/src/components/**)",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/src/context/**)",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/src/pages/**)",
+      "Bash(xargs cat)",
+      "Bash(ls \"C:\\\\Users\\\\MK\\\\Desktop\\\\Dental_FrontEnd\\\\app\\\\frontend\\\\src\\\\vendor\\\\odontogram-v2\\\\\")",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/src/vendor/**)",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/src/**)",
+      "Read(//c/Users/MK/Desktop/Dental_FrontEnd/app/frontend/src/vendor/odontogram-v2/**)"
+    ]
+  }
+}
