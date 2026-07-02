@@ -221,6 +221,8 @@ class AiTreatmentPlanService
 
     public function confirm(Client $client, mixed $doctor, array $sessions, int $userId): Collection
     {
+        $this->assertNoIntraBatchOverlap($sessions);
+
         foreach ($sessions as $session) {
             $this->conflicts->assertWithinSchedule($doctor, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
             $this->conflicts->assertNoConflict($doctor->id, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
@@ -259,6 +261,29 @@ class AiTreatmentPlanService
                 return $appointment->fresh();
             });
         });
+    }
+
+    protected function assertNoIntraBatchOverlap(array $sessions): void
+    {
+        foreach ($sessions as $i => $sessionA) {
+            $startA = Carbon::parse($sessionA['date'].' '.$sessionA['start_time']);
+            $endA = $startA->copy()->addMinutes((int) $sessionA['duration_minutes']);
+
+            foreach ($sessions as $j => $sessionB) {
+                if ($j <= $i) {
+                    continue;
+                }
+
+                $startB = Carbon::parse($sessionB['date'].' '.$sessionB['start_time']);
+                $endB = $startB->copy()->addMinutes((int) $sessionB['duration_minutes']);
+
+                if ($startA->lt($endB) && $endA->gt($startB)) {
+                    throw ValidationException::withMessages([
+                        'sessions' => ['Two sessions in this plan overlap with each other.'],
+                    ]);
+                }
+            }
+        }
     }
 
     protected function buildSystemPrompt(): string

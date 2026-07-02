@@ -20,7 +20,7 @@ class ConfirmAiTreatmentPlanRequest extends FormRequest
             'sessions.*.start_time' => ['required', 'date_format:H:i'],
             'sessions.*.duration_minutes' => ['required', 'integer', Rule::in([30, 60, 90])],
             'sessions.*.session_description' => ['required', 'string'],
-            'sessions.*.odontogram_v2_status' => ['required', 'string'],
+            'sessions.*.odontogram_v2_status' => ['required', 'string', 'json'],
             'sessions.*.image' => ['required', 'file', 'mimes:png', 'max:5120'],
         ];
     }

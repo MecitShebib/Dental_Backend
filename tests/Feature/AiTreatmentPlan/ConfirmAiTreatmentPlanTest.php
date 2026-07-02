@@ -119,6 +119,33 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         $this->assertDatabaseCount('appointments', 1);
     }
 
+    public function test_it_creates_no_appointments_or_files_when_a_later_session_in_the_batch_conflicts(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient('CL-3104');
+        $firstDate = Carbon::now()->next(Carbon::MONDAY)->toDateString();
+        $secondDate = Carbon::now()->next(Carbon::MONDAY)->addWeek()->toDateString();
+
+        $this->postJson('/api/appointments', [
+            'doctor_id' => $doctor->id,
+            'type' => 'unavailable',
+            'date' => $secondDate,
+            'start_time' => '09:00',
+            'duration_minutes' => 30,
+        ])->assertCreated();
+
+        $this->post("/api/clients/{$client->id}/ai-treatment-plan/confirm", [
+            'sessions' => [
+                $this->sessionPayload($firstDate),
+                $this->sessionPayload($secondDate),
+            ],
+        ], ['Accept' => 'application/json'])->assertStatus(422);
+
+        $this->assertDatabaseCount('appointments', 1); // only the pre-existing unavailable block
+        Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
+    }
+
     public function test_it_validates_session_shape(): void
     {
         $doctor = $this->doctorWithFullWeekSchedule();
