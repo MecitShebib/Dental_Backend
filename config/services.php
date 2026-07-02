@@ -45,4 +45,10 @@ return [
         'response_type' => env('TURKEYSMS_RESPONSE_TYPE', 'json'),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'chat_model' => env('OPENAI_CHAT_MODEL', 'gpt-4o-mini'),
+        'whisper_model' => env('OPENAI_WHISPER_MODEL', 'whisper-1'),
+    ],
+
 ];
