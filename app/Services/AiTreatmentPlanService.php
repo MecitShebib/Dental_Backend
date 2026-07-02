@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
+
 class AiTreatmentPlanService
 {
     public function __construct(
@@ -85,5 +88,31 @@ class AiTreatmentPlanService
                 'additionalProperties' => false,
             ],
         ];
+    }
+
+    public function resolveSessionSlot(mixed $doctor, Carbon $fromDate, int $durationMinutes, int $searchDays = 14): array
+    {
+        $cursor = $fromDate->copy();
+
+        for ($attempt = 0; $attempt < $searchDays; $attempt++) {
+            try {
+                $times = $this->availability->availableStartTimes($doctor, $cursor->toDateString(), $durationMinutes);
+
+                if (! empty($times['start_times'])) {
+                    return [
+                        'date' => $cursor->toDateString(),
+                        'start_time' => $times['start_times'][0],
+                    ];
+                }
+            } catch (ValidationException) {
+                // Doctor has no schedule for this weekday — try the next day.
+            }
+
+            $cursor->addDay();
+        }
+
+        throw ValidationException::withMessages([
+            'sessions' => ["No available slot found for the doctor within {$searchDays} days starting from {$fromDate->toDateString()}."],
+        ]);
     }
 }
