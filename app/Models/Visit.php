@@ -24,6 +24,7 @@ class Visit extends Model
         'duration_minutes',
         'summary',
         'notes',
+        'odontogram_image_path',
         'attendance_status',
         'created_by',
         'updated_by',

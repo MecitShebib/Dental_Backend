@@ -26,6 +26,9 @@ class Appointment extends Model
         'duration_minutes',
         'end_time',
         'notes',
+        'planned_summary',
+        'planned_notes',
+        'planned_image_path',
         'created_by',
         'updated_by',
     ];
