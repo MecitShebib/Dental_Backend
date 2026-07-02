@@ -5,6 +5,7 @@ namespace Tests\Feature\AiTreatmentPlan;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -132,7 +133,8 @@ class PreviewAiTreatmentPlanTest extends TestCase
 
         $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
             'description' => 'Tooth 13 has pulp necrosis.',
-        ])->assertStatus(422);
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('doctor');
     }
 
     public function test_it_requires_a_description_or_audio(): void
@@ -144,5 +146,35 @@ class PreviewAiTreatmentPlanTest extends TestCase
         $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [])
             ->assertStatus(422)
             ->assertJsonValidationErrors('description');
+    }
+
+    public function test_it_transcribes_audio_when_no_description_is_provided(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient();
+
+        Http::fake([
+            'https://api.openai.com/v1/audio/transcriptions' => Http::response(['text' => 'Tooth 13 has pulp necrosis.'], 200),
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode([
+                        'diagnosis_summary' => 'Pulp necrosis on tooth 13.',
+                        'sessions' => [],
+                    ])]],
+                ],
+            ], 200),
+        ]);
+
+        $audio = UploadedFile::fake()->create('note.mp3', 10, 'audio/mpeg');
+
+        $this->post("/api/clients/{$client->id}/ai-treatment-plan", [
+            'audio' => $audio,
+        ], ['Accept' => 'application/json'])->assertOk();
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.openai.com/v1/chat/completions'
+                && $request['messages'][1]['content'] === 'Tooth 13 has pulp necrosis.';
+        });
     }
 }

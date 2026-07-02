@@ -34,7 +34,7 @@ class AiTreatmentPlanController extends Controller
     {
         if (! $user->is_doctor) {
             throw ValidationException::withMessages([
-                'description' => ['Only doctors can use the AI treatment assistant.'],
+                'doctor' => ['Only doctors can use the AI treatment assistant.'],
             ]);
         }
     }
