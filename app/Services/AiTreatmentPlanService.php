@@ -2,7 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\AppointmentStatus;
+use App\Enums\AppointmentType;
+use App\Models\Appointment;
+use App\Models\Client;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AiTreatmentPlanService
@@ -211,6 +217,48 @@ class AiTreatmentPlanService
             'diagnosis_summary' => $result['diagnosis_summary'],
             'sessions' => $sessions,
         ];
+    }
+
+    public function confirm(Client $client, mixed $doctor, array $sessions, int $userId): Collection
+    {
+        foreach ($sessions as $session) {
+            $this->conflicts->assertWithinSchedule($doctor, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
+            $this->conflicts->assertNoConflict($doctor->id, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
+        }
+
+        return DB::transaction(function () use ($client, $doctor, $sessions, $userId) {
+            return collect($sessions)->map(function (array $session) use ($client, $doctor, $userId) {
+                $odontogramStatus = json_decode((string) $session['odontogram_v2_status'], true);
+
+                if (! is_array($odontogramStatus)) {
+                    throw ValidationException::withMessages([
+                        'sessions' => ['One of the sessions has an invalid odontogram payload.'],
+                    ]);
+                }
+
+                $appointment = Appointment::create([
+                    'client_id' => $client->id,
+                    'doctor_id' => $doctor->id,
+                    'type' => AppointmentType::Booked->value,
+                    'status' => AppointmentStatus::Scheduled->value,
+                    'date' => $session['date'],
+                    'start_time' => $session['start_time'],
+                    'duration_minutes' => (int) $session['duration_minutes'],
+                    'end_time' => $this->conflicts->calculateEndTime($session['start_time'], (int) $session['duration_minutes']),
+                    'planned_notes' => $session['session_description'],
+                    'planned_summary' => $this->buildPlannedSummary($odontogramStatus),
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                ]);
+
+                if (! empty($session['image'])) {
+                    $path = $session['image']->storeAs('odontogram-plans', $appointment->uuid.'.png', 'public');
+                    $appointment->update(['planned_image_path' => $path]);
+                }
+
+                return $appointment->fresh();
+            });
+        });
     }
 
     protected function buildSystemPrompt(): string

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Services\AppointmentActionStateService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class AppointmentResource extends JsonResource
 {
@@ -26,6 +27,9 @@ class AppointmentResource extends JsonResource
             'end_time' => substr($this->end_time, 0, 5),
             'duration_minutes' => $this->duration_minutes,
             'notes' => $this->notes,
+            'planned_summary' => $this->planned_summary,
+            'planned_notes' => $this->planned_notes,
+            'planned_image_url' => $this->planned_image_path ? Storage::disk('public')->url($this->planned_image_path) : null,
             'action_state' => $meta['action_state'],
             'is_past' => $meta['is_past'],
             'is_future' => $meta['is_future'],

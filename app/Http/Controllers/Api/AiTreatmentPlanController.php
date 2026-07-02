@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AiTreatmentPlan\ConfirmAiTreatmentPlanRequest;
 use App\Http\Requests\AiTreatmentPlan\PreviewAiTreatmentPlanRequest;
+use App\Http\Resources\AppointmentResource;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\AiTreatmentPlanService;
@@ -28,6 +30,16 @@ class AiTreatmentPlanController extends Controller
         $plan = $this->plans->preview($doctor, $description);
 
         return $this->success($plan, 'AI treatment plan generated successfully.');
+    }
+
+    public function confirm(ConfirmAiTreatmentPlanRequest $request, Client $client)
+    {
+        $doctor = $request->user();
+        $this->assertIsDoctor($doctor);
+
+        $appointments = $this->plans->confirm($client, $doctor, $request->validated('sessions'), $doctor->id);
+
+        return $this->success(AppointmentResource::collection($appointments), 'Treatment plan confirmed and appointments created.', 201);
     }
 
     protected function assertIsDoctor(User $user): void
