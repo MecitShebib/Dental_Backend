@@ -2,6 +2,12 @@
 
 namespace App\Services;
 
+/**
+ * Mirrors the Odontogram v2 vocabulary in Dental_FrontEnd's
+ * app/frontend/src/utils/odontogramV2.js (DEFAULT_PRICE_BY_KIND / FLAG_KEYS)
+ * and the vendored odontogram-v2/odontogram.ts engine (GROUPS.caries /
+ * GROUPS.fillingSurfaces). Update this file if those change.
+ */
 class OdontogramV2Vocabulary
 {
     public static function toothSelection(): array
