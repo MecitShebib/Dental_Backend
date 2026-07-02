@@ -146,6 +146,29 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
     }
 
+    public function test_it_rejects_a_plan_with_two_sessions_that_overlap_each_other(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient('CL-3105');
+        $date = Carbon::now()->next(Carbon::MONDAY)->toDateString();
+
+        $sessionA = $this->sessionPayload($date);
+        $sessionA['start_time'] = '09:00';
+        $sessionA['duration_minutes'] = 30;
+
+        $sessionB = $this->sessionPayload($date);
+        $sessionB['start_time'] = '09:15';
+        $sessionB['duration_minutes'] = 30;
+
+        $this->post("/api/clients/{$client->id}/ai-treatment-plan/confirm", [
+            'sessions' => [$sessionA, $sessionB],
+        ], ['Accept' => 'application/json'])->assertStatus(422);
+
+        $this->assertDatabaseCount('appointments', 0);
+        Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
+    }
+
     public function test_it_validates_session_shape(): void
     {
         $doctor = $this->doctorWithFullWeekSchedule();
