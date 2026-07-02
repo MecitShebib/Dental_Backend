@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\AiTreatmentPlanController;
 use App\Http\Controllers\Api\AppointmentController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\CompanyController;
-use App\Http\Controllers\Api\CompanyTreatmentProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientAppointmentController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientPaymentController;
 use App\Http\Controllers\Api\ClientTreatmentRecordController;
 use App\Http\Controllers\Api\ClientVisitController;
+use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CompanyTreatmentProductController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
 use App\Http\Controllers\Api\DoctorScheduleController;
 use App\Http\Controllers\Api\UserController;
@@ -52,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('payments/{payment}', [ClientPaymentController::class, 'destroy']);
 
     Route::get('clients/{client}/appointments', [ClientAppointmentController::class, 'index']);
+    Route::post('clients/{client}/ai-treatment-plan', [AiTreatmentPlanController::class, 'preview']);
 
     Route::get('doctors/{doctor}/schedule', [DoctorScheduleController::class, 'show']);
     Route::put('doctors/{doctor}/schedule', [DoctorScheduleController::class, 'update']);

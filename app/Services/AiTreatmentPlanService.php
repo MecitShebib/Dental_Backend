@@ -181,4 +181,61 @@ class AiTreatmentPlanService
             'odontogramV2PricingOverrides' => [],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
+
+    public function preview(mixed $doctor, string $description): array
+    {
+        $result = $this->openAi->chatCompletionJson(
+            $this->buildSystemPrompt(),
+            $description,
+            $this->buildJsonSchema()
+        );
+
+        $sessions = [];
+        $cursor = Carbon::now()->startOfDay();
+
+        foreach (array_slice($result['sessions'], 0, 8) as $session) {
+            $cursor = $cursor->copy()->addDays((int) $session['day_offset']);
+            $slot = $this->resolveSessionSlot($doctor, $cursor, (int) $session['duration_minutes']);
+            $cursor = Carbon::parse($slot['date']);
+
+            $sessions[] = [
+                'date' => $slot['date'],
+                'start_time' => $slot['start_time'],
+                'duration_minutes' => (int) $session['duration_minutes'],
+                'session_description' => $session['session_description'],
+                'odontogram_v2_status' => $this->buildOdontogramStatus($session['teeth']),
+            ];
+        }
+
+        return [
+            'diagnosis_summary' => $result['diagnosis_summary'],
+            'sessions' => $sessions,
+        ];
+    }
+
+    protected function buildSystemPrompt(): string
+    {
+        return <<<'PROMPT'
+            You are a dental treatment planning assistant used inside a clinic's patient
+            record system. A doctor will describe a patient's dental condition in free
+            text, possibly naming one or more tooth numbers (FDI notation, 11-85) and
+            symptoms.
+
+            Produce a treatment plan made of one or more future sessions (visits), each
+            separated by a number of days from the previous one (day_offset; use 0 for
+            the very first session, meaning "as soon as possible"). For each session,
+            decide a realistic appointment duration (30, 60, or 90 minutes) and describe
+            in session_description, in the same language the doctor used, what the
+            doctor will do during that specific session.
+
+            For each session, list the teeth involved and their condition/treatment
+            using only the allowed vocabulary provided by the schema. If a tooth's
+            condition does not map to any allowed value, leave that field null and
+            mention the detail in session_description instead of guessing an
+            unsupported value.
+
+            Keep plans realistic: most common dental procedures need between 1 and 4
+            sessions. Never propose more than 8 sessions.
+            PROMPT;
+    }
 }
