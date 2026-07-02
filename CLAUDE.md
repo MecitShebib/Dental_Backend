@@ -65,6 +65,8 @@ Every `User` and all clinical data belong to a `Company`. A `Company` must have 
 | `AppointmentActionStateService` | Determine UI action state (`manage` / `checkin` / `locked`) based on appointment time proximity |
 | `TreatmentRecordService` | Persist per-tooth treatment data |
 | `ClientFinancialSummaryService` | Compute total services, total paid, and remaining balance for a client |
+| `AiTreatmentPlanService` | Turn a doctor's case description into a multi-session treatment plan (preview) and persist it as appointments (confirm), via `OpenAiClient` and the existing scheduling services |
+| `OpenAiClient` | Thin wrapper over OpenAI's chat completions (structured JSON output) and Whisper transcription HTTP APIs |
 
 ### UUID pattern
 
@@ -81,3 +83,5 @@ Copy `.env.example` to `.env` before first run. Key non-obvious settings:
 - `TURKEYSMS_ENABLED` — set to `false` locally to skip real SMS; OTP is printed to the Laravel log instead.
 - `DB_CONNECTION` — defaults to `sqlite`; change to `mysql` and set `DB_HOST/DB_DATABASE/DB_USERNAME/DB_PASSWORD` for production.
 - `QUEUE_CONNECTION=database` — requires the queue worker (`php artisan queue:listen`) to be running for background jobs.
+- `OPENAI_API_KEY` — required for the AI treatment plan assistant (`AiTreatmentPlanController`/`AiTreatmentPlanService`), which calls OpenAI for chat completions and Whisper transcription. `OPENAI_CHAT_MODEL`/`OPENAI_WHISPER_MODEL` default to `gpt-4o-mini`/`whisper-1`.
+- The AI treatment plan and manual treatment-record odontogram images are served from the `public` disk — run `php artisan storage:link` (already part of `composer run setup`) so `planned_image_url`/`odontogram_image_url` resolve over HTTP.

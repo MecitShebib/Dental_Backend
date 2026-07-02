@@ -146,6 +146,29 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
     }
 
+    public function test_it_creates_no_appointments_or_files_when_a_later_session_has_an_invalid_odontogram_shape(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient('CL-3106');
+        $firstDate = Carbon::now()->next(Carbon::MONDAY)->toDateString();
+        $secondDate = Carbon::now()->next(Carbon::MONDAY)->addWeek()->toDateString();
+
+        $validSession = $this->sessionPayload($firstDate);
+
+        $invalidShapeSession = $this->sessionPayload($secondDate);
+        // Valid JSON (passes the "json" validation rule) but decodes to a
+        // string, not an object — must be rejected before any writes happen.
+        $invalidShapeSession['odontogram_v2_status'] = json_encode('not-an-object');
+
+        $this->post("/api/clients/{$client->id}/ai-treatment-plan/confirm", [
+            'sessions' => [$validSession, $invalidShapeSession],
+        ], ['Accept' => 'application/json'])->assertStatus(422);
+
+        $this->assertDatabaseCount('appointments', 0);
+        Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
+    }
+
     public function test_it_rejects_a_plan_with_two_sessions_that_overlap_each_other(): void
     {
         $doctor = $this->doctorWithFullWeekSchedule();

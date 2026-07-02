@@ -223,21 +223,25 @@ class AiTreatmentPlanService
     {
         $this->assertNoIntraBatchOverlap($sessions);
 
-        foreach ($sessions as $session) {
+        $odontogramStatuses = [];
+
+        foreach ($sessions as $index => $session) {
             $this->conflicts->assertWithinSchedule($doctor, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
             $this->conflicts->assertNoConflict($doctor->id, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
+
+            $odontogramStatus = json_decode((string) $session['odontogram_v2_status'], true);
+
+            if (! is_array($odontogramStatus)) {
+                throw ValidationException::withMessages([
+                    'sessions' => ['One of the sessions has an invalid odontogram payload.'],
+                ]);
+            }
+
+            $odontogramStatuses[$index] = $odontogramStatus;
         }
 
-        return DB::transaction(function () use ($client, $doctor, $sessions, $userId) {
-            return collect($sessions)->map(function (array $session) use ($client, $doctor, $userId) {
-                $odontogramStatus = json_decode((string) $session['odontogram_v2_status'], true);
-
-                if (! is_array($odontogramStatus)) {
-                    throw ValidationException::withMessages([
-                        'sessions' => ['One of the sessions has an invalid odontogram payload.'],
-                    ]);
-                }
-
+        return DB::transaction(function () use ($client, $doctor, $sessions, $odontogramStatuses, $userId) {
+            return collect($sessions)->map(function (array $session, int $index) use ($client, $doctor, $odontogramStatuses, $userId) {
                 $appointment = Appointment::create([
                     'client_id' => $client->id,
                     'doctor_id' => $doctor->id,
@@ -248,7 +252,7 @@ class AiTreatmentPlanService
                     'duration_minutes' => (int) $session['duration_minutes'],
                     'end_time' => $this->conflicts->calculateEndTime($session['start_time'], (int) $session['duration_minutes']),
                     'planned_notes' => $session['session_description'],
-                    'planned_summary' => $this->buildPlannedSummary($odontogramStatus),
+                    'planned_summary' => $this->buildPlannedSummary($odontogramStatuses[$index]),
                     'created_by' => $userId,
                     'updated_by' => $userId,
                 ]);
