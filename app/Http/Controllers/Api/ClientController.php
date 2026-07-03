@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Client\IndexClientRequest;
 use App\Http\Requests\Client\StoreClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Resources\ClientListResource;
@@ -12,14 +13,15 @@ use Illuminate\Support\Str;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(IndexClientRequest $request)
     {
         $clients = Client::query()
             ->with(['appointments' => fn ($query) => $query->with(['client', 'doctor'])->where('status', 'scheduled')->whereDate('date', '>=', now()->toDateString())->orderBy('date')->orderBy('start_time')->limit(1)])
             ->when(request('name'), fn ($query) => $query->where('name', 'like', '%'.request('name').'%'))
             ->when(request('phone'), fn ($query) => $query->where('phone', 'like', '%'.request('phone').'%'))
             ->latest()
-            ->paginate(request()->has('per_page') ? (int) request('per_page') : null);
+            ->paginate(request()->has('per_page') ? (int) request('per_page') : null)
+            ->withQueryString();
 
         $resource = ClientListResource::collection($clients);
 

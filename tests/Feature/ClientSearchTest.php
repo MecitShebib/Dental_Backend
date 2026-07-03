@@ -84,4 +84,35 @@ class ClientSearchTest extends TestCase
         $names = collect($data)->pluck('name');
         $this->assertTrue($names->contains('Ahmad Khatib'));
     }
+
+    public function test_negative_per_page_returns_validation_error_not_server_error(): void
+    {
+        $response = $this->getJson('/api/clients?per_page=-1');
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('per_page');
+    }
+
+    public function test_array_valued_name_returns_validation_error_not_server_error(): void
+    {
+        $response = $this->getJson('/api/clients?name[]=foo&name[]=bar');
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('name');
+    }
+
+    public function test_pagination_links_preserve_active_search_and_per_page(): void
+    {
+        Client::create(['client_code' => 'CL-1', 'name' => 'Ahmad Khatib', 'phone' => '0933111111', 'gender' => 'male', 'status' => 'new']);
+        Client::create(['client_code' => 'CL-2', 'name' => 'Ahmad Nassar', 'phone' => '0944222222', 'gender' => 'male', 'status' => 'new']);
+        Client::create(['client_code' => 'CL-3', 'name' => 'Ahmad Zain', 'phone' => '0955333333', 'gender' => 'male', 'status' => 'new']);
+
+        $response = $this->getJson('/api/clients?name=Ahmad&per_page=2');
+
+        $response->assertOk();
+        $nextLink = $response->json('data.links.next');
+        $this->assertNotNull($nextLink);
+        $this->assertStringContainsString('per_page=2', $nextLink);
+        $this->assertStringContainsString('name=Ahmad', $nextLink);
+    }
 }
