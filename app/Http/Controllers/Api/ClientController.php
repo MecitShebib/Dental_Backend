@@ -16,10 +16,16 @@ class ClientController extends Controller
     {
         $clients = Client::query()
             ->with(['appointments' => fn ($query) => $query->with(['client', 'doctor'])->where('status', 'scheduled')->whereDate('date', '>=', now()->toDateString())->orderBy('date')->orderBy('start_time')->limit(1)])
+            ->when(request('name'), fn ($query) => $query->where('name', 'like', '%'.request('name').'%'))
+            ->when(request('phone'), fn ($query) => $query->where('phone', 'like', '%'.request('phone').'%'))
             ->latest()
-            ->paginate();
+            ->paginate(request()->has('per_page') ? (int) request('per_page') : null);
 
-        return $this->success(ClientListResource::collection($clients));
+        $resource = ClientListResource::collection($clients);
+
+        return $this->success(
+            request()->has('per_page') ? $resource->response()->getData(true) : $resource
+        );
     }
 
     public function store(StoreClientRequest $request)
