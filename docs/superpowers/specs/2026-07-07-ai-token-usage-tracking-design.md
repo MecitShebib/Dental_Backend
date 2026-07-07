@@ -118,20 +118,26 @@ recordUsage(Company $company, User $user, ?Client $client, string $action, strin
   ```
   Missing/malformed `usage` defaults to zeros rather than failing the request — a
   treatment-plan generation should not fail just because usage reporting came back incomplete.
-- **`AiTreatmentPlanService::preview()`** (`app/Services/AiTreatmentPlanService.php:191-220`)
-  destructures `content`/`usage` from the above, keeps building `sessions` from `content`
-  exactly as today, and adds `usage` to its own returned array.
-- **`AiTreatmentPlanController::preview()`** (`app/Http/Controllers/Api/AiTreatmentPlanController.php:19-33`):
-  1. Calls `AiTokenUsageService::assertCanUseAiTokens($doctor->company)` **before** doing
-     anything else — before the Whisper transcription call and before
-     `AiTreatmentPlanService::preview()`. This means a company that has hit its cap incurs
-     **zero** further OpenAI cost, including for Whisper (whose own tokens aren't tracked, but
-     whose calls are still gated by the same check).
-  2. After `$plan = $this->plans->preview(...)` returns, extracts `$plan['usage']`, strips it
-     from the array before it's sent to the frontend (the API response shape for a successful
-     preview is unchanged from today), and calls `AiTokenUsageService::recordUsage(...)` with
-     the doctor's company, the doctor, the client, `'ai_treatment_plan_preview'`, the configured
-     chat model, and the prompt/completion token counts.
+- **`AiTreatmentPlanService::preview()`** (`app/Services/AiTreatmentPlanService.php`) takes
+  `AiTokenUsageService` as a 4th constructor dependency and a new `Client $client` parameter.
+  Immediately after `chatCompletionJson()` returns — **before** the `foreach` loop that resolves
+  each session's slot via `resolveSessionSlot()` — it calls `AiTokenUsageService::recordUsage(...)`
+  with the prompt/completion token counts. This ordering is deliberate, not incidental: slot
+  resolution can throw (`ValidationException`, e.g. no available slot within the search window)
+  *after* the OpenAI call has already been made and billed. Recording usage before that loop
+  means the company is charged the correct token count even when the overall preview request
+  ultimately fails — the alternative (recording only after `preview()` fully returns, originally
+  attempted and caught in review) silently drops usage accounting on every slot-resolution
+  failure, which defeats the purpose of the feature. The method's return array no longer carries
+  a `usage` key — recording happens internally, not via a value handed back to the controller.
+- **`AiTreatmentPlanController::preview()`** (`app/Http/Controllers/Api/AiTreatmentPlanController.php`)
+  calls `AiTokenUsageService::assertCanUseAiTokens($doctor->company)` **before** doing anything
+  else — before the Whisper transcription call and before `AiTreatmentPlanService::preview()`.
+  This means a company that has hit its cap incurs **zero** further OpenAI cost, including for
+  Whisper (whose own tokens aren't tracked, but whose calls are still gated by the same check).
+  It then simply calls `$this->plans->preview($doctor, $client, $description)` and passes the
+  result straight to `$this->success(...)` — no post-processing needed, since usage recording
+  already happened inside `preview()` itself.
 - **`OpenAiClient::transcribe()`** (Whisper) is unchanged — no `usage` capture, per §2.
 
 ## 6. Admin panel
