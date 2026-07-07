@@ -18,6 +18,8 @@ class SubscriptionResource extends JsonResource
             'ends_at' => $this->ends_at?->format('Y-m-d'),
             'max_users' => $this->max_users,
             'active_users' => $this->active_users,
+            'max_ai_tokens' => $this->max_ai_tokens,
+            'ai_tokens_used' => $this->ai_tokens_used,
             'price' => (float) ($this->price ?? 0),
             'notes' => $this->notes,
             'is_currently_active' => $this->isCurrentlyActive(),
