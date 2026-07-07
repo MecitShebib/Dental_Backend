@@ -23,6 +23,7 @@ class StoreSubscriptionRequest extends FormRequest
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'max_users' => ['required', 'integer', 'min:1'],
             'active_users' => ['nullable', 'integer', 'min:0'],
+            'max_ai_tokens' => ['nullable', 'integer', 'min:0'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ];
