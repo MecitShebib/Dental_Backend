@@ -53,7 +53,14 @@ class OpenAiClient
             ]);
         }
 
-        return $decoded;
+        return [
+            'content' => $decoded,
+            'usage' => [
+                'prompt_tokens' => (int) $response->json('usage.prompt_tokens', 0),
+                'completion_tokens' => (int) $response->json('usage.completion_tokens', 0),
+                'total_tokens' => (int) $response->json('usage.total_tokens', 0),
+            ],
+        ];
     }
 
     public function transcribe(UploadedFile $audio): string

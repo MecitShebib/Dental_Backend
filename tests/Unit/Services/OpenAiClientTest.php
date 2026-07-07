@@ -21,7 +21,37 @@ class OpenAiClientTest extends TestCase
         ]);
     }
 
-    public function test_chat_completion_json_returns_decoded_content(): void
+    public function test_chat_completion_json_returns_content_and_usage(): void
+    {
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode(['diagnosis_summary' => 'ok', 'sessions' => []])]],
+                ],
+                'usage' => [
+                    'prompt_tokens' => 120,
+                    'completion_tokens' => 80,
+                    'total_tokens' => 200,
+                ],
+            ], 200),
+        ]);
+
+        $result = (new OpenAiClient)->chatCompletionJson('system prompt', 'user prompt', [
+            'name' => 'x', 'strict' => true, 'schema' => [],
+        ]);
+
+        $this->assertSame('ok', $result['content']['diagnosis_summary']);
+        $this->assertSame(120, $result['usage']['prompt_tokens']);
+        $this->assertSame(80, $result['usage']['completion_tokens']);
+        $this->assertSame(200, $result['usage']['total_tokens']);
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.openai.com/v1/chat/completions'
+                && $request['model'] === 'gpt-4o-mini'
+                && $request['response_format']['type'] === 'json_schema';
+        });
+    }
+
+    public function test_chat_completion_json_defaults_usage_to_zero_when_missing(): void
     {
         Http::fake([
             'https://api.openai.com/v1/chat/completions' => Http::response([
@@ -35,12 +65,9 @@ class OpenAiClientTest extends TestCase
             'name' => 'x', 'strict' => true, 'schema' => [],
         ]);
 
-        $this->assertSame('ok', $result['diagnosis_summary']);
-        Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.openai.com/v1/chat/completions'
-                && $request['model'] === 'gpt-4o-mini'
-                && $request['response_format']['type'] === 'json_schema';
-        });
+        $this->assertSame(0, $result['usage']['prompt_tokens']);
+        $this->assertSame(0, $result['usage']['completion_tokens']);
+        $this->assertSame(0, $result['usage']['total_tokens']);
     }
 
     public function test_chat_completion_json_throws_when_request_fails(): void
