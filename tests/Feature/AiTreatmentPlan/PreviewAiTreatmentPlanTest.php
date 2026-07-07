@@ -3,6 +3,8 @@
 namespace Tests\Feature\AiTreatmentPlan;
 
 use App\Models\Client;
+use App\Models\Company;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -24,7 +26,7 @@ class PreviewAiTreatmentPlanTest extends TestCase
         ]);
     }
 
-    protected function fakeOpenAiResponse(?array $sessions = null): void
+    protected function fakeOpenAiResponse(?array $sessions = null, array $usage = ['prompt_tokens' => 120, 'completion_tokens' => 80, 'total_tokens' => 200]): void
     {
         Http::fake([
             'https://api.openai.com/v1/chat/completions' => Http::response([
@@ -54,13 +56,29 @@ class PreviewAiTreatmentPlanTest extends TestCase
                         ],
                     ])]],
                 ],
+                'usage' => $usage,
             ], 200),
+        ]);
+    }
+
+    protected function activeSubscription(Company $company, ?int $maxAiTokens = null, int $aiTokensUsed = 0): Subscription
+    {
+        return Subscription::create([
+            'company_id' => $company->id,
+            'plan_name' => 'Test Plan',
+            'status' => 'active',
+            'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10,
+            'max_ai_tokens' => $maxAiTokens,
+            'ai_tokens_used' => $aiTokensUsed,
         ]);
     }
 
     protected function doctorWithFullWeekSchedule(): User
     {
         $doctor = User::factory()->create(['is_doctor' => true]);
+        $this->activeSubscription($doctor->company);
+
         $schedule = $doctor->doctorSchedule()->create([
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',
@@ -99,7 +117,8 @@ class PreviewAiTreatmentPlanTest extends TestCase
         $response->assertJsonPath('data.diagnosis_summary', 'Pulp necrosis on tooth 13.')
             ->assertJsonCount(1, 'data.sessions')
             ->assertJsonPath('data.sessions.0.duration_minutes', 30)
-            ->assertJsonPath('data.sessions.0.odontogram_v2_status.teeth.13.endo', 'endo-filling-incomplete');
+            ->assertJsonPath('data.sessions.0.odontogram_v2_status.teeth.13.endo', 'endo-filling-incomplete')
+            ->assertJsonMissingPath('data.usage');
 
         $this->assertDatabaseCount('appointments', 0);
     }
@@ -163,6 +182,7 @@ class PreviewAiTreatmentPlanTest extends TestCase
                         'sessions' => [],
                     ])]],
                 ],
+                'usage' => ['prompt_tokens' => 50, 'completion_tokens' => 30, 'total_tokens' => 80],
             ], 200),
         ]);
 
@@ -176,5 +196,81 @@ class PreviewAiTreatmentPlanTest extends TestCase
             return $request->url() === 'https://api.openai.com/v1/chat/completions'
                 && $request['messages'][1]['content'] === 'Tooth 13 has pulp necrosis.';
         });
+    }
+
+    public function test_it_records_ai_token_usage_after_a_successful_preview(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient();
+        $this->fakeOpenAiResponse();
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
+            'description' => 'Tooth 13 has pulp necrosis.',
+        ])->assertOk();
+
+        $subscription = $doctor->company->currentSubscription()->first();
+        $this->assertSame(200, $subscription->ai_tokens_used);
+
+        $this->assertDatabaseHas('ai_usage_logs', [
+            'company_id' => $doctor->company_id,
+            'subscription_id' => $subscription->id,
+            'user_id' => $doctor->id,
+            'client_id' => $client->id,
+            'action' => 'ai_treatment_plan_preview',
+            'model' => 'gpt-4o-mini',
+            'prompt_tokens' => 120,
+            'completion_tokens' => 80,
+            'total_tokens' => 200,
+        ]);
+    }
+
+    public function test_it_records_ai_token_usage_even_when_slot_resolution_fails_afterward(): void
+    {
+        // Doctor has no doctorSchedule() at all, so DoctorAvailabilityService rejects every
+        // day it's asked about and resolveSessionSlot() ultimately throws — this happens
+        // AFTER the (mocked) OpenAI chat completion has already "succeeded" and consumed
+        // tokens. Usage must still be recorded even though the overall request fails.
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        $this->activeSubscription($doctor->company);
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient();
+        $this->fakeOpenAiResponse();
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
+            'description' => 'Tooth 13 has pulp necrosis.',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('sessions');
+
+        $subscription = $doctor->company->currentSubscription()->first();
+        $this->assertSame(200, $subscription->ai_tokens_used);
+
+        $this->assertDatabaseHas('ai_usage_logs', [
+            'company_id' => $doctor->company_id,
+            'subscription_id' => $subscription->id,
+            'user_id' => $doctor->id,
+            'client_id' => $client->id,
+            'action' => 'ai_treatment_plan_preview',
+            'model' => 'gpt-4o-mini',
+            'prompt_tokens' => 120,
+            'completion_tokens' => 80,
+            'total_tokens' => 200,
+        ]);
+    }
+
+    public function test_it_blocks_preview_when_the_company_has_reached_its_ai_token_limit(): void
+    {
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        $this->activeSubscription($doctor->company, maxAiTokens: 100, aiTokensUsed: 100);
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient();
+        Http::fake();
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
+            'description' => 'Tooth 13 has pulp necrosis.',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('ai_tokens');
+
+        Http::assertNothingSent();
     }
 }

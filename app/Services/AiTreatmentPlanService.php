@@ -17,6 +17,7 @@ class AiTreatmentPlanService
         protected OpenAiClient $openAi,
         protected DoctorAvailabilityService $availability,
         protected AppointmentConflictService $conflicts,
+        protected AiTokenUsageService $aiTokenUsage,
     ) {}
 
     public function buildJsonSchema(): array
@@ -188,14 +189,25 @@ class AiTreatmentPlanService
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
-    public function preview(mixed $doctor, string $description): array
+    public function preview(mixed $doctor, Client $client, string $description): array
     {
-        $result = $this->openAi->chatCompletionJson(
+        $response = $this->openAi->chatCompletionJson(
             $this->buildSystemPrompt(),
             $description,
             $this->buildJsonSchema()
         );
 
+        $this->aiTokenUsage->recordUsage(
+            $doctor->company,
+            $doctor,
+            $client,
+            'ai_treatment_plan_preview',
+            (string) config('services.openai.chat_model', 'gpt-4o-mini'),
+            (int) $response['usage']['prompt_tokens'],
+            (int) $response['usage']['completion_tokens'],
+        );
+
+        $result = $response['content'];
         $sessions = [];
         $cursor = Carbon::now()->startOfDay();
 

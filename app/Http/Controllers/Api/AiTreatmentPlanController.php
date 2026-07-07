@@ -8,18 +8,24 @@ use App\Http\Requests\AiTreatmentPlan\PreviewAiTreatmentPlanRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\AiTokenUsageService;
 use App\Services\AiTreatmentPlanService;
 use App\Services\OpenAiClient;
 use Illuminate\Validation\ValidationException;
 
 class AiTreatmentPlanController extends Controller
 {
-    public function __construct(protected AiTreatmentPlanService $plans, protected OpenAiClient $openAi) {}
+    public function __construct(
+        protected AiTreatmentPlanService $plans,
+        protected OpenAiClient $openAi,
+        protected AiTokenUsageService $aiTokenUsage,
+    ) {}
 
     public function preview(PreviewAiTreatmentPlanRequest $request, Client $client)
     {
         $doctor = $request->user();
         $this->assertIsDoctor($doctor);
+        $this->aiTokenUsage->assertCanUseAiTokens($doctor->company);
 
         $description = (string) ($request->validated('description') ?? '');
 
@@ -27,7 +33,7 @@ class AiTreatmentPlanController extends Controller
             $description = $this->openAi->transcribe($request->file('audio'));
         }
 
-        $plan = $this->plans->preview($doctor, $description);
+        $plan = $this->plans->preview($doctor, $client, $description);
 
         return $this->success($plan, 'AI treatment plan generated successfully.');
     }
