@@ -39,6 +39,11 @@ class Company extends Model
         return $this->hasMany(TreatmentCatalog::class);
     }
 
+    public function aiUsageLogs(): HasMany
+    {
+        return $this->hasMany(AiUsageLog::class);
+    }
+
     public function currentSubscription(): HasOne
     {
         return $this->hasOne(Subscription::class)

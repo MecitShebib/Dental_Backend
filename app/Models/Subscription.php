@@ -19,6 +19,8 @@ class Subscription extends Model
         'ends_at',
         'max_users',
         'active_users',
+        'max_ai_tokens',
+        'ai_tokens_used',
         'price',
         'notes',
     ];
@@ -31,6 +33,8 @@ class Subscription extends Model
             'ends_at' => 'date',
             'max_users' => 'integer',
             'active_users' => 'integer',
+            'max_ai_tokens' => 'integer',
+            'ai_tokens_used' => 'integer',
             'price' => 'decimal:2',
         ];
     }
