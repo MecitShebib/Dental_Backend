@@ -40,7 +40,7 @@ Modeled directly on the existing `payments` table shape:
 
 - `id`, `uuid` (via `HasUuid`)
 - `client_id` — FK → `clients`, cascade on delete
-- `amount` — decimal(10,2)
+- `amount` — decimal(12,2)
 - `description` — text, nullable (frontend prefills this with the AI plan's diagnosis summary,
   but the field itself is a free-text nullable column, not tied to that origin)
 - `created_by` — FK → `users`, nullable, null on delete (the doctor who entered it)
