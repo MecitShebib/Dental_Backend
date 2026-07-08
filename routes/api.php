@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('clients/{client}/appointments', [ClientAppointmentController::class, 'index']);
     Route::post('clients/{client}/ai-treatment-plan', [AiTreatmentPlanController::class, 'preview']);
     Route::post('clients/{client}/ai-treatment-plan/confirm', [AiTreatmentPlanController::class, 'confirm']);
+    Route::post('clients/{client}/ai-treatment-plan/charge', [AiTreatmentPlanController::class, 'addCharge']);
 
     Route::get('doctors/{doctor}/schedule', [DoctorScheduleController::class, 'show']);
     Route::put('doctors/{doctor}/schedule', [DoctorScheduleController::class, 'update']);
