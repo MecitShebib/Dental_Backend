@@ -6,14 +6,14 @@ use App\Enums\UserStatus;
 use App\Models\Concerns\HasUuid;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -66,6 +66,7 @@ class User extends Authenticatable
             'status' => UserStatus::class,
             'is_project_admin' => 'boolean',
             'is_doctor' => 'boolean',
+            'company_id' => 'integer',
         ];
     }
 
@@ -127,5 +128,12 @@ class User extends Authenticatable
     public function isProjectAdmin(): bool
     {
         return $this->is_project_admin === true;
+    }
+
+    public function isSystemManager(): bool
+    {
+        return $this->relationLoaded('roles')
+            ? $this->roles->contains('slug', 'system_manager')
+            : $this->roles()->where('slug', 'system_manager')->exists();
     }
 }

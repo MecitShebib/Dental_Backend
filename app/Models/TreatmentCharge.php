@@ -7,13 +7,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class AiTreatmentPlanCharge extends Model
+class TreatmentCharge extends Model
 {
     use HasFactory, HasUuid;
+
+    public const SOURCE_MANUAL = 'manual';
+
+    public const SOURCE_AI_PLAN = 'ai_plan';
+
+    public const SOURCE_VISIT = 'visit';
+
+    public const SOURCE_APPOINTMENT = 'appointment';
 
     protected $fillable = [
         'uuid',
         'client_id',
+        'source_type',
+        'source_id',
         'amount',
         'description',
         'created_by',

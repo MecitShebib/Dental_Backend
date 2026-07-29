@@ -59,9 +59,9 @@ class Client extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function aiTreatmentPlanCharges(): HasMany
+    public function treatmentCharges(): HasMany
     {
-        return $this->hasMany(AiTreatmentPlanCharge::class);
+        return $this->hasMany(TreatmentCharge::class);
     }
 
     public function appointments(): HasMany

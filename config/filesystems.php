@@ -40,7 +40,13 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Points directly at public_path('storage') instead of the conventional
+            // storage_path('app/public') + storage:link symlink. Some shared hosts
+            // disable both symlink() and exec(), which makes `storage:link` fail
+            // unconditionally (Laravel's Filesystem::link() falls back to exec('ln -s')
+            // when symlink() is missing, and that call itself fails the same way).
+            // Writing straight into the web root sidesteps the need for a link at all.
+            'root' => public_path('storage'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,

@@ -17,6 +17,7 @@ class PreviewAiTreatmentPlanRequest extends FormRequest
         return [
             'description' => [Rule::requiredIf(fn () => ! $this->hasFile('audio')), 'nullable', 'string', 'max:2000'],
             'audio' => ['nullable', 'file', 'mimes:mp3,wav,m4a,webm,ogg', 'max:20480'],
+            'doctor_id' => ['nullable', 'integer'],
         ];
     }
 }

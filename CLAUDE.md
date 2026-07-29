@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Laravel 12 REST API backend for a dental clinic management system, with a separate web-based admin panel. It uses Laravel Sanctum for API token authentication and SQLite by default (configurable to MySQL/PostgreSQL via `.env`).
+A Laravel 12 REST API backend for a dental clinic management system, with a separate web-based admin panel (`/admin`) and a public marketing landing page (`/{locale?}`, `en|ar|tr`, `resources/views/landing.blade.php`) whose content is editable from the admin panel (`Admin\LandingPageController`, `LandingPageContent` model — see `app/Models/LandingPageContent.php` for the per-locale defaults/schema). The landing page also has Contact and Get-a-Quote forms that save to `landing_page_inquiries` (`LandingPageInquiry` model, `InquiryType` enum) and are reviewed at `/admin/inquiries`. It uses Laravel Sanctum for API token authentication and SQLite by default (configurable to MySQL/PostgreSQL via `.env`).
+
+**Deployment**: this app and the separate `Dental_FrontEnd` React SPA deploy together on one server/domain, split by path (`/`, `/admin`, `/api` here; `/app` for the frontend) — see `DEPLOYMENT.md` in the `Dental_FrontEnd` repo for the full Nginx setup.
 
 ## Commands
 

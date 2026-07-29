@@ -22,7 +22,7 @@ class ClientFinancialSummaryServiceTest extends TestCase
         ]);
     }
 
-    public function test_summary_is_zero_with_no_treatment_record_charges_or_payments(): void
+    public function test_summary_is_zero_with_no_charges_or_payments(): void
     {
         $client = $this->makeClient();
 
@@ -33,23 +33,22 @@ class ClientFinancialSummaryServiceTest extends TestCase
         $this->assertSame(0.0, $summary['remaining_amount']);
     }
 
-    public function test_ai_plan_charges_add_on_top_of_the_treatment_record_amount(): void
+    public function test_treatment_charges_from_every_source_sum_together(): void
     {
         $client = $this->makeClient();
-        $client->treatmentRecord()->create(['total_services_amount' => 100]);
-        $client->aiTreatmentPlanCharges()->create(['amount' => 50]);
-        $client->aiTreatmentPlanCharges()->create(['amount' => 25]);
+        $client->treatmentCharges()->create(['source_type' => 'manual', 'amount' => 50]);
+        $client->treatmentCharges()->create(['source_type' => 'visit', 'source_id' => 1, 'amount' => 25]);
 
         $summary = app(ClientFinancialSummaryService::class)->summary($client);
 
-        $this->assertSame(175.0, $summary['total_services_amount']);
+        $this->assertSame(75.0, $summary['total_services_amount']);
     }
 
-    public function test_payments_deduct_from_the_combined_total(): void
+    public function test_payments_deduct_from_the_charges_total(): void
     {
         $client = $this->makeClient();
-        $client->treatmentRecord()->create(['total_services_amount' => 100]);
-        $client->aiTreatmentPlanCharges()->create(['amount' => 50]);
+        $client->treatmentCharges()->create(['source_type' => 'manual', 'amount' => 100]);
+        $client->treatmentCharges()->create(['source_type' => 'manual', 'amount' => 50]);
         $client->payments()->create([
             'payment_date' => now()->toDateString(),
             'amount' => 60,

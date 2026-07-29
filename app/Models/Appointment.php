@@ -39,6 +39,7 @@ class Appointment extends Model
             'type' => AppointmentType::class,
             'status' => AppointmentStatus::class,
             'date' => 'date',
+            'duration_minutes' => 'integer',
         ];
     }
 

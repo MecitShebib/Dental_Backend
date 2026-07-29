@@ -18,6 +18,13 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # React SPA fallback under /app — client-side routes (e.g. /app/login,
+    # /app/client-details/5) aren't real files, so without this they'd fall
+    # through to Laravel's router below and 404 (Laravel has no /app/* route).
+    RewriteCond %{REQUEST_URI} ^/app
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ /app/index.html [L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f

@@ -9,15 +9,18 @@ use App\Http\Requests\Appointment\StoreAppointmentRequest;
 use App\Http\Requests\Appointment\UpdateAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\TreatmentCharge;
 use App\Models\User;
 use App\Services\AppointmentConflictService;
+use App\Services\TreatmentChargeService;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
-    public function __construct(protected AppointmentConflictService $conflicts)
-    {
-    }
+    public function __construct(
+        protected AppointmentConflictService $conflicts,
+        protected TreatmentChargeService $treatmentCharges,
+    ) {}
 
     public function index(IndexAppointmentRequest $request)
     {
@@ -65,9 +68,14 @@ class AppointmentController extends Controller
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
     {
+        $validated = $request->validated();
+        $chargeAmountProvided = array_key_exists('treatment_charge_amount', $validated);
+        $chargeAmount = $validated['treatment_charge_amount'] ?? null;
+        unset($validated['treatment_charge_amount']);
+
         $data = [
             ...$appointment->only(['client_id', 'doctor_id', 'type', 'status', 'date', 'start_time', 'duration_minutes', 'notes']),
-            ...$request->validated(),
+            ...$validated,
         ];
 
         $doctor = User::findOrFail($data['doctor_id']);
@@ -76,17 +84,22 @@ class AppointmentController extends Controller
         $this->conflicts->assertNoConflict($doctor->id, $data['date'], $data['start_time'], (int) $data['duration_minutes'], $appointment->id);
 
         $appointment->update([
-            ...$request->validated(),
+            ...$validated,
             'client_id' => $data['type'] === AppointmentType::Unavailable->value ? null : $data['client_id'],
             'end_time' => $this->conflicts->calculateEndTime($data['start_time'], (int) $data['duration_minutes']),
             'updated_by' => $request->user()->id,
         ]);
+
+        if ($chargeAmountProvided && $appointment->client_id) {
+            $this->treatmentCharges->sync($appointment->client, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, $chargeAmount);
+        }
 
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])), 'Appointment updated successfully.');
     }
 
     public function destroy(Appointment $appointment)
     {
+        $this->treatmentCharges->deleteAllForAppointment($appointment->id);
         $appointment->delete();
 
         return $this->success(null, 'Appointment deleted successfully.');

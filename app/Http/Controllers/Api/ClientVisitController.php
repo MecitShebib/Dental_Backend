@@ -12,12 +12,16 @@ use App\Http\Requests\Visit\UpdateVisitRequest;
 use App\Http\Resources\VisitResource;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\TreatmentCharge;
 use App\Models\Visit;
+use App\Services\TreatmentChargeService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ClientVisitController extends Controller
 {
+    public function __construct(protected TreatmentChargeService $treatmentCharges) {}
+
     public function index(Client $client)
     {
         $visits = $client->visits()->with(['doctor', 'appointment'])->latest('visit_date')->paginate();
@@ -27,30 +31,44 @@ class ClientVisitController extends Controller
 
     public function store(StoreVisitRequest $request, Client $client)
     {
+        $data = $request->validated();
+        $chargeAmount = $data['treatment_charge_amount'] ?? null;
+        unset($data['treatment_charge_amount']);
+
         $visit = $client->visits()->create([
-            ...$request->validated(),
+            ...$data,
             'attendance_status' => AttendanceStatus::WalkIn->value,
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
         ]);
 
         $client->forceFill(['last_visit_at' => $visit->visit_date?->toDateString().' '.($visit->start_time ?? '00:00:00')])->save();
+        $this->treatmentCharges->sync($client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeAmount);
 
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Visit created successfully.', 201);
     }
 
     public function update(UpdateVisitRequest $request, Visit $visit)
     {
+        $data = $request->validated();
+        $chargeAmount = $data['treatment_charge_amount'] ?? null;
+        unset($data['treatment_charge_amount']);
+
         $visit->update([
-            ...$request->validated(),
+            ...$data,
             'updated_by' => $request->user()->id,
         ]);
+
+        if (array_key_exists('treatment_charge_amount', $request->validated())) {
+            $this->treatmentCharges->sync($visit->client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeAmount);
+        }
 
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Visit updated successfully.');
     }
 
     public function destroy(Visit $visit)
     {
+        $this->treatmentCharges->deleteForSource(TreatmentCharge::SOURCE_VISIT, $visit->id);
         $visit->delete();
 
         return $this->success(null, 'Visit deleted successfully.');
@@ -84,6 +102,26 @@ class ClientVisitController extends Controller
                 'last_visit_at' => $appointment->date->format('Y-m-d').' '.$appointment->start_time,
             ])->save();
 
+            // The appointment may already carry a charge (an AI-confirmed plan's
+            // computed cost, or one added while editing the appointment before
+            // check-in) -- re-point it to the new visit instead of leaving it
+            // orphaned on the now-completed appointment or losing it entirely.
+            $this->treatmentCharges->retarget(TreatmentCharge::SOURCE_AI_PLAN, $appointment->id, TreatmentCharge::SOURCE_VISIT, $visit->id);
+            $this->treatmentCharges->retarget(TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, TreatmentCharge::SOURCE_VISIT, $visit->id);
+
+            // If the odontogram was edited as part of checking in (the "Attended"
+            // flow lets the doctor adjust it before it becomes a visit), the
+            // retargeted charge above still holds the pre-edit amount -- update
+            // it to whatever was actually just computed for this visit.
+            if ($request->has('treatment_charge_amount')) {
+                $this->treatmentCharges->sync(
+                    $appointment->client,
+                    TreatmentCharge::SOURCE_VISIT,
+                    $visit->id,
+                    $request->validated('treatment_charge_amount'),
+                );
+            }
+
             return $visit;
         });
 
@@ -111,6 +149,11 @@ class ClientVisitController extends Controller
                 'status' => AppointmentStatus::NoShow->value,
                 'updated_by' => $request->user()->id,
             ]);
+
+            // Nothing was actually performed, so any charge tied to this
+            // appointment (an AI-confirmed plan's cost, or one added manually)
+            // shouldn't count toward the client's total anymore.
+            $this->treatmentCharges->deleteAllForAppointment($appointment->id);
 
             return $visit;
         });

@@ -36,8 +36,9 @@ class AddAiTreatmentPlanChargeTest extends TestCase
 
         $response->assertCreated();
 
-        $this->assertDatabaseHas('ai_treatment_plan_charges', [
+        $this->assertDatabaseHas('treatment_charges', [
             'client_id' => $client->id,
+            'source_type' => 'manual',
             'amount' => 150.5,
             'description' => 'Root canal, 2 sessions',
             'created_by' => $doctor->id,
@@ -58,7 +59,7 @@ class AddAiTreatmentPlanChargeTest extends TestCase
             'amount' => 75,
         ])->assertCreated();
 
-        $this->assertDatabaseHas('ai_treatment_plan_charges', [
+        $this->assertDatabaseHas('treatment_charges', [
             'client_id' => $client->id,
             'amount' => 75,
             'description' => null,
@@ -75,7 +76,7 @@ class AddAiTreatmentPlanChargeTest extends TestCase
             'amount' => 100,
         ])->assertStatus(422)->assertJsonValidationErrors('doctor');
 
-        $this->assertDatabaseCount('ai_treatment_plan_charges', 0);
+        $this->assertDatabaseCount('treatment_charges', 0);
     }
 
     public function test_amount_must_be_a_positive_number(): void
@@ -95,6 +96,6 @@ class AddAiTreatmentPlanChargeTest extends TestCase
         $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [])
             ->assertStatus(422)->assertJsonValidationErrors('amount');
 
-        $this->assertDatabaseCount('ai_treatment_plan_charges', 0);
+        $this->assertDatabaseCount('treatment_charges', 0);
     }
 }

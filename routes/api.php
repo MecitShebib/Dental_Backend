@@ -36,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('companies/{company}/treatment-products', [CompanyTreatmentProductController::class, 'index']);
     Route::post('companies/{company}/treatment-products', [CompanyTreatmentProductController::class, 'store']);
     Route::put('companies/{company}/treatment-products/{product}', [CompanyTreatmentProductController::class, 'update']);
+    Route::delete('companies/{company}/treatment-products/{product}', [CompanyTreatmentProductController::class, 'destroy']);
+    Route::get('companies/{company}/odontogram-treatment-prices', [CompanyTreatmentProductController::class, 'odontogramPrices']);
     Route::apiResource('users', UserController::class);
     Route::apiResource('clients', ClientController::class);
 
@@ -54,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('clients/{client}/appointments', [ClientAppointmentController::class, 'index']);
     Route::post('clients/{client}/ai-treatment-plan', [AiTreatmentPlanController::class, 'preview']);
+    Route::post('clients/{client}/ai-treatment-plan/transcribe', [AiTreatmentPlanController::class, 'transcribe']);
     Route::post('clients/{client}/ai-treatment-plan/confirm', [AiTreatmentPlanController::class, 'confirm']);
     Route::post('clients/{client}/ai-treatment-plan/charge', [AiTreatmentPlanController::class, 'addCharge']);
 

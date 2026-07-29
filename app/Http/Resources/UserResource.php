@@ -14,7 +14,6 @@ class UserResource extends JsonResource
             'uuid' => $this->uuid,
             'company_id' => $this->company_id,
             'company_name' => optional($this->whenLoaded('company'))->name,
-            'version' => optional($this->whenLoaded('company'))->version,
             'name' => $this->name,
             'email' => $this->email,
             'mobile' => $this->phone,

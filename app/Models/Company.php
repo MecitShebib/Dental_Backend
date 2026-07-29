@@ -19,7 +19,6 @@ class Company extends Model
         'email',
         'phone',
         'address',
-        'version',
         'status',
         'notes',
     ];

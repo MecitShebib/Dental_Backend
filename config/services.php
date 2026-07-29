@@ -39,10 +39,8 @@ return [
         'enabled' => env('TURKEYSMS_ENABLED', false),
         'base_url' => env('TURKEYSMS_BASE_URL', 'https://turkeysms.com.tr'),
         'api_key' => env('TURKEYSMS_API_KEY'),
+        'title' => env('TURKEYSMS_TITLE', 'ELECMINDS'),
         'otp_digits' => (int) env('TURKEYSMS_OTP_DIGITS', 6),
-        'otp_lang' => (int) env('TURKEYSMS_OTP_LANG', 2),
-        'report' => (int) env('TURKEYSMS_REPORT', 1),
-        'response_type' => env('TURKEYSMS_RESPONSE_TYPE', 'json'),
     ],
 
     'openai' => [

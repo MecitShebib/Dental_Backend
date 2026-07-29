@@ -42,8 +42,6 @@ class PreviewAiTreatmentPlanTest extends TestCase
                                     [
                                         'tooth_number' => 13,
                                         'tooth_selection' => null,
-                                        'crown_material' => null,
-                                        'bridge_unit' => null,
                                         'endo' => 'endo-filling-incomplete',
                                         'filling_material' => null,
                                         'filling_surfaces' => [],

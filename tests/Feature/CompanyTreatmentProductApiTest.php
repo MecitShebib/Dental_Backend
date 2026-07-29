@@ -23,7 +23,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             'name_ar' => 'ar',
             'name_en' => 'English',
             'name_tr' => 'Turkce',
-            'color' => '#3b82f6',
             'price' => 100,
             'unit_price' => 100,
             'status' => 'active',
@@ -32,7 +31,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             ->assertJsonPath('data.name_ar', 'ar')
             ->assertJsonPath('data.name_en', 'English')
             ->assertJsonPath('data.name_tr', 'Turkce')
-            ->assertJsonPath('data.color', '#3b82f6')
             ->assertJsonPath('data.price', 100);
 
         $this->assertDatabaseHas('treatment_catalog', [
@@ -41,7 +39,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             'name_ar' => 'ar',
             'name_en' => 'English',
             'name_tr' => 'Turkce',
-            'color' => '#3b82f6',
         ]);
     }
 
@@ -55,7 +52,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             'name_ar' => 'old-ar',
             'name_en' => 'Old',
             'name_tr' => 'Eski',
-            'color' => '#111111',
             'default_price' => 50,
             'is_active' => true,
             'sort_order' => 1,
@@ -66,7 +62,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             'name_ar' => 'ar',
             'name_en' => 'en',
             'name_tr' => 'tr',
-            'color' => '#3b82f6',
             'price' => 100,
             'unit_price' => 100,
             'status' => 'active',
@@ -75,7 +70,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             ->assertJsonPath('data.name_ar', 'ar')
             ->assertJsonPath('data.name_en', 'en')
             ->assertJsonPath('data.name_tr', 'tr')
-            ->assertJsonPath('data.color', '#3b82f6')
             ->assertJsonPath('data.price', 100);
 
         $this->assertDatabaseHas('treatment_catalog', [
@@ -84,7 +78,6 @@ class CompanyTreatmentProductApiTest extends TestCase
             'name_ar' => 'ar',
             'name_en' => 'en',
             'name_tr' => 'tr',
-            'color' => '#3b82f6',
             'default_price' => 100,
         ]);
     }

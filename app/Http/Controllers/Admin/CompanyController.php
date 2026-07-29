@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCompanyRequest;
 use App\Http\Requests\Admin\UpdateCompanyRequest;
 use App\Models\Company;
+use App\Models\Role;
+use Database\Seeders\TreatmentCatalogSeeder;
 use Illuminate\Http\Request;
 
 class CompanyController extends Controller
@@ -44,13 +46,15 @@ class CompanyController extends Controller
             'company' => $company,
             'users' => $company->users()->with('roles')->orderBy('name')->get(),
             'subscriptions' => $company->subscriptions()->latest()->get(),
-            'roles' => \App\Models\Role::orderBy('name')->get(),
+            'roles' => Role::orderBy('name')->get(),
         ]);
     }
 
     public function store(StoreCompanyRequest $request)
     {
-        Company::create($request->validated());
+        $company = Company::create($request->validated());
+
+        (new TreatmentCatalogSeeder)->seedCompany($company);
 
         return redirect()->route('admin.companies.index')->with('status', 'Company created successfully.');
     }

@@ -6,6 +6,7 @@ use App\Enums\AppointmentStatus;
 use App\Enums\AppointmentType;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\TreatmentCharge;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class AiTreatmentPlanService
         protected DoctorAvailabilityService $availability,
         protected AppointmentConflictService $conflicts,
         protected AiTokenUsageService $aiTokenUsage,
+        protected TreatmentChargeService $treatmentCharges,
     ) {}
 
     public function buildJsonSchema(): array
@@ -32,11 +34,18 @@ class AiTreatmentPlanService
             'properties' => [
                 'tooth_number' => ['type' => 'integer', 'minimum' => 11, 'maximum' => 85],
                 'tooth_selection' => $enumOrNull(OdontogramV2Vocabulary::toothSelection()),
-                'crown_material' => $enumOrNull(OdontogramV2Vocabulary::crownMaterial()),
-                'bridge_unit' => $enumOrNull(OdontogramV2Vocabulary::bridgeUnit()),
+                'tooth_substrate' => $enumOrNull(OdontogramV2Vocabulary::toothSubstrate()),
+                'restoration_type' => $enumOrNull(OdontogramV2Vocabulary::restorationType()),
+                'restoration_material' => $enumOrNull(OdontogramV2Vocabulary::restorationMaterial()),
+                'prosthesis' => $enumOrNull(OdontogramV2Vocabulary::prosthesis()),
                 'endo' => $enumOrNull(OdontogramV2Vocabulary::endo()),
                 'filling_material' => $enumOrNull(OdontogramV2Vocabulary::fillingMaterial()),
                 'filling_surfaces' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string', 'enum' => OdontogramV2Vocabulary::fillingSurfaces()],
+                ],
+                'filling_defect' => $enumOrNull(OdontogramV2Vocabulary::fillingDefect()),
+                'filling_defect_surfaces' => [
                     'type' => 'array',
                     'items' => ['type' => 'string', 'enum' => OdontogramV2Vocabulary::fillingSurfaces()],
                 ],
@@ -48,14 +57,25 @@ class AiTreatmentPlanService
                     'type' => 'array',
                     'items' => ['type' => 'string', 'enum' => OdontogramV2Vocabulary::mods()],
                 ],
+                'wear_edge' => $enumOrNull(OdontogramV2Vocabulary::wearEdge()),
+                'wear_cervical' => $enumOrNull(OdontogramV2Vocabulary::wearCervical()),
+                'discoloration' => $enumOrNull(OdontogramV2Vocabulary::discoloration()),
+                'ortho_appliance' => $enumOrNull(OdontogramV2Vocabulary::orthoAppliance()),
+                'mobility' => $enumOrNull(OdontogramV2Vocabulary::mobility()),
+                'peri_implant' => $enumOrNull(OdontogramV2Vocabulary::periImplant()),
+                'pulp_dx' => $enumOrNull(OdontogramV2Vocabulary::pulpDx()),
+                'resorption_type' => $enumOrNull(OdontogramV2Vocabulary::resorptionType()),
+                'root_caries' => $enumOrNull(OdontogramV2Vocabulary::rootCaries()),
                 'indicator_flags' => [
                     'type' => 'array',
                     'items' => ['type' => 'string', 'enum' => OdontogramV2Vocabulary::indicatorFlags()],
                 ],
             ],
             'required' => [
-                'tooth_number', 'tooth_selection', 'crown_material', 'bridge_unit', 'endo',
-                'filling_material', 'filling_surfaces', 'caries', 'mods', 'indicator_flags',
+                'tooth_number', 'tooth_selection', 'tooth_substrate', 'restoration_type', 'restoration_material',
+                'prosthesis', 'endo', 'filling_material', 'filling_surfaces', 'filling_defect', 'filling_defect_surfaces',
+                'caries', 'mods', 'wear_edge', 'wear_cervical', 'discoloration', 'ortho_appliance', 'mobility',
+                'peri_implant', 'pulp_dx', 'resorption_type', 'root_caries', 'indicator_flags',
             ],
             'additionalProperties' => false,
         ];
@@ -139,10 +159,19 @@ class AiTreatmentPlanService
 
         $fieldMap = [
             'tooth_selection' => 'toothSelection',
-            'crown_material' => 'crownMaterial',
-            'bridge_unit' => 'bridgeUnit',
+            'tooth_substrate' => 'toothSubstrate',
+            'prosthesis' => 'prosthesis',
             'endo' => 'endo',
             'filling_material' => 'fillingMaterial',
+            'wear_edge' => 'wearEdge',
+            'wear_cervical' => 'wearCervical',
+            'discoloration' => 'discoloration',
+            'ortho_appliance' => 'orthoAppliance',
+            'mobility' => 'mobility',
+            'peri_implant' => 'periImplant',
+            'pulp_dx' => 'pulpDx',
+            'resorption_type' => 'resorptionType',
+            'root_caries' => 'rootCaries',
         ];
 
         foreach ($teeth as $tooth) {
@@ -155,8 +184,21 @@ class AiTreatmentPlanService
                 }
             }
 
+            // restorationType/restorationMaterial are a pair (mirrors the
+            // widget's combined restoration dropdown) -- only set together.
+            if (! empty($tooth['restoration_type']) && ! empty($tooth['restoration_material'])) {
+                $state['restorationType'] = $tooth['restoration_type'];
+                $state['restorationMaterial'] = $tooth['restoration_material'];
+            }
+
             if (! empty($tooth['filling_surfaces'])) {
                 $state['fillingSurfaces'] = array_values($tooth['filling_surfaces']);
+            }
+
+            // fillingDefect is a per-surface map on the widget; the AI picks one
+            // defect type plus the surfaces it applies to, folded into a map here.
+            if (! empty($tooth['filling_defect']) && ! empty($tooth['filling_defect_surfaces'])) {
+                $state['fillingDefect'] = array_fill_keys(array_values($tooth['filling_defect_surfaces']), $tooth['filling_defect']);
             }
 
             if (! empty($tooth['caries'])) {
@@ -189,7 +231,7 @@ class AiTreatmentPlanService
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
-    public function preview(mixed $doctor, Client $client, string $description): array
+    public function preview(mixed $doctor, mixed $actingUser, Client $client, string $description): array
     {
         $response = $this->openAi->chatCompletionJson(
             $this->buildSystemPrompt(),
@@ -198,8 +240,8 @@ class AiTreatmentPlanService
         );
 
         $this->aiTokenUsage->recordUsage(
-            $doctor->company,
-            $doctor,
+            $actingUser->company,
+            $actingUser,
             $client,
             'ai_treatment_plan_preview',
             (string) config('services.openai.chat_model', 'gpt-4o-mini'),
@@ -273,6 +315,14 @@ class AiTreatmentPlanService
                     $path = $session['image']->storeAs('odontogram-plans', $appointment->uuid.'.png', 'public');
                     $appointment->update(['planned_image_path' => $path]);
                 }
+
+                $this->treatmentCharges->sync(
+                    $client,
+                    TreatmentCharge::SOURCE_AI_PLAN,
+                    $appointment->id,
+                    isset($session['treatment_charge_amount']) ? (float) $session['treatment_charge_amount'] : null,
+                    $session['session_description'],
+                );
 
                 return $appointment->fresh();
             });

@@ -41,7 +41,6 @@ class UpdateTreatmentProductRequest extends FormRequest
             'name_ar' => ['required', 'string', 'max:255'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_tr' => ['nullable', 'string', 'max:255'],
-            'color' => ['nullable', 'string', 'max:50'],
             'price' => ['required', 'numeric', 'min:0'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],

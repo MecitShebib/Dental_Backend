@@ -3,59 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>Admin Login · Dentavaria</title>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     <style>
+        * { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
             display: grid;
             place-items: center;
+            font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
             background:
-                radial-gradient(circle at top left, rgba(210,180,116,.35), transparent 22rem),
-                linear-gradient(180deg, #1d2927, #10201d 60%, #0c1715);
-            font-family: Georgia, "Times New Roman", serif;
-            color: #f7f2e8;
+                radial-gradient(circle at 15% -10%, rgba(16, 185, 129, 0.16), transparent 42%),
+                radial-gradient(circle at 88% 10%, rgba(13, 148, 136, 0.12), transparent 38%),
+                #05070a;
+            color: #f1f5f9;
+            padding: 1.5rem;
         }
         .box {
-            width: min(420px, calc(100% - 2rem));
-            background: rgba(255,252,246,.08);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,.14);
+            width: min(420px, 100%);
+            background: rgba(10, 15, 13, 0.92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
-            padding: 2rem;
+            padding: 2.25rem;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
         }
+        .mark {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, #10b981, #0d9488);
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.3);
+        }
+        h1 { margin: 0 0 .4rem; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; }
+        p.sub { margin: 0 0 1.5rem; color: #94a3b8; font-size: .92rem; line-height: 1.5; }
         input {
             width: 100%;
-            padding: .85rem .95rem;
+            padding: .8rem .95rem;
             margin-bottom: .9rem;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,.2);
-            background: rgba(255,255,255,.08);
-            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            color: #f1f5f9;
+            font: inherit;
+            font-size: .92rem;
+        }
+        input::placeholder { color: #64748b; }
+        input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
         }
         button {
             width: 100%;
             padding: .9rem 1rem;
             border: 0;
             border-radius: 12px;
-            background: #d59d3b;
-            color: #1d1609;
+            background: linear-gradient(135deg, #10b981, #0d9488);
+            color: #04140f;
+            font: inherit;
             font-weight: 700;
+            font-size: .95rem;
             cursor: pointer;
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.22);
         }
+        button:hover { filter: brightness(1.08); }
         .errors {
             margin-bottom: 1rem;
-            padding: .85rem;
+            padding: .85rem 1rem;
             border-radius: 12px;
-            background: rgba(194,79,47,.22);
+            background: rgba(248, 113, 113, 0.12);
+            border: 1px solid rgba(248, 113, 113, 0.28);
+            color: #fca5a5;
+            font-size: .88rem;
         }
     </style>
 </head>
 <body>
     <form class="box" method="POST" action="{{ route('admin.login.store') }}">
         @csrf
-        <h1>Admin Panel Login</h1>
-        <p>Sign in with an active admin account and active subscription.</p>
+        <span class="mark">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3c-3 0-5 2-5 5 0 2.5 1 4 1 7 0 2 .8 3.5 2 3.5s1.5-2 2-4c.3-1.2.7-1.2 1 0 .5 2 .8 4 2 4s2-1.5 2-3.5c0-3 1-4.5 1-7 0-3-2-5-5-5-.7 0-1 .3-1.5.6-.5-.3-.8-.6-1.5-.6Z" fill="white"/></svg>
+        </span>
+        <h1>Admin sign in</h1>
+        <p class="sub">Sign in with an active admin account and active subscription.</p>
         @if ($errors->any())
             <div class="errors">
                 @foreach ($errors->all() as $error)
@@ -65,7 +101,7 @@
         @endif
         <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" required>
         <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Login</button>
+        <button type="submit">Sign in</button>
     </form>
 </body>
 </html>

@@ -21,6 +21,7 @@ class StoreVisitRequest extends FormRequest
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'summary' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            'treatment_charge_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

@@ -15,6 +15,7 @@ class ConfirmAiTreatmentPlanRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'doctor_id' => ['nullable', 'integer'],
             'sessions' => ['required', 'array', 'min:1', 'max:8'],
             'sessions.*.date' => ['required', 'date'],
             'sessions.*.start_time' => ['required', 'date_format:H:i'],
@@ -22,6 +23,7 @@ class ConfirmAiTreatmentPlanRequest extends FormRequest
             'sessions.*.session_description' => ['required', 'string'],
             'sessions.*.odontogram_v2_status' => ['required', 'string', 'json'],
             'sessions.*.image' => ['required', 'file', 'mimes:png', 'max:5120'],
+            'sessions.*.treatment_charge_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

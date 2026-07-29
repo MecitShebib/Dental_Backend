@@ -6,9 +6,10 @@ use App\Models\Company;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserOtp;
+use App\Services\MobileOtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AuthOtpFlowTest extends TestCase
@@ -23,20 +24,26 @@ class AuthOtpFlowTest extends TestCase
             'services.turkeysms.enabled' => true,
             'services.turkeysms.api_key' => 'test-api-key',
             'services.turkeysms.base_url' => 'https://turkeysms.com.tr',
+            'services.turkeysms.title' => 'ELECMINDS',
             'services.turkeysms.otp_digits' => 6,
-            'services.turkeysms.otp_lang' => 2,
-            'services.turkeysms.report' => 1,
-            'services.turkeysms.response_type' => 'json',
         ]);
+    }
+
+    protected function fakeGeneratedOtp(string $otp): void
+    {
+        $this->partialMock(MobileOtpService::class, function ($mock) use ($otp) {
+            $mock->shouldAllowMockingProtectedMethods()
+                ->shouldReceive('generateOtp')->andReturn($otp);
+        });
     }
 
     public function test_login_returns_otp_challenge_without_token(): void
     {
         $user = $this->activeUser();
+        $this->fakeGeneratedOtp('123456');
         Http::fake([
-            'https://turkeysms.com.tr/api/v3/otp/otp_get.php*' => Http::response([
+            'https://turkeysms.com.tr/api/v3/gonder/add-content*' => Http::response([
                 'result' => true,
-                'otp_code' => '123456',
                 'sms_id' => '1000007721',
                 'result_code' => 'TS-1024',
                 'result_message' => 'The message was sent successfully',
@@ -64,10 +71,10 @@ class AuthOtpFlowTest extends TestCase
     public function test_verify_login_otp_returns_token_and_user(): void
     {
         $user = $this->activeUser();
+        $this->fakeGeneratedOtp('123456');
         Http::fake([
-            'https://turkeysms.com.tr/api/v3/otp/otp_get.php*' => Http::response([
+            'https://turkeysms.com.tr/api/v3/gonder/add-content*' => Http::response([
                 'result' => true,
-                'otp_code' => '123456',
                 'sms_id' => '1000007721',
                 'result_code' => 'TS-1024',
                 'result_message' => 'The message was sent successfully',
@@ -100,10 +107,10 @@ class AuthOtpFlowTest extends TestCase
     public function test_forgot_password_verification_and_reset_flow(): void
     {
         $user = $this->activeUser();
+        $this->fakeGeneratedOtp('654321');
         Http::fake([
-            'https://turkeysms.com.tr/api/v3/otp/otp_get.php*' => Http::response([
+            'https://turkeysms.com.tr/api/v3/gonder/add-content*' => Http::response([
                 'result' => true,
-                'otp_code' => '654321',
                 'sms_id' => '1000008899',
                 'result_code' => 'TS-1024',
                 'result_message' => 'The message was sent successfully',

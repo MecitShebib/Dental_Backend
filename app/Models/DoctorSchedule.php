@@ -13,6 +13,10 @@ class DoctorSchedule extends Model
 
     protected $fillable = ['doctor_id', 'start_time', 'end_time', 'slot_minutes'];
 
+    protected $casts = [
+        'slot_minutes' => 'integer',
+    ];
+
     public function doctor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'doctor_id');

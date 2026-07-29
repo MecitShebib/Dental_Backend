@@ -25,6 +25,9 @@ class UpdateAppointmentRequest extends FormRequest
             'start_time' => ['sometimes', 'required', 'date_format:H:i'],
             'duration_minutes' => ['sometimes', 'required', 'integer', Rule::in([30, 60, 90])],
             'notes' => ['nullable', 'string'],
+            'planned_summary' => ['nullable', 'string'],
+            'planned_notes' => ['nullable', 'string'],
+            'treatment_charge_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

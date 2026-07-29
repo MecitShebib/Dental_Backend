@@ -15,7 +15,7 @@ class TreatmentRecordService
                 [],
                 [
                     'treatment_plan' => $payload['treatment_plan'] ?? null,
-                    'currency_code' => $payload['currency_code'] ?? 'SYP',
+                    'currency_code' => $payload['currency_code'] ?? 'TRY',
                     'notes' => $payload['notes'] ?? null,
                     'created_by' => $userId,
                     'updated_by' => $userId,

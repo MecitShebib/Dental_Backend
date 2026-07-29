@@ -10,15 +10,13 @@ use App\Services\TreatmentRecordService;
 
 class ClientTreatmentRecordController extends Controller
 {
-    public function __construct(protected TreatmentRecordService $service)
-    {
-    }
+    public function __construct(protected TreatmentRecordService $service) {}
 
     public function show(Client $client)
     {
         $record = $client->treatmentRecord()->with('teeth.treatmentCatalog')->firstOrCreate(
             ['client_id' => $client->id],
-            ['currency_code' => 'SYP']
+            ['currency_code' => 'TRY']
         );
 
         return $this->success(TreatmentRecordResource::make($record->load('teeth.treatmentCatalog')));

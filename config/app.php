@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend (React SPA) URL
+    |--------------------------------------------------------------------------
+    |
+    | Base URL of the Dental_FrontEnd React app that clinic staff log into.
+    | In production this is path-routed on the same domain ("/app"); in local
+    | development the Vite dev server runs on its own port, so this is set
+    | to an absolute URL via .env.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', '/app'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

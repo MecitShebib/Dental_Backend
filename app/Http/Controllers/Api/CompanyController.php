@@ -36,7 +36,11 @@ class CompanyController extends Controller
 
     protected function assertBelongsToRequester(Request $request, Company $company): void
     {
-        if ($company->id !== $request->user()->company_id) {
+        if ($request->user()->isProjectAdmin()) {
+            return;
+        }
+
+        if ((int) $company->id !== (int) $request->user()->company_id) {
             throw ValidationException::withMessages([
                 'company' => ['The selected company does not belong to your account.'],
             ]);

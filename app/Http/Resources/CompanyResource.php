@@ -17,7 +17,6 @@ class CompanyResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'address' => $this->address,
-            'version' => $this->version,
             'status' => $this->status,
             'notes' => $this->notes,
             'users_count' => $this->whenCounted('users', $this->users_count),

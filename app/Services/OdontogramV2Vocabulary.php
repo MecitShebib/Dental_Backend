@@ -3,26 +3,37 @@
 namespace App\Services;
 
 /**
- * Mirrors the Odontogram v2 vocabulary in Dental_FrontEnd's
- * app/frontend/src/utils/odontogramV2.js (DEFAULT_PRICE_BY_KIND / FLAG_KEYS)
- * and the vendored odontogram-v2/odontogram.ts engine (GROUPS.caries /
- * GROUPS.fillingSurfaces). Update this file if those change.
+ * Mirrors the Odontogram v2 vendored library's actual data model (v1.30.0,
+ * Dental_FrontEnd's src/vendor/odontogram-v2/odontogram.ts defaultState() /
+ * registry/restorations.ts RESTORATION_MATRIX) and the pricing vocabulary in
+ * Dental_FrontEnd's src/utils/odontogramV2.js (DEFAULT_PRICE_BY_KIND).
+ * Update this file if either of those change.
  */
 class OdontogramV2Vocabulary
 {
     public static function toothSelection(): array
     {
-        return ['implant', 'tooth-crownprep', 'tooth-under-gum', 'no-tooth-after-extraction'];
+        return ['implant', 'tooth-under-gum', 'no-tooth-after-extraction'];
     }
 
-    public static function crownMaterial(): array
+    public static function toothSubstrate(): array
     {
-        return ['emax', 'zircon', 'metal', 'temporary', 'telescope', 'radix', 'broken'];
+        return ['radix', 'broken', 'crownprep'];
     }
 
-    public static function bridgeUnit(): array
+    public static function restorationType(): array
     {
-        return ['zircon', 'metal', 'temporary', 'removable', 'bar', 'bar-prosthesis'];
+        return ['crown', 'inlay', 'onlay', 'veneer', 'bridge'];
+    }
+
+    public static function restorationMaterial(): array
+    {
+        return ['emax', 'gold', 'gradia', 'zircon', 'metal', 'metal-ceramic', 'telescope', 'temporary'];
+    }
+
+    public static function prosthesis(): array
+    {
+        return ['healing-abutment', 'locator', 'locator-denture', 'bar', 'bar-denture', 'removable-partial', 'removable-full'];
     }
 
     public static function endo(): array
@@ -33,8 +44,6 @@ class OdontogramV2Vocabulary
             'endo-filling-incomplete',
             'endo-glass-pin',
             'endo-metal-pin',
-            'endo-resection',
-            'parapulpal-pin',
         ];
     }
 
@@ -48,6 +57,11 @@ class OdontogramV2Vocabulary
         return ['buccal', 'lingual', 'mesial', 'distal', 'occlusal'];
     }
 
+    public static function fillingDefect(): array
+    {
+        return ['marginal', 'fracture', 'wear'];
+    }
+
     public static function caries(): array
     {
         return ['caries-subcrown', 'caries-buccal', 'caries-lingual', 'caries-mesial', 'caries-distal', 'caries-occlusal'];
@@ -55,7 +69,52 @@ class OdontogramV2Vocabulary
 
     public static function mods(): array
     {
-        return ['inflammation', 'parodontal', 'mobility'];
+        return ['inflammation', 'parodontal'];
+    }
+
+    public static function wearEdge(): array
+    {
+        return ['attrition', 'erosion'];
+    }
+
+    public static function wearCervical(): array
+    {
+        return ['abrasion', 'abfraction', 'erosion'];
+    }
+
+    public static function discoloration(): array
+    {
+        return ['tetracycline', 'fluorosis', 'nonvital', 'extrinsic', 'other'];
+    }
+
+    public static function orthoAppliance(): array
+    {
+        return ['bracket', 'band'];
+    }
+
+    public static function mobility(): array
+    {
+        return ['m1', 'm2', 'm3'];
+    }
+
+    public static function periImplant(): array
+    {
+        return ['mucositis', 'peri-implantitis-mild', 'peri-implantitis-moderate', 'peri-implantitis-severe'];
+    }
+
+    public static function pulpDx(): array
+    {
+        return ['reversible-pulpitis', 'irreversible-pulpitis', 'necrosis'];
+    }
+
+    public static function resorptionType(): array
+    {
+        return ['internal', 'external-cervical'];
+    }
+
+    public static function rootCaries(): array
+    {
+        return ['active', 'arrested', 'active-cavitated'];
     }
 
     public static function indicatorFlags(): array
@@ -70,11 +129,13 @@ class OdontogramV2Vocabulary
             'fissureSealing',
             'contactMesial',
             'contactDistal',
-            'bruxismWear',
-            'bruxismNeckWear',
-            'pulpInflam',
-            'endoResection',
+            'brokenMesial',
+            'brokenIncisal',
+            'brokenDistal',
             'parapulpalPin',
+            'endoResection',
+            'calculus',
+            'crownLeakage',
         ];
     }
 }
