@@ -73,7 +73,15 @@ class MobileOtpService
             ]);
         }
 
+        if ($challenge->isLocked()) {
+            throw ValidationException::withMessages([
+                'otp' => ['Too many incorrect attempts. Please request a new OTP.'],
+            ]);
+        }
+
         if (! Hash::check($otp, $challenge->otp_code)) {
+            $challenge->increment('attempts');
+
             throw ValidationException::withMessages([
                 'otp' => ['The provided OTP is invalid.'],
             ]);

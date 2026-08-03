@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ClientGender;
 use App\Enums\ClientStatus;
+use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,10 +15,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use HasFactory, HasUuid, SoftDeletes;
+    use BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',
+        'company_id',
         'client_code',
         'name',
         'email',
@@ -64,6 +66,11 @@ class Client extends Model
         return $this->hasMany(TreatmentCharge::class);
     }
 
+    public function labCases(): HasMany
+    {
+        return $this->hasMany(LabCase::class);
+    }
+
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
@@ -72,6 +79,11 @@ class Client extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function updater(): BelongsTo

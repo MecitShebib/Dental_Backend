@@ -43,6 +43,41 @@ class Company extends Model
         return $this->hasMany(AiUsageLog::class);
     }
 
+    public function fundTransactions(): HasMany
+    {
+        return $this->hasMany(FundTransaction::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function capitalTransactions(): HasMany
+    {
+        return $this->hasMany(CapitalTransaction::class);
+    }
+
+    public function salaryAdvances(): HasMany
+    {
+        return $this->hasMany(SalaryAdvance::class);
+    }
+
+    public function salaryPayments(): HasMany
+    {
+        return $this->hasMany(SalaryPayment::class);
+    }
+
+    public function labPartners(): HasMany
+    {
+        return $this->hasMany(LabPartner::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     public function currentSubscription(): HasOne
     {
         return $this->hasOne(Subscription::class)

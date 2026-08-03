@@ -14,8 +14,9 @@ class AddAiTreatmentPlanChargeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'description' => ['nullable', 'string'],
+            'charge_items' => ['required', 'array', 'min:1'],
+            'charge_items.*.description' => ['nullable', 'string', 'max:255'],
+            'charge_items.*.amount' => ['required', 'numeric'],
         ];
     }
 }

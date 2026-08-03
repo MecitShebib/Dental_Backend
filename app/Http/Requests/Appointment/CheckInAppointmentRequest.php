@@ -17,7 +17,9 @@ class CheckInAppointmentRequest extends FormRequest
             'summary' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'create_payment_after_visit' => ['nullable', 'boolean'],
-            'treatment_charge_amount' => ['nullable', 'numeric', 'min:0'],
+            'charge_items' => ['nullable', 'array'],
+            'charge_items.*.description' => ['nullable', 'string', 'max:255'],
+            'charge_items.*.amount' => ['required', 'numeric'],
         ];
     }
 }

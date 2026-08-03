@@ -3,24 +3,39 @@
 use App\Http\Controllers\Api\AiTreatmentPlanController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CapitalTransactionController;
 use App\Http\Controllers\Api\ClientAppointmentController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientPaymentController;
 use App\Http\Controllers\Api\ClientTreatmentRecordController;
 use App\Http\Controllers\Api\ClientVisitController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CompanyFundController;
 use App\Http\Controllers\Api\CompanyTreatmentProductController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
 use App\Http\Controllers\Api\DoctorScheduleController;
+use App\Http\Controllers\Api\EmployeeSalaryController;
+use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\LabCaseController;
+use App\Http\Controllers\Api\LabPartnerController;
+use App\Http\Controllers\Api\SalaryAdvanceController;
+use App\Http\Controllers\Api\SalaryPaymentController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('login/verify-otp', [AuthController::class, 'verifyLoginOtp']);
-    Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('forgot-password/verify-otp', [AuthController::class, 'verifyForgotPasswordOtp']);
+    Route::middleware('throttle:otp-request')->group(function () {
+        Route::post('login', [AuthController::class, 'login']);
+        Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+    });
+
+    Route::middleware('throttle:otp-verify')->group(function () {
+        Route::post('login/verify-otp', [AuthController::class, 'verifyLoginOtp']);
+        Route::post('forgot-password/verify-otp', [AuthController::class, 'verifyForgotPasswordOtp']);
+    });
+
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -54,6 +69,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('payments/{payment}', [ClientPaymentController::class, 'update']);
     Route::delete('payments/{payment}', [ClientPaymentController::class, 'destroy']);
 
+    Route::get('invoices/{invoice}', [InvoiceController::class, 'show']);
+
     Route::get('clients/{client}/appointments', [ClientAppointmentController::class, 'index']);
     Route::post('clients/{client}/ai-treatment-plan', [AiTreatmentPlanController::class, 'preview']);
     Route::post('clients/{client}/ai-treatment-plan/transcribe', [AiTreatmentPlanController::class, 'transcribe']);
@@ -72,4 +89,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('appointments/{appointment}/no-show', [ClientVisitController::class, 'noShow']);
 
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
+
+    Route::get('fund/summary', [CompanyFundController::class, 'summary']);
+    Route::get('fund/transactions', [CompanyFundController::class, 'index']);
+
+    Route::get('expenses', [ExpenseController::class, 'index']);
+    Route::post('expenses', [ExpenseController::class, 'store']);
+    Route::post('expenses/{expense}', [ExpenseController::class, 'update']);
+    Route::delete('expenses/{expense}', [ExpenseController::class, 'destroy']);
+
+    Route::apiResource('capital-transactions', CapitalTransactionController::class)->except(['show']);
+
+    Route::get('payroll/employees', [EmployeeSalaryController::class, 'index']);
+    Route::put('payroll/employees/{user}/salary', [EmployeeSalaryController::class, 'update']);
+
+    Route::get('payroll/salary-advances', [SalaryAdvanceController::class, 'index']);
+    Route::post('payroll/salary-advances', [SalaryAdvanceController::class, 'store']);
+    Route::put('payroll/salary-advances/{salaryAdvance}', [SalaryAdvanceController::class, 'update']);
+    Route::delete('payroll/salary-advances/{salaryAdvance}', [SalaryAdvanceController::class, 'destroy']);
+
+    Route::get('payroll/salary-payments', [SalaryPaymentController::class, 'index']);
+    Route::post('payroll/salary-payments', [SalaryPaymentController::class, 'store']);
+    Route::get('payroll/salary-payments/{salaryPayment}', [SalaryPaymentController::class, 'show']);
+    Route::put('payroll/salary-payments/{salaryPayment}', [SalaryPaymentController::class, 'update']);
+    Route::delete('payroll/salary-payments/{salaryPayment}', [SalaryPaymentController::class, 'destroy']);
+
+    Route::get('lab-partners', [LabPartnerController::class, 'index']);
+    Route::post('lab-partners', [LabPartnerController::class, 'store']);
+    Route::put('lab-partners/{labPartner}', [LabPartnerController::class, 'update']);
+    Route::delete('lab-partners/{labPartner}', [LabPartnerController::class, 'destroy']);
+
+    Route::get('lab-cases', [LabCaseController::class, 'all']);
+    Route::get('clients/{client}/lab-cases', [LabCaseController::class, 'index']);
+    Route::post('clients/{client}/lab-cases', [LabCaseController::class, 'store']);
+    Route::put('lab-cases/{labCase}', [LabCaseController::class, 'update']);
+    Route::delete('lab-cases/{labCase}', [LabCaseController::class, 'destroy']);
 });

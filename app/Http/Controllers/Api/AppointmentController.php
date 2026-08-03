@@ -44,6 +44,9 @@ class AppointmentController extends Controller
     public function store(StoreAppointmentRequest $request)
     {
         $data = $request->validated();
+        $chargeItems = $data['charge_items'] ?? [];
+        unset($data['charge_items']);
+
         $doctor = User::findOrFail($data['doctor_id']);
         $this->assertClientRules($data);
         $this->conflicts->assertWithinSchedule($doctor, $data['date'], $data['start_time'], (int) $data['duration_minutes']);
@@ -58,6 +61,10 @@ class AppointmentController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
+        if ($appointment->client_id) {
+            $this->treatmentCharges->syncItems($appointment->client, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, $chargeItems);
+        }
+
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])), 'Appointment created successfully.', 201);
     }
 
@@ -69,9 +76,9 @@ class AppointmentController extends Controller
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
     {
         $validated = $request->validated();
-        $chargeAmountProvided = array_key_exists('treatment_charge_amount', $validated);
-        $chargeAmount = $validated['treatment_charge_amount'] ?? null;
-        unset($validated['treatment_charge_amount']);
+        $chargeItemsProvided = array_key_exists('charge_items', $validated);
+        $chargeItems = $validated['charge_items'] ?? [];
+        unset($validated['charge_items']);
 
         $data = [
             ...$appointment->only(['client_id', 'doctor_id', 'type', 'status', 'date', 'start_time', 'duration_minutes', 'notes']),
@@ -90,8 +97,8 @@ class AppointmentController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
-        if ($chargeAmountProvided && $appointment->client_id) {
-            $this->treatmentCharges->sync($appointment->client, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, $chargeAmount);
+        if ($chargeItemsProvided && $appointment->client_id) {
+            $this->treatmentCharges->syncItems($appointment->client, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, $chargeItems);
         }
 
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])), 'Appointment updated successfully.');

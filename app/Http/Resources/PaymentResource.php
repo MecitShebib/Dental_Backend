@@ -18,6 +18,8 @@ class PaymentResource extends JsonResource
             'amount' => (float) $this->amount,
             'payment_method' => $this->payment_method?->value ?? $this->payment_method,
             'notes' => $this->notes,
+            'invoice_id' => $this->whenLoaded('invoice', fn () => $this->invoice?->id),
+            'invoice_number' => $this->whenLoaded('invoice', fn () => $this->invoice?->formattedNumber()),
         ];
     }
 }

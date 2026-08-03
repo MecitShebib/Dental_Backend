@@ -23,15 +23,17 @@ class AddAiTreatmentPlanChargeTest extends TestCase
         ]);
     }
 
-    public function test_a_doctor_can_record_a_charge(): void
+    public function test_a_doctor_can_record_charge_items(): void
     {
         $doctor = User::factory()->create(['is_doctor' => true]);
         Sanctum::actingAs($doctor);
         $client = $this->makeClient();
 
         $response = $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
-            'amount' => 150.5,
-            'description' => 'Root canal, 2 sessions',
+            'charge_items' => [
+                ['description' => 'Consultation fee', 'amount' => 150.5],
+                ['description' => 'Discount', 'amount' => -20],
+            ],
         ]);
 
         $response->assertCreated();
@@ -40,13 +42,40 @@ class AddAiTreatmentPlanChargeTest extends TestCase
             'client_id' => $client->id,
             'source_type' => 'manual',
             'amount' => 150.5,
-            'description' => 'Root canal, 2 sessions',
+            'description' => 'Consultation fee',
+            'created_by' => $doctor->id,
+        ]);
+        $this->assertDatabaseHas('treatment_charges', [
+            'client_id' => $client->id,
+            'source_type' => 'manual',
+            'amount' => -20,
+            'description' => 'Discount',
             'created_by' => $doctor->id,
         ]);
 
         $this->getJson("/api/clients/{$client->id}")
             ->assertOk()
-            ->assertJsonPath('data.financial_summary.total_services_amount', 150.5);
+            ->assertJsonPath('data.financial_summary.total_services_amount', 130.5);
+    }
+
+    public function test_appending_charges_does_not_wipe_out_earlier_manual_charges(): void
+    {
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient('CL-9105');
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
+            'charge_items' => [['description' => 'First visit fee', 'amount' => 100]],
+        ])->assertCreated();
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
+            'charge_items' => [['description' => 'Second visit fee', 'amount' => 75]],
+        ])->assertCreated();
+
+        $this->assertDatabaseCount('treatment_charges', 2);
+        $this->getJson("/api/clients/{$client->id}")
+            ->assertOk()
+            ->assertJsonPath('data.financial_summary.total_services_amount', 175);
     }
 
     public function test_description_is_optional(): void
@@ -56,7 +85,7 @@ class AddAiTreatmentPlanChargeTest extends TestCase
         $client = $this->makeClient('CL-9102');
 
         $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
-            'amount' => 75,
+            'charge_items' => [['amount' => 75]],
         ])->assertCreated();
 
         $this->assertDatabaseHas('treatment_charges', [
@@ -73,28 +102,24 @@ class AddAiTreatmentPlanChargeTest extends TestCase
         $client = $this->makeClient('CL-9103');
 
         $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
-            'amount' => 100,
+            'charge_items' => [['amount' => 100]],
         ])->assertStatus(422)->assertJsonValidationErrors('doctor');
 
         $this->assertDatabaseCount('treatment_charges', 0);
     }
 
-    public function test_amount_must_be_a_positive_number(): void
+    public function test_charge_items_are_required(): void
     {
         $doctor = User::factory()->create(['is_doctor' => true]);
         Sanctum::actingAs($doctor);
         $client = $this->makeClient('CL-9104');
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
-            'amount' => 0,
-        ])->assertStatus(422)->assertJsonValidationErrors('amount');
-
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
-            'amount' => -10,
-        ])->assertStatus(422)->assertJsonValidationErrors('amount');
-
         $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [])
-            ->assertStatus(422)->assertJsonValidationErrors('amount');
+            ->assertStatus(422)->assertJsonValidationErrors('charge_items');
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
+            'charge_items' => [['description' => 'Missing amount']],
+        ])->assertStatus(422)->assertJsonValidationErrors('charge_items.0.amount');
 
         $this->assertDatabaseCount('treatment_charges', 0);
     }

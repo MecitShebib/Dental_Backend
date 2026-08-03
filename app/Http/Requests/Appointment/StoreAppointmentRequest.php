@@ -25,6 +25,10 @@ class StoreAppointmentRequest extends FormRequest
             'start_time' => ['required', 'date_format:H:i'],
             'duration_minutes' => ['required', 'integer', Rule::in([30, 60, 90])],
             'notes' => ['nullable', 'string'],
+            'planned_summary' => ['nullable', 'string'],
+            'charge_items' => ['nullable', 'array'],
+            'charge_items.*.description' => ['nullable', 'string', 'max:255'],
+            'charge_items.*.amount' => ['required', 'numeric'],
         ];
     }
 }

@@ -22,8 +22,9 @@ class ConfirmAiTreatmentPlanRequest extends FormRequest
             'sessions.*.duration_minutes' => ['required', 'integer', Rule::in([30, 60, 90])],
             'sessions.*.session_description' => ['required', 'string'],
             'sessions.*.odontogram_v2_status' => ['required', 'string', 'json'],
-            'sessions.*.image' => ['required', 'file', 'mimes:png', 'max:5120'],
-            'sessions.*.treatment_charge_amount' => ['nullable', 'numeric', 'min:0'],
+            'sessions.*.charge_items' => ['nullable', 'array'],
+            'sessions.*.charge_items.*.description' => ['nullable', 'string', 'max:255'],
+            'sessions.*.charge_items.*.amount' => ['required', 'numeric'],
         ];
     }
 }

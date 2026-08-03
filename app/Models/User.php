@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
+use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
@@ -19,7 +20,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasUuid, Notifiable, SoftDeletes;
+    use BelongsToCompany, HasApiTokens, HasFactory, HasUuid, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -40,6 +41,7 @@ class User extends Authenticatable
         'is_doctor',
         'notes',
         'last_login_at',
+        'monthly_salary',
     ];
 
     /**
@@ -67,6 +69,7 @@ class User extends Authenticatable
             'is_project_admin' => 'boolean',
             'is_doctor' => 'boolean',
             'company_id' => 'integer',
+            'monthly_salary' => 'decimal:2',
         ];
     }
 
@@ -98,6 +101,16 @@ class User extends Authenticatable
     public function otps(): HasMany
     {
         return $this->hasMany(UserOtp::class);
+    }
+
+    public function salaryAdvances(): HasMany
+    {
+        return $this->hasMany(SalaryAdvance::class, 'user_id');
+    }
+
+    public function salaryPayments(): HasMany
+    {
+        return $this->hasMany(SalaryPayment::class, 'user_id');
     }
 
     public function appointmentsAsDoctor(): HasMany
@@ -132,8 +145,28 @@ class User extends Authenticatable
 
     public function isSystemManager(): bool
     {
+        return $this->hasRole('system_manager');
+    }
+
+    public function isAccountant(): bool
+    {
+        return $this->hasRole('accountant');
+    }
+
+    /**
+     * Company admins and accountants (plus a project admin acting for support)
+     * are the only ones who can see or manage the accounting sections: the
+     * company fund ledger, expenses, capital/withdrawals, and payroll.
+     */
+    public function hasAccountingAccess(): bool
+    {
+        return $this->isSystemManager() || $this->isAccountant() || $this->isProjectAdmin();
+    }
+
+    protected function hasRole(string $slug): bool
+    {
         return $this->relationLoaded('roles')
-            ? $this->roles->contains('slug', 'system_manager')
-            : $this->roles()->where('slug', 'system_manager')->exists();
+            ? $this->roles->contains('slug', $slug)
+            : $this->roles()->where('slug', $slug)->exists();
     }
 }

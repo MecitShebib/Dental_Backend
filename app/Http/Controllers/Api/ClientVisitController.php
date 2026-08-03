@@ -32,8 +32,8 @@ class ClientVisitController extends Controller
     public function store(StoreVisitRequest $request, Client $client)
     {
         $data = $request->validated();
-        $chargeAmount = $data['treatment_charge_amount'] ?? null;
-        unset($data['treatment_charge_amount']);
+        $chargeItems = $data['charge_items'] ?? [];
+        unset($data['charge_items']);
 
         $visit = $client->visits()->create([
             ...$data,
@@ -43,7 +43,7 @@ class ClientVisitController extends Controller
         ]);
 
         $client->forceFill(['last_visit_at' => $visit->visit_date?->toDateString().' '.($visit->start_time ?? '00:00:00')])->save();
-        $this->treatmentCharges->sync($client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeAmount);
+        $this->treatmentCharges->syncItems($client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeItems);
 
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Visit created successfully.', 201);
     }
@@ -51,16 +51,16 @@ class ClientVisitController extends Controller
     public function update(UpdateVisitRequest $request, Visit $visit)
     {
         $data = $request->validated();
-        $chargeAmount = $data['treatment_charge_amount'] ?? null;
-        unset($data['treatment_charge_amount']);
+        $chargeItems = $data['charge_items'] ?? [];
+        unset($data['charge_items']);
 
         $visit->update([
             ...$data,
             'updated_by' => $request->user()->id,
         ]);
 
-        if (array_key_exists('treatment_charge_amount', $request->validated())) {
-            $this->treatmentCharges->sync($visit->client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeAmount);
+        if (array_key_exists('charge_items', $request->validated())) {
+            $this->treatmentCharges->syncItems($visit->client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeItems);
         }
 
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Visit updated successfully.');
@@ -87,7 +87,6 @@ class ClientVisitController extends Controller
                 'duration_minutes' => $appointment->duration_minutes,
                 'summary' => $request->validated('summary') ?? $appointment->planned_summary,
                 'notes' => $request->validated('notes') ?? $appointment->planned_notes,
-                'odontogram_image_path' => $appointment->planned_image_path,
                 'attendance_status' => AttendanceStatus::Attended->value,
                 'created_by' => $request->user()->id,
                 'updated_by' => $request->user()->id,
@@ -111,14 +110,14 @@ class ClientVisitController extends Controller
 
             // If the odontogram was edited as part of checking in (the "Attended"
             // flow lets the doctor adjust it before it becomes a visit), the
-            // retargeted charge above still holds the pre-edit amount -- update
-            // it to whatever was actually just computed for this visit.
-            if ($request->has('treatment_charge_amount')) {
-                $this->treatmentCharges->sync(
+            // retargeted charges above still hold the pre-edit line items -- replace
+            // them with whatever was actually just computed for this visit.
+            if ($request->has('charge_items')) {
+                $this->treatmentCharges->syncItems(
                     $appointment->client,
                     TreatmentCharge::SOURCE_VISIT,
                     $visit->id,
-                    $request->validated('treatment_charge_amount'),
+                    $request->validated('charge_items') ?? [],
                 );
             }
 

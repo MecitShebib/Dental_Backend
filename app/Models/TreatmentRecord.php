@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompanyViaClient;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TreatmentRecord extends Model
 {
-    use HasFactory, HasUuid;
+    use BelongsToCompanyViaClient, HasFactory, HasUuid;
 
     protected $fillable = [
         'uuid',

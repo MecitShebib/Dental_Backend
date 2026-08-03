@@ -6,16 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Company;
 use App\Models\User;
 use App\Services\CompanyUserLimitService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
-    public function __construct(protected CompanyUserLimitService $companyUserLimit)
-    {
-    }
+    public function __construct(protected CompanyUserLimitService $companyUserLimit) {}
 
     public function index()
     {
@@ -26,8 +25,10 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
+        $this->assertCanManageUsers($request);
+
         $data = $request->validated();
-        $company = Company::findOrFail($data['company_id']);
+        $company = $request->user()->company;
 
         if (($data['status'] ?? 'active') === 'active') {
             $this->companyUserLimit->assertCanHaveAnotherActiveUser($company);
@@ -35,6 +36,7 @@ class UserController extends Controller
 
         $user = User::create([
             ...collect($data)->except(['role_ids', 'permission_ids'])->all(),
+            'company_id' => $request->user()->company_id,
             'password' => Hash::make($data['password']),
             'status' => $data['status'] ?? 'active',
             'is_doctor' => $data['is_doctor'] ?? false,
@@ -54,9 +56,12 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
+        if ($request->user()->isNot($user)) {
+            $this->assertCanManageUsers($request);
+        }
+
         $data = $request->validated();
-        $oldCompany = $user->company;
-        $company = Company::findOrFail($data['company_id'] ?? $user->company_id);
+        $company = $user->company;
 
         if (($data['status'] ?? ($user->status->value ?? $user->status)) === 'active') {
             $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user);
@@ -69,16 +74,15 @@ class UserController extends Controller
         $user->update(collect($data)->except(['role_ids', 'permission_ids'])->all());
         $user->roles()->sync($data['role_ids'] ?? $user->roles()->pluck('roles.id')->all());
         $user->permissions()->sync($data['permission_ids'] ?? $user->permissions()->pluck('permissions.id')->all());
-        if ($oldCompany && $oldCompany->id !== $company->id) {
-            $this->companyUserLimit->syncActiveUsers($oldCompany);
-        }
         $this->companyUserLimit->syncActiveUsers($company);
 
         return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company'])), 'User updated successfully.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        $this->assertCanManageUsers($request);
+
         $company = $user->company;
         $user->delete();
         if ($company) {
@@ -86,6 +90,17 @@ class UserController extends Controller
         }
 
         return $this->success(null, 'User deleted successfully.');
+    }
+
+    protected function assertCanManageUsers(Request $request): void
+    {
+        if ($request->user()->isSystemManager() || $request->user()->isProjectAdmin()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'user' => ['You are not authorized to manage other users.'],
+        ]);
     }
 
     public function doctors()

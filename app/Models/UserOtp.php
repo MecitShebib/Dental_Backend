@@ -11,12 +11,16 @@ class UserOtp extends Model
     use HasFactory;
 
     public const PURPOSE_LOGIN = 'login';
+
     public const PURPOSE_FORGOT_PASSWORD = 'forgot_password';
+
+    public const MAX_ATTEMPTS = 5;
 
     protected $fillable = [
         'user_id',
         'mobile',
         'otp_code',
+        'attempts',
         'purpose',
         'reference',
         'expires_at',
@@ -46,5 +50,10 @@ class UserOtp extends Model
     public function isUsed(): bool
     {
         return $this->used_at !== null;
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->attempts >= self::MAX_ATTEMPTS;
     }
 }

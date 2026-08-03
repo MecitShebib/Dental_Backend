@@ -77,16 +77,24 @@ class AiTreatmentPlanController extends Controller
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
 
-        $client->treatmentCharges()->create([
-            'source_type' => TreatmentCharge::SOURCE_MANUAL,
-            'amount' => $request->validated('amount'),
-            'description' => $request->validated('description'),
-            'created_by' => $actingUser->id,
-        ]);
+        // Unlike syncItems() (used for a visit/appointment/session's own line
+        // items, always a full replace of that source's charges), this screen
+        // adds one-off extras (and the discount, itself just a negative-amount
+        // item) on top of whatever the confirmed plan already charged per
+        // appointment -- so these rows are appended, never replacing prior
+        // manual charges for this client.
+        $client->treatmentCharges()->createMany(
+            collect($request->validated('charge_items'))->map(fn (array $item) => [
+                'source_type' => TreatmentCharge::SOURCE_MANUAL,
+                'amount' => $item['amount'],
+                'description' => $item['description'] ?? null,
+                'created_by' => $actingUser->id,
+            ])->all()
+        );
 
         return $this->success(
             app(ClientFinancialSummaryService::class)->summary($client),
-            'Charge recorded successfully.',
+            'Charges recorded successfully.',
             201,
         );
     }

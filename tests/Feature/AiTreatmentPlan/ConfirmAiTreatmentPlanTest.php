@@ -7,21 +7,12 @@ use App\Models\Client;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ConfirmAiTreatmentPlanTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Storage::fake('public');
-    }
 
     protected function doctorWithFullWeekSchedule(): User
     {
@@ -62,7 +53,6 @@ class ConfirmAiTreatmentPlanTest extends TestCase
                 'globals' => [],
                 'teeth' => ['13' => ['endo' => 'endo-filling-incomplete']],
             ]),
-            'image' => UploadedFile::fake()->create('session-1.png', 10, 'image/png'),
         ];
     }
 
@@ -90,11 +80,8 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         $appointment = Appointment::findOrFail($appointmentId);
         $this->assertSame('Open the canal and clean it.', $appointment->planned_notes);
         $this->assertStringContainsString('endo-filling-incomplete', $appointment->planned_summary);
-        $this->assertNotNull($appointment->planned_image_path);
-        Storage::disk('public')->assertExists($appointment->planned_image_path);
 
         $this->assertSame('Open the canal and clean it.', $response->json('data.0.planned_notes'));
-        $this->assertNotNull($response->json('data.0.planned_image_url'));
     }
 
     public function test_it_rejects_the_whole_confirmation_if_any_session_conflicts(): void
@@ -143,7 +130,6 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         ], ['Accept' => 'application/json'])->assertStatus(422);
 
         $this->assertDatabaseCount('appointments', 1); // only the pre-existing unavailable block
-        Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
     }
 
     public function test_it_creates_no_appointments_or_files_when_a_later_session_has_an_invalid_odontogram_shape(): void
@@ -166,7 +152,6 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         ], ['Accept' => 'application/json'])->assertStatus(422);
 
         $this->assertDatabaseCount('appointments', 0);
-        Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
     }
 
     public function test_it_rejects_a_plan_with_two_sessions_that_overlap_each_other(): void
@@ -189,7 +174,46 @@ class ConfirmAiTreatmentPlanTest extends TestCase
         ], ['Accept' => 'application/json'])->assertStatus(422);
 
         $this->assertDatabaseCount('appointments', 0);
-        Storage::disk('public')->assertDirectoryEmpty('odontogram-plans');
+    }
+
+    public function test_it_creates_one_treatment_charge_row_per_line_item_in_a_session(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient('CL-3107');
+        $date = Carbon::now()->next(Carbon::MONDAY)->toDateString();
+
+        $session = $this->sessionPayload($date);
+        $session['charge_items'] = [
+            ['description' => '13: Endo filling incomplete', 'amount' => 1200],
+            ['description' => '13: Crown', 'amount' => 4500],
+        ];
+
+        $response = $this->post("/api/clients/{$client->id}/ai-treatment-plan/confirm", [
+            'sessions' => [$session],
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $appointmentId = $response->json('data.0.id');
+
+        $this->assertDatabaseCount('treatment_charges', 2);
+        $this->assertDatabaseHas('treatment_charges', [
+            'client_id' => $client->id,
+            'source_type' => 'ai_plan',
+            'source_id' => $appointmentId,
+            'amount' => 1200,
+            'description' => '13: Endo filling incomplete',
+        ]);
+        $this->assertDatabaseHas('treatment_charges', [
+            'client_id' => $client->id,
+            'source_type' => 'ai_plan',
+            'source_id' => $appointmentId,
+            'amount' => 4500,
+            'description' => '13: Crown',
+        ]);
+
+        $this->getJson("/api/clients/{$client->id}")
+            ->assertOk()
+            ->assertJsonPath('data.financial_summary.total_services_amount', 5700);
     }
 
     public function test_it_validates_session_shape(): void

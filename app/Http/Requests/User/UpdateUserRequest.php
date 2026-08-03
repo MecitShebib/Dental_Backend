@@ -18,7 +18,6 @@ class UpdateUserRequest extends FormRequest
         $userId = $this->route('user')->id;
 
         return [
-            'company_id' => ['sometimes', 'required', 'integer', 'exists:companies,id'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -26,7 +25,6 @@ class UpdateUserRequest extends FormRequest
             'job_title' => ['nullable', 'string', 'max:255'],
             'branch_name' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::enum(UserStatus::class)],
-            'is_project_admin' => ['nullable', 'boolean'],
             'is_doctor' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'role_ids' => ['nullable', 'array'],

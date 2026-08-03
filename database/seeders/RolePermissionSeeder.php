@@ -15,6 +15,7 @@ class RolePermissionSeeder extends Seeder
             'receptionist' => 'Receptionist',
             'treatment_coordinator' => 'Treatment Coordinator',
             'doctor' => 'Doctor',
+            'accountant' => 'Accountant',
         ];
 
         foreach ($roles as $slug => $name) {
@@ -28,6 +29,7 @@ class RolePermissionSeeder extends Seeder
             'manage_visits',
             'manage_payments',
             'manage_schedules',
+            'manage_accounting',
         ];
 
         foreach ($permissions as $slug) {

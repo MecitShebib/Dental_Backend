@@ -26,7 +26,7 @@ Route::post('/quote', [LandingPageInquiryController::class, 'storeQuote'])->name
 Route::prefix('admin')->group(function () {
     Route::middleware('guest')->group(function () {
         Route::get('login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
-        Route::post('login', [AdminAuthController::class, 'login'])->name('admin.login.store');
+        Route::post('login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login')->name('admin.login.store');
     });
 
     Route::middleware(['auth', 'admin'])->group(function () {

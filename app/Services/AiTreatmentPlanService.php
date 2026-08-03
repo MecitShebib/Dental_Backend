@@ -311,17 +311,11 @@ class AiTreatmentPlanService
                     'updated_by' => $userId,
                 ]);
 
-                if (! empty($session['image'])) {
-                    $path = $session['image']->storeAs('odontogram-plans', $appointment->uuid.'.png', 'public');
-                    $appointment->update(['planned_image_path' => $path]);
-                }
-
-                $this->treatmentCharges->sync(
+                $this->treatmentCharges->syncItems(
                     $client,
                     TreatmentCharge::SOURCE_AI_PLAN,
                     $appointment->id,
-                    isset($session['treatment_charge_amount']) ? (float) $session['treatment_charge_amount'] : null,
-                    $session['session_description'],
+                    $session['charge_items'] ?? [],
                 );
 
                 return $appointment->fresh();

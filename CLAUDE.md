@@ -46,14 +46,21 @@ php artisan tinker
 
 ### Multi-tenancy model
 
-Every `User` and all clinical data belong to a `Company`. A `Company` must have an active `Subscription` (checked via `SubscriptionAccessService`) for its users to log in. `Company::currentSubscription()` defines what "active" means: status=active, started on or before today, not yet ended.
+Every `User` and all clinical data belong to a `Company`. A `Company` must have an active `Subscription` (checked via `SubscriptionAccessService`) for its users to log in. `Company::currentSubscription()` defines what "active" means: status=active, started on or before today, not yet ended. A subscription also caps AI usage (`max_ai_tokens`/`ai_tokens_used`, enforced by `AiTokenUsageService`) — `null` means unlimited.
 
 ### Data models and relationships
 
-- **Client** — the dental patient. Has one `TreatmentRecord` (the overall treatment plan with per-tooth data in `TreatmentRecordTooth`), many `Visit`s, `Payment`s, and `Appointment`s.
+- **Client** — the dental patient. Has one `TreatmentRecord`, many `Visit`s, `Payment`s, `Appointment`s, and `TreatmentCharge`s (see the pricing/billing section below — this is what actually drives a client's balance, not `TreatmentRecord`).
 - **Appointment** — scheduled slot for a client with a doctor. States: `scheduled → checked-in / no-show / cancelled`. When checked in, a `Visit` is created linked to the appointment.
 - **Visit** — an actual clinical visit. Can be created directly (walk-in) or from an appointment check-in. Linked to `Payment`s.
 - **DoctorSchedule / DoctorScheduleDay** — a doctor's weekly working hours and slot size, used by `DoctorAvailabilityService` to compute free/filled slots and validate appointment times.
+
+### Treatment pricing & billing ledger
+
+- **`TreatmentCatalog`** (`treatment_catalog` table) is per-company and has two `scope`s: `company` (a handful of manually-curated services, e.g. consultation/filling/crown — editable in Settings > Pricing) and `odontogram` (~100 auto-seeded rows, one per procedure/condition the vendored odontogram-v2 widget can select, `code` = `"{category}:{value}"` e.g. `fillingMaterial:composite`). Both scopes are visible/editable from Settings > Pricing. `TreatmentCatalogSeeder::seedCompany()` seeds both scopes for every company and runs automatically on company creation (`Admin\CompanyController::store()`) — new procedure codes/prices are added there, kept in sync with `OdontogramV2Vocabulary` (the same enum list the AI's JSON schema is constrained to) and the frontend's odontogram pricing map.
+- **`TreatmentCharge`** (`treatment_charges` table) is the single source of truth for what a client owes — a flat ledger of line items (`{client_id, source_type, source_id, amount, description}`), never one aggregate row per client. `source_type` is `manual` / `ai_plan` / `visit` / `appointment`; a discount is just another row with a negative `amount`. `ClientFinancialSummaryService` sums this table directly (`total_services_amount`, `total_paid_amount` from `Payment`, `remaining_amount`).
+- **`TreatmentChargeService`** is the one place charge-lifecycle logic lives: `syncItems($client, $sourceType, $sourceId, $items)` does a full delete-then-recreate for that source (visit/appointment/AI-plan-session saves always send their *complete* current set of line items, since a partial payload would silently drop the rest); `retarget()` re-points a source's charges (e.g. appointment → visit on check-in) without losing them; `deleteAllForAppointment()` clears both possible source types for an appointment id. The one exception to "one source, one owner" is `source_type=manual` with a `null` source_id (the AI-plan "add extra charge" endpoint) — those rows are *appended*, never replaced, because every manual charge for a client shares that same null-source key.
+- **Do not resurrect `treatment_records.total_services_amount`/`TreatmentRecordTooth`** — this is legacy plumbing for the retired V1 odontogram; the current frontend's `TreatmentRecordService::update()` call never sends a `teeth` payload, so it's always zero. `TreatmentRecord.notes` is also overloaded: the V2 frontend serializes the odontogram's full JSON state into it (see `parseOdontogramV2Note`/`serializeOdontogramV2Note` client-side), not free-text notes.
 
 ### Service layer
 
@@ -62,13 +69,18 @@ Every `User` and all clinical data belong to a `Company`. A `Company` must have 
 | `MobileOtpService` | Issue, verify, and expire OTP challenges; normalize phone numbers |
 | `SubscriptionAccessService` | Gate login by company status and subscription |
 | `CompanyUserLimitService` | Enforce `max_users` from the active subscription |
+| `AiTokenUsageService` | Gate and record AI chat-completion token usage against a subscription's `max_ai_tokens` cap (Whisper transcription is not metered) |
 | `AppointmentConflictService` | Validate that a new appointment fits within working hours and doesn't overlap existing ones |
 | `DoctorAvailabilityService` | Return slot grid, available start times, and available durations for a doctor on a date |
 | `AppointmentActionStateService` | Determine UI action state (`manage` / `checkin` / `locked`) based on appointment time proximity |
-| `TreatmentRecordService` | Persist per-tooth treatment data |
-| `ClientFinancialSummaryService` | Compute total services, total paid, and remaining balance for a client |
-| `AiTreatmentPlanService` | Turn a doctor's case description into a multi-session treatment plan (preview) and persist it as appointments (confirm), via `OpenAiClient` and the existing scheduling services |
+| `TreatmentRecordService` | Persist the legacy per-tooth treatment record (see note above — not the billing source of truth) |
+| `TreatmentChargeService` | Create/replace/retarget/delete `TreatmentCharge` line items for a visit, appointment, or AI-plan session |
+| `ClientFinancialSummaryService` | Compute total services, total paid, and remaining balance for a client from `TreatmentCharge` + `Payment` |
+| `AiTreatmentPlanService` | Turn a doctor's case description into a multi-session treatment plan (preview) and persist it as appointments with itemized charges (confirm), via `OpenAiClient` and the existing scheduling/pricing services |
+| `OdontogramV2Vocabulary` | The enum of every tooth-selection/procedure/condition value the odontogram-v2 widget supports — constrains both the AI's JSON schema and what `TreatmentCatalogSeeder` prices |
 | `OpenAiClient` | Thin wrapper over OpenAI's chat completions (structured JSON output) and Whisper transcription HTTP APIs |
+
+`AiTreatmentPlanController` has two endpoints beyond the obvious preview/confirm: `transcribe` (Whisper-only, called as soon as a recording stops so the transcript can be reviewed/edited before generating a plan — deliberately *not* gated by the AI token cap) and `addCharge` (appends extra manual `TreatmentCharge` line items, e.g. a consultation fee not captured by the odontogram).
 
 ### UUID pattern
 
@@ -76,7 +88,7 @@ All models use the `HasUuid` trait (`app/Models/Concerns/HasUuid.php`), which au
 
 ### Enums
 
-Backed PHP enums under `app/Enums/` for: `UserStatus`, `ClientGender`, `ClientStatus`, `AppointmentType`, `AppointmentStatus`, `AttendanceStatus`, `PaymentMethod`, `Weekday`, `SubscriptionStatus`. Models cast these fields automatically.
+Backed PHP enums under `app/Enums/` for: `UserStatus`, `ClientGender`, `ClientStatus`, `AppointmentType`, `AppointmentStatus`, `AttendanceStatus`, `PaymentMethod`, `Weekday`, `SubscriptionStatus`, `InquiryType`. Models cast these fields automatically.
 
 ## Environment configuration
 

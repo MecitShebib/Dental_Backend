@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompanyViaClient;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TreatmentCharge extends Model
 {
-    use HasFactory, HasUuid;
+    use BelongsToCompanyViaClient, HasFactory, HasUuid;
 
     public const SOURCE_MANUAL = 'manual';
 

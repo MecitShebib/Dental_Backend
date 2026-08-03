@@ -57,7 +57,6 @@ class CheckInAppliesPlannedDataTest extends TestCase
                 'odontogramV2Status' => ['teeth' => ['13' => ['endo' => 'endo-filling-incomplete']]],
             ]),
             'planned_notes' => 'Open the canal and clean it.',
-            'planned_image_path' => 'odontogram-plans/example.png',
         ]);
 
         $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
@@ -65,7 +64,6 @@ class CheckInAppliesPlannedDataTest extends TestCase
         $this->assertDatabaseHas('visits', [
             'appointment_id' => $appointment->id,
             'notes' => 'Open the canal and clean it.',
-            'odontogram_image_path' => 'odontogram-plans/example.png',
         ]);
 
         $visit = $appointment->visit()->firstOrFail();

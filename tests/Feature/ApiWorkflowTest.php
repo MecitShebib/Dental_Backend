@@ -17,7 +17,7 @@ class ApiWorkflowTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $doctor = User::factory()->create(['is_doctor' => true]);
+        $doctor = User::factory()->create(['is_doctor' => true, 'company_id' => $user->company_id]);
         $doctor->doctorSchedule()->create([
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',
@@ -55,7 +55,7 @@ class ApiWorkflowTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $doctor = User::factory()->create(['is_doctor' => true]);
+        $doctor = User::factory()->create(['is_doctor' => true, 'company_id' => $user->company_id]);
         $doctor->doctorSchedule()->create([
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',

@@ -14,17 +14,31 @@ use App\Models\TreatmentCharge;
  */
 class TreatmentChargeService
 {
-    public function sync(Client $client, string $sourceType, int $sourceId, ?float $amount, ?string $description = null): void
+    /**
+     * Replaces every charge row for a source with exactly the line items
+     * given -- the caller (visit/appointment/AI-plan-session save) always
+     * sends its full current set of procedures (plus any discount, itself
+     * just a negative-amount item), so a delete-then-insert keeps this
+     * source's rows an exact mirror of that set without needing to diff
+     * individual items.
+     *
+     * @param  array<int, array{description?: ?string, amount: float}>  $items
+     */
+    public function syncItems(Client $client, string $sourceType, int $sourceId, array $items): void
     {
-        if ($amount === null || $amount <= 0) {
-            $this->deleteForSource($sourceType, $sourceId);
+        $this->deleteForSource($sourceType, $sourceId);
 
+        if (empty($items)) {
             return;
         }
 
-        TreatmentCharge::query()->updateOrCreate(
-            ['client_id' => $client->id, 'source_type' => $sourceType, 'source_id' => $sourceId],
-            ['amount' => $amount, 'description' => $description]
+        $client->treatmentCharges()->createMany(
+            collect($items)->map(fn (array $item) => [
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+                'amount' => (float) $item['amount'],
+                'description' => $item['description'] ?? null,
+            ])->all()
         );
     }
 

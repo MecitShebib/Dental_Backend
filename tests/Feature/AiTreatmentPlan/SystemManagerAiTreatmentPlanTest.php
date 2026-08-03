@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\AiTreatmentPlan;
 
-use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Role;
@@ -10,9 +9,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -23,8 +20,6 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        Storage::fake('public');
 
         config([
             'services.openai.api_key' => 'test-key',
@@ -116,7 +111,6 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
                 'globals' => [],
                 'teeth' => ['13' => ['endo' => 'endo-filling-incomplete']],
             ]),
-            'image' => UploadedFile::fake()->create('session-1.png', 10, 'image/png'),
         ];
     }
 
@@ -213,10 +207,6 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
             'updated_by' => $manager->id,
             'status' => 'scheduled',
         ]);
-
-        $appointment = Appointment::findOrFail($appointmentId);
-        $this->assertNotNull($appointment->planned_image_path);
-        Storage::disk('public')->assertExists($appointment->planned_image_path);
     }
 
     public function test_doctor_confirming_a_plan_always_treats_under_their_own_schedule_even_if_a_doctor_id_is_sent(): void

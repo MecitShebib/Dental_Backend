@@ -1,6 +1,6 @@
 <?php
 
-use Database\Seeders\TreatmentCatalogSeeder;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Contracts\Console\Kernel;
 
 error_reporting(E_ALL);
@@ -39,13 +39,13 @@ migrateStep('Migrating (existing data is kept)...', function () use ($kernel) {
     echo nl2br($kernel->output());
 });
 
-migrateStep('Syncing the treatment/pricing catalog for every existing company...', function () {
-    // updateOrCreate per code, so this is safe to run repeatedly: existing
-    // rows just get their name/price refreshed in place, and any company
-    // that has none yet (created before this catalog existed, or before it
-    // grew to cover the newer odontogram procedures) gets fully caught up.
-    (new TreatmentCatalogSeeder)->run();
-    echo 'Treatment catalog synced for all companies.';
+migrateStep('Running database seeders (roles/permissions, treatment catalog, demo company)...', function () {
+    // DatabaseSeeder itself calls RolePermissionSeeder and TreatmentCatalogSeeder,
+    // then updateOrCreate's the seeded demo company/admin/doctors/subscription --
+    // every step in it is updateOrCreate-based, so this is safe to run repeatedly
+    // and matches exactly what setup.php ran on the very first deploy.
+    (new DatabaseSeeder)->run();
+    echo 'Seeders finished.';
 });
 
 migrateStep('Clearing and rebuilding cache...', function () use ($kernel) {

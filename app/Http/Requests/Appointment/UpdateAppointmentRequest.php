@@ -27,7 +27,9 @@ class UpdateAppointmentRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'planned_summary' => ['nullable', 'string'],
             'planned_notes' => ['nullable', 'string'],
-            'treatment_charge_amount' => ['nullable', 'numeric', 'min:0'],
+            'charge_items' => ['nullable', 'array'],
+            'charge_items.*.description' => ['nullable', 'string', 'max:255'],
+            'charge_items.*.amount' => ['required', 'numeric'],
         ];
     }
 }
