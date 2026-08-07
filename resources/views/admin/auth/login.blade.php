@@ -15,20 +15,20 @@
             place-items: center;
             font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
             background:
-                radial-gradient(circle at 15% -10%, rgba(16, 185, 129, 0.16), transparent 42%),
-                radial-gradient(circle at 88% 10%, rgba(13, 148, 136, 0.12), transparent 38%),
-                #05070a;
-            color: #f1f5f9;
+                radial-gradient(circle at 15% -10%, rgba(16, 185, 129, 0.14), transparent 42%),
+                radial-gradient(circle at 88% 10%, rgba(13, 148, 136, 0.10), transparent 38%),
+                #f8fafc;
+            color: #0f172a;
             padding: 1.5rem;
         }
         .box {
             width: min(420px, 100%);
-            background: rgba(10, 15, 13, 0.92);
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(15, 23, 42, 0.1);
             border-radius: 24px;
             padding: 2.25rem;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
         }
         .mark {
             display: grid;
@@ -41,19 +41,19 @@
             box-shadow: 0 10px 24px rgba(16, 185, 129, 0.3);
         }
         h1 { margin: 0 0 .4rem; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; }
-        p.sub { margin: 0 0 1.5rem; color: #94a3b8; font-size: .92rem; line-height: 1.5; }
+        p.sub { margin: 0 0 1.5rem; color: #64748b; font-size: .92rem; line-height: 1.5; }
         input {
             width: 100%;
             padding: .8rem .95rem;
             margin-bottom: .9rem;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.04);
-            color: #f1f5f9;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+            background: rgba(15, 23, 42, 0.03);
+            color: #0f172a;
             font: inherit;
             font-size: .92rem;
         }
-        input::placeholder { color: #64748b; }
+        input::placeholder { color: #94a3b8; }
         input:focus {
             outline: none;
             border-color: #10b981;
@@ -77,9 +77,9 @@
             margin-bottom: 1rem;
             padding: .85rem 1rem;
             border-radius: 12px;
-            background: rgba(248, 113, 113, 0.12);
-            border: 1px solid rgba(248, 113, 113, 0.28);
-            color: #fca5a5;
+            background: rgba(220, 38, 38, 0.10);
+            border: 1px solid rgba(220, 38, 38, 0.28);
+            color: #b91c1c;
             font-size: .88rem;
         }
     </style>
@@ -99,7 +99,7 @@
                 @endforeach
             </div>
         @endif
-        <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" required>
+        <input type="tel" name="phone" placeholder="Phone number" value="{{ old('phone') }}" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Sign in</button>
     </form>

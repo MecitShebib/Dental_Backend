@@ -17,6 +17,11 @@ class AiTokenUsageServiceTest extends TestCase
 
     protected function activeSubscription(Company $company, ?int $maxAiTokens, int $aiTokensUsed = 0): Subscription
     {
+        // Company::factory() auto-creates a default subscription; replace it
+        // rather than stacking a second one that currentSubscription() could
+        // pick instead of this test's specifically-configured one.
+        $company->subscriptions()->delete();
+
         return Subscription::create([
             'company_id' => $company->id,
             'plan_name' => 'Test Plan',
@@ -61,6 +66,7 @@ class AiTokenUsageServiceTest extends TestCase
     public function test_assert_can_use_ai_tokens_throws_when_there_is_no_active_subscription(): void
     {
         $company = Company::factory()->create();
+        $company->subscriptions()->delete();
 
         $this->expectException(ValidationException::class);
 

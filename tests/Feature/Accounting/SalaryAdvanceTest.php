@@ -36,6 +36,32 @@ class SalaryAdvanceTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $employee->id, 'monthly_salary' => 3000]);
     }
 
+    public function test_setting_a_doctors_commission_percentage(): void
+    {
+        $manager = $this->makeManager();
+        $doctor = User::factory()->create(['company_id' => $manager->company_id, 'is_doctor' => true]);
+        Sanctum::actingAs($manager);
+
+        $this->putJson("/api/payroll/employees/{$doctor->id}/salary", [
+            'monthly_salary' => 3000,
+            'commission_percentage' => 10,
+        ])->assertOk()->assertJsonPath('data.commission_percentage', 10);
+
+        $this->assertDatabaseHas('users', ['id' => $doctor->id, 'commission_percentage' => 10]);
+    }
+
+    public function test_commission_percentage_over_100_is_rejected(): void
+    {
+        $manager = $this->makeManager();
+        $doctor = User::factory()->create(['company_id' => $manager->company_id, 'is_doctor' => true]);
+        Sanctum::actingAs($manager);
+
+        $this->putJson("/api/payroll/employees/{$doctor->id}/salary", [
+            'monthly_salary' => 3000,
+            'commission_percentage' => 150,
+        ])->assertStatus(422)->assertJsonValidationErrors('commission_percentage');
+    }
+
     public function test_a_salary_advance_debits_the_fund(): void
     {
         $manager = $this->makeManager();

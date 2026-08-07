@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\SubscriptionAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -16,7 +17,10 @@ class AuthController extends Controller
 
     public function showLogin()
     {
-        if (Auth::check() && Auth::user()->isProjectAdmin()) {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if ($user && $user->isProjectAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -25,30 +29,33 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $request->validate([
+            'phone' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
+        // Phone numbers can be stored with varying formatting (+, spaces,
+        // dashes) -- compare on digits only, same normalization the mobile
+        // OTP login already applies, rather than an exact-string match.
+        $normalizedPhone = preg_replace('/\D+/', '', $request->string('phone'));
+
+        $user = User::query()
+            ->whereRaw("REPLACE(REPLACE(REPLACE(phone, '+', ''), '-', ''), ' ', '') = ?", [$normalizedPhone])
+            ->first();
+
+        if (! $user || ! Hash::check($request->string('password'), $user->password)) {
+            return back()->withErrors(['phone' => 'Invalid credentials.'])->onlyInput('phone');
         }
 
-        /** @var User $user */
-        $user = Auth::user();
-
         if (! $user->isProjectAdmin()) {
-            Auth::logout();
-
-            return back()->withErrors(['email' => 'This account is not allowed to access the admin panel.'])->onlyInput('email');
+            return back()->withErrors(['phone' => 'This account is not allowed to access the admin panel.'])->onlyInput('phone');
         }
 
         if (! $this->subscriptionAccess->canLogin($user)) {
-            Auth::logout();
-
-            return back()->withErrors(['email' => $this->subscriptionAccess->loginErrorMessage($user)])->onlyInput('email');
+            return back()->withErrors(['phone' => $this->subscriptionAccess->loginErrorMessage($user)])->onlyInput('phone');
         }
 
+        Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
 

@@ -116,6 +116,9 @@ class LandingPageContent extends Model
                 ['title' => 'Multi-clinic management', 'body' => 'A multi-tenant architecture built for groups running multiple locations, each with its own subscription and limits.'],
                 ['title' => 'Secure mobile access', 'body' => 'OTP-verified sign-in for every device and token-based sessions — no shared passwords, ever.'],
                 ['title' => 'Financial clarity', 'body' => 'Charges, payments, and outstanding balances are tracked automatically for every patient, in real time.'],
+                ['title' => 'Accounting & payroll', 'body' => 'A full company fund ledger, expense and capital tracking, and payroll that automatically adds each doctor\'s revenue-share commission to their salary.'],
+                ['title' => 'Dental lab workflow', 'body' => 'Track every lab case from sent to delivered, manage your lab partner network, and see lab costs reflected in your books automatically.'],
+                ['title' => 'Open API & integrations', 'body' => 'Generate API tokens from Settings and connect outside equipment — like an X-ray imaging system — straight into a patient\'s chart.'],
             ],
             'how_it_works' => [
                 ['title' => 'Set up your clinic', 'body' => 'Add doctors, working hours, and services in minutes — no implementation team required.'],
@@ -211,6 +214,9 @@ class LandingPageContent extends Model
                 ['title' => 'إدارة متعددة العيادات', 'body' => 'بنية متعددة المستأجرين مصممة للمجموعات التي تدير عدة فروع، لكل منها اشتراكه وحدوده الخاصة.'],
                 ['title' => 'وصول آمن عبر الجوال', 'body' => 'تسجيل دخول موثّق برمز تحقق لكل جهاز، وجلسات قائمة على الرموز — بلا كلمات مرور مشتركة أبدًا.'],
                 ['title' => 'وضوح مالي', 'body' => 'تُتابع الرسوم والمدفوعات والأرصدة المستحقة تلقائيًا لكل مريض، لحظيًا.'],
+                ['title' => 'المحاسبة والرواتب', 'body' => 'دفتر صندوق كامل للشركة، وتتبع للمصاريف ورأس المال، ورواتب تضيف تلقائيًا نسبة عمولة كل طبيب من دخله إلى راتبه.'],
+                ['title' => 'سير عمل المخبر', 'body' => 'تابع كل حالة مخبر من الإرسال حتى التسليم، وأدر شبكة مخابر الأسنان الشريكة، وشاهد تكاليف المخبر تنعكس تلقائيًا في حساباتك.'],
+                ['title' => 'واجهة برمجية مفتوحة وتكاملات', 'body' => 'أنشئ رموز API من الإعدادات وصِل أجهزة خارجية — مثل جهاز تصوير الأشعة — مباشرة بملف المريض.'],
             ],
             'how_it_works' => [
                 ['title' => 'أعدّ عيادتك', 'body' => 'أضف الأطباء وساعات العمل والخدمات خلال دقائق — دون الحاجة لفريق تنفيذ.'],
@@ -306,6 +312,9 @@ class LandingPageContent extends Model
                 ['title' => 'Çoklu klinik yönetimi', 'body' => 'Birden fazla lokasyonu işleten gruplar için tasarlanmış, her birinin kendi aboneliği ve limitleri olan çok kiracılı bir mimari.'],
                 ['title' => 'Güvenli mobil erişim', 'body' => 'Her cihaz için OTP ile doğrulanmış giriş ve token tabanlı oturumlar — asla paylaşılan şifre yok.'],
                 ['title' => 'Finansal netlik', 'body' => 'Her hasta için ücretler, ödemeler ve bakiyeler gerçek zamanlı olarak otomatik takip edilir.'],
+                ['title' => 'Muhasebe ve bordro', 'body' => 'Tam bir şirket kasa defteri, gider ve sermaye takibi ve her doktorun ciro payı komisyonunu maaşına otomatik ekleyen bordro.'],
+                ['title' => 'Diş laboratuvarı iş akışı', 'body' => 'Her laboratuvar vakasını gönderimden teslimata kadar takip edin, laboratuvar ortağı ağınızı yönetin ve laboratuvar maliyetlerinin defterlerinize otomatik yansıdığını görün.'],
+                ['title' => 'Açık API ve entegrasyonlar', 'body' => 'Ayarlar\'dan API token oluşturun ve röntgen görüntüleme sistemi gibi harici cihazları doğrudan hasta dosyasına bağlayın.'],
             ],
             'how_it_works' => [
                 ['title' => 'Kliniğinizi kurun', 'body' => 'Doktorları, çalışma saatlerini ve hizmetleri dakikalar içinde ekleyin — kurulum ekibi gerekmez.'],

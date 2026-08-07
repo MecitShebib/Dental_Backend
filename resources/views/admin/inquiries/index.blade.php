@@ -62,7 +62,7 @@
                             @if ($inquiry->read_at)
                                 <span class="status">Read</span>
                             @else
-                                <span class="status" style="color:#6ee7b7; border-color: rgba(16,185,129,.35);">Unread</span>
+                                <span class="status" style="color:#047857; border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.1);">Unread</span>
                             @endif
                         </td>
                         <td>

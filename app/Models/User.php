@@ -42,6 +42,7 @@ class User extends Authenticatable
         'notes',
         'last_login_at',
         'monthly_salary',
+        'commission_percentage',
     ];
 
     /**
@@ -70,6 +71,7 @@ class User extends Authenticatable
             'is_doctor' => 'boolean',
             'company_id' => 'integer',
             'monthly_salary' => 'decimal:2',
+            'commission_percentage' => 'decimal:2',
         ];
     }
 

@@ -16,6 +16,7 @@ class CompanySubscriptionsApiTest extends TestCase
     public function test_subscriptions_endpoint_exposes_ai_token_fields(): void
     {
         $company = Company::factory()->create();
+        $company->subscriptions()->delete();
         $user = User::factory()->create(['company_id' => $company->id]);
         Subscription::create([
             'company_id' => $company->id,
@@ -37,6 +38,7 @@ class CompanySubscriptionsApiTest extends TestCase
     public function test_subscriptions_endpoint_exposes_null_max_ai_tokens_as_unlimited(): void
     {
         $company = Company::factory()->create();
+        $company->subscriptions()->delete();
         $user = User::factory()->create(['company_id' => $company->id]);
         Subscription::create([
             'company_id' => $company->id,

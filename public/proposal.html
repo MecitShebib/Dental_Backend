@@ -180,7 +180,7 @@
     .doc-section { grid-template-columns: 1fr; padding: 16px 0; }
     .doc-section:first-of-type { padding-top: 0; }
     .sec-marker { flex-direction: row; align-items: baseline; gap: 10px; }
-    .full-bleed.doc-section { margin: 0; padding: 24px 6mm; }
+    .full-bleed.doc-section { margin: 0; padding: 14px 3mm; }
 
     /* Fixed page grouping: cover+01 / 02 / 03 / 04+05 / 06+07, each forced
        to start a fresh page so pairs land together instead of splitting. */
@@ -210,11 +210,13 @@
     .cover-meta { margin-top: 22px; padding-top: 14px; gap: 16px; }
     .intro-line { margin-top: 18px; padding: 14px 18px; font-size: 14px; }
     .sec-body h2 { font-size: 22px; margin-bottom: 12px; }
-    .full-bleed .sec-body h2 { font-size: 24px; }
-    .sec-body > p.sec-intro { margin-bottom: 13px; }
+    .full-bleed .sec-body h2 { font-size: 24px; margin-bottom: 8px; }
+    .sec-body > p.sec-intro { margin-bottom: 10px; max-width: none; }
     .diagnosis-list { gap: 9px; }
-    .ai-step { padding: 14px 0; }
-    .trust-callout { margin-top: 18px; padding: 14px 18px; }
+    .ai-step { padding: 6px 0; }
+    .ai-step h3 { margin-bottom: 3px; }
+    .ai-step p { max-width: none; }
+    .trust-callout { margin-top: 12px; padding: 10px 12px; }
     .trust-callout p { font-size: 16px; }
     .feature-grid { gap: 12px; }
     .feature-card { padding: 12px 14px; }
@@ -336,6 +338,9 @@
         </div>
         <div class="trust-callout"><p>"The AI drafts. The doctor decides." Nothing reaches a patient's chart or calendar without a confirming click from the treating doctor.</p></div>
       </div>
+      <div class="platform-graphic" aria-hidden="true">
+          <img src="proposal-assets/odontogram-sample.png" alt="" />
+        </div>
     </section>
 
     <section class="doc-section">
@@ -349,9 +354,9 @@
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Financial clarity</h3><p>Charges, payments, and balances — including every AI-confirmed plan's fee — tracked automatically per patient.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Multi-clinic management</h3><p>One platform for every branch, with its own subscription, limits, and staff.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Secure mobile access</h3><p>OTP-verified sign-in on every device, token-based sessions, never a shared password.</p></article>
-        </div>
-        <div class="platform-graphic" aria-hidden="true">
-          <img src="proposal-assets/odontogram-sample.png" alt="" />
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Accounting &amp; payroll</h3><p>A full company fund ledger, expense and capital tracking, and payroll that adds each doctor's revenue-share commission automatically.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Dental lab workflow</h3><p>Track every lab case from sent to delivered, manage your lab partner network, and see lab costs reflected in your books automatically.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Open API &amp; integrations</h3><p>Generate API tokens from Settings and connect outside equipment — like an X-ray imaging system — straight into a patient's chart.</p></article>
         </div>
       </div>
     </section>
@@ -518,6 +523,9 @@
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>وضوح مالي</h3><p>الرسوم والمدفوعات والأرصدة — بما فيها رسوم كل خطة أكدها الذكاء الاصطناعي — تُتابع تلقائياً لكل مريض.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>إدارة متعددة العيادات</h3><p>منصة واحدة لكل فرع، باشتراكه وحدوده وطاقمه الخاص.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>وصول آمن عبر الجوال</h3><p>تسجيل دخول موثّق برمز تحقق، وجلسات قائمة على الرموز، دون كلمة مرور مشتركة.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>المحاسبة والرواتب</h3><p>دفتر صندوق كامل للشركة، وتتبع للمصاريف ورأس المال، ورواتب تضيف نسبة عمولة كل طبيب تلقائياً.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>سير عمل المخبر</h3><p>تابع كل حالة مخبر من الإرسال حتى التسليم، وأدر شبكة المخابر الشريكة، وشاهد التكاليف تنعكس تلقائياً في حساباتك.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>واجهة برمجية مفتوحة وتكاملات</h3><p>أنشئ رموز API من الإعدادات وصِل أجهزة خارجية — مثل جهاز تصوير الأشعة — مباشرة بملف المريض.</p></article>
         </div>
         <div class="platform-graphic" aria-hidden="true">
           <img src="proposal-assets/odontogram-sample.png" alt="" />
@@ -687,6 +695,9 @@
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Finansal netlik</h3><p>Yapay zekanın onayladığı her planın ücreti dahil, ücretler, ödemeler ve bakiyeler her hasta için otomatik takip edilir.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Çoklu klinik yönetimi</h3><p>Her şube için kendi aboneliği, limitleri ve personeliyle tek bir platform.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Güvenli mobil erişim</h3><p>Her cihazda OTP ile doğrulanmış giriş, token tabanlı oturumlar, asla paylaşılan şifre yok.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Muhasebe ve bordro</h3><p>Tam bir şirket kasa defteri, gider ve sermaye takibi ve her doktorun komisyonunu otomatik ekleyen bordro.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Diş laboratuvarı iş akışı</h3><p>Her laboratuvar vakasını takip edin, ortak ağınızı yönetin, maliyetlerin defterlerinize otomatik yansıdığını görün.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Açık API ve entegrasyonlar</h3><p>Ayarlar'dan API token oluşturun ve harici cihazları — röntgen sistemi gibi — doğrudan hasta dosyasına bağlayın.</p></article>
         </div>
         <div class="platform-graphic" aria-hidden="true">
           <img src="proposal-assets/odontogram-sample.png" alt="" />

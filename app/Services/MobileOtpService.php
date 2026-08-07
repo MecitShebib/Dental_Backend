@@ -134,6 +134,11 @@ class MobileOtpService
 
     protected function generateOtp(): string
     {
+        $fixed = (string) config('services.turkeysms.fixed_otp', '');
+        if ($fixed !== '') {
+            return $fixed;
+        }
+
         $digits = max(1, (int) config('services.turkeysms.otp_digits', 6));
         $min = (int) str_pad('1', $digits, '0');
         $max = (int) str_pad('', $digits, '9');

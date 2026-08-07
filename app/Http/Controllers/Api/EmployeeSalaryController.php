@@ -26,7 +26,10 @@ class EmployeeSalaryController extends Controller
     {
         $this->assertHasAccountingAccess($request);
 
-        $user->update(['monthly_salary' => $request->validated('monthly_salary')]);
+        $user->update([
+            'monthly_salary' => $request->validated('monthly_salary'),
+            'commission_percentage' => $request->validated('commission_percentage'),
+        ]);
 
         return $this->success(EmployeeSalaryResource::make($user), 'Employee salary updated successfully.');
     }

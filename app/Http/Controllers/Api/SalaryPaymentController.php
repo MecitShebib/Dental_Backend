@@ -11,6 +11,7 @@ use App\Models\FundTransaction;
 use App\Models\SalaryPayment;
 use App\Models\User;
 use App\Services\FundTransactionService;
+use App\Services\TreatmentChargeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +20,10 @@ class SalaryPaymentController extends Controller
 {
     use AuthorizesAccounting;
 
-    public function __construct(protected FundTransactionService $fundTransactions) {}
+    public function __construct(
+        protected FundTransactionService $fundTransactions,
+        protected TreatmentChargeService $treatmentCharges,
+    ) {}
 
     public function index(Request $request)
     {
@@ -46,11 +50,12 @@ class SalaryPaymentController extends Controller
     }
 
     /**
-     * Records a month's salary as paid: nets the employee's base salary
-     * against whatever salary advances are still outstanding, settles those
-     * advances against this payment (so they can't be settled twice), and
-     * posts only the remainder to the fund -- the advance itself already
-     * left the fund the day it was handed out.
+     * Records a month's salary as paid: adds a doctor's treatment commission
+     * (if they have a commission_percentage set) on top of their base salary,
+     * nets the result against whatever salary advances are still outstanding,
+     * settles those advances against this payment (so they can't be settled
+     * twice), and posts only the remainder to the fund -- the advance itself
+     * already left the fund the day it was handed out.
      */
     public function store(StoreSalaryPaymentRequest $request)
     {
@@ -88,13 +93,27 @@ class SalaryPaymentController extends Controller
             $outstandingAdvances = $employee->salaryAdvances()->unsettled()->get();
             $advancesTotal = (float) $outstandingAdvances->sum('amount');
             $baseSalary = (float) $employee->monthly_salary;
-            $netAmount = max($baseSalary - $advancesTotal, 0);
+
+            $commissionPercentage = $employee->is_doctor && $employee->commission_percentage !== null
+                ? (float) $employee->commission_percentage
+                : null;
+            $treatmentRevenue = $commissionPercentage !== null
+                ? $this->treatmentCharges->sumRealizedRevenueForDoctorInMonth($employee->id, $data['period_year'], $data['period_month'])
+                : 0.0;
+            $commissionAmount = $commissionPercentage !== null
+                ? round($treatmentRevenue * ($commissionPercentage / 100), 2)
+                : 0.0;
+
+            $netAmount = max($baseSalary + $commissionAmount - $advancesTotal, 0);
 
             $payment = $request->user()->company->salaryPayments()->create([
                 'user_id' => $employee->id,
                 'period_year' => $data['period_year'],
                 'period_month' => $data['period_month'],
                 'base_salary' => $baseSalary,
+                'treatment_revenue' => $treatmentRevenue,
+                'commission_percentage' => $commissionPercentage,
+                'commission_amount' => $commissionAmount,
                 'advances_total' => $advancesTotal,
                 'net_amount' => $netAmount,
                 'paid_at' => $data['paid_at'],

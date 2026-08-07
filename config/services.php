@@ -41,6 +41,7 @@ return [
         'api_key' => env('TURKEYSMS_API_KEY'),
         'title' => env('TURKEYSMS_TITLE', 'ELECMINDS'),
         'otp_digits' => (int) env('TURKEYSMS_OTP_DIGITS', 6),
+        'fixed_otp' => env('MOBILE_OTP_FIXED_CODE'),
     ],
 
     'openai' => [

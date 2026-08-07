@@ -9,7 +9,33 @@ use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionContro
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\LandingPageInquiryController;
 use App\Models\LandingPageContent;
+use App\Support\ApiDocumentation;
+use App\Support\LegalContent;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/api-docs', function () {
+    return view('api-docs', [
+        'groups' => ApiDocumentation::groups(),
+        'enums' => ApiDocumentation::enums(),
+        'baseUrl' => ApiDocumentation::baseUrl(),
+    ]);
+})->name('api-docs');
+
+Route::get('/privacy-policy', function () {
+    return view('legal', ['page' => 'privacy', 'locale' => 'en', 'legal' => LegalContent::get('privacy', 'en')]);
+})->name('privacy.default');
+
+Route::get('/{locale}/privacy-policy', function (string $locale) {
+    return view('legal', ['page' => 'privacy', 'locale' => $locale, 'legal' => LegalContent::get('privacy', $locale)]);
+})->where('locale', 'en|ar|tr')->name('privacy');
+
+Route::get('/terms-of-service', function () {
+    return view('legal', ['page' => 'terms', 'locale' => 'en', 'legal' => LegalContent::get('terms', 'en')]);
+})->name('terms.default');
+
+Route::get('/{locale}/terms-of-service', function (string $locale) {
+    return view('legal', ['page' => 'terms', 'locale' => $locale, 'legal' => LegalContent::get('terms', $locale)]);
+})->where('locale', 'en|ar|tr')->name('terms');
 
 Route::get('/{locale?}', function (?string $locale = null) {
     $locale = in_array($locale, ['en', 'ar', 'tr'], true) ? $locale : 'en';

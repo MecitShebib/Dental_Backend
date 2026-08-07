@@ -61,6 +61,11 @@ class PreviewAiTreatmentPlanTest extends TestCase
 
     protected function activeSubscription(Company $company, ?int $maxAiTokens = null, int $aiTokensUsed = 0): Subscription
     {
+        // Company::factory() auto-creates a default subscription; replace it
+        // rather than stacking a second one that currentSubscription() could
+        // pick instead of this test's specifically-configured one.
+        $company->subscriptions()->delete();
+
         return Subscription::create([
             'company_id' => $company->id,
             'plan_name' => 'Test Plan',

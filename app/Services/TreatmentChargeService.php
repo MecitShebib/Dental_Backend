@@ -76,4 +76,28 @@ class TreatmentChargeService
         $this->deleteForSource(TreatmentCharge::SOURCE_AI_PLAN, $appointmentId);
         $this->deleteForSource(TreatmentCharge::SOURCE_APPOINTMENT, $appointmentId);
     }
+
+    /**
+     * Sums a doctor's realized treatment revenue for a calendar month, the
+     * base figure payroll commission is computed from. Only source_type=visit
+     * charges count: check-in retargets an appointment's (or AI plan's)
+     * charges onto the visit it produces, so by the time a visit exists it's
+     * the sole, de-duplicated owner of that treatment's charges. A charge
+     * still sitting on a not-yet-checked-in appointment isn't realized income
+     * yet and is deliberately excluded.
+     */
+    public function sumRealizedRevenueForDoctorInMonth(int $doctorId, int $year, int $month): float
+    {
+        return (float) TreatmentCharge::query()
+            ->where('source_type', TreatmentCharge::SOURCE_VISIT)
+            ->whereIn('source_id', function ($query) use ($doctorId, $year, $month) {
+                $query->select('id')
+                    ->from('visits')
+                    ->whereNull('deleted_at')
+                    ->where('doctor_id', $doctorId)
+                    ->whereYear('visit_date', $year)
+                    ->whereMonth('visit_date', $month);
+            })
+            ->sum('amount');
+    }
 }

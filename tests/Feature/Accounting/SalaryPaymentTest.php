@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Accounting;
 
+use App\Models\Client;
 use App\Models\Company;
 use App\Models\Role;
+use App\Models\TreatmentCharge;
 use App\Models\User;
+use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -21,6 +24,37 @@ class SalaryPaymentTest extends TestCase
         $manager->roles()->attach($role);
 
         return $manager;
+    }
+
+    protected function makeVisitWithCharge(int $companyId, int $doctorId, string $visitDate, float $amount): Visit
+    {
+        static $clientSequence = 0;
+        $clientSequence++;
+
+        $client = Client::create([
+            'company_id' => $companyId,
+            'client_code' => "CLI-COMM-{$clientSequence}",
+            'name' => "Commission Test Client {$clientSequence}",
+            'phone' => "955500000{$clientSequence}",
+            'gender' => 'male',
+        ]);
+
+        $visit = Visit::create([
+            'client_id' => $client->id,
+            'doctor_id' => $doctorId,
+            'visit_date' => $visitDate,
+            'attendance_status' => 'attended',
+        ]);
+
+        TreatmentCharge::create([
+            'client_id' => $client->id,
+            'source_type' => TreatmentCharge::SOURCE_VISIT,
+            'source_id' => $visit->id,
+            'amount' => $amount,
+            'description' => 'Filling',
+        ]);
+
+        return $visit;
     }
 
     public function test_paying_a_full_salary_with_no_advances_debits_the_fund_the_full_amount(): void
@@ -228,5 +262,107 @@ class SalaryPaymentTest extends TestCase
         $this->deleteJson("/api/payroll/salary-payments/{$paymentId}")
             ->assertStatus(422)
             ->assertJsonValidationErrors('user');
+    }
+
+    public function test_a_doctors_commission_is_added_on_top_of_their_base_salary(): void
+    {
+        $manager = $this->makeManager();
+        $doctor = User::factory()->create([
+            'company_id' => $manager->company_id,
+            'is_doctor' => true,
+            'monthly_salary' => 2000,
+            'commission_percentage' => 10,
+        ]);
+        Sanctum::actingAs($manager);
+
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-08-15', 1000);
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $doctor->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()
+            ->assertJsonPath('data.base_salary', 2000)
+            ->assertJsonPath('data.treatment_revenue', 1000)
+            ->assertJsonPath('data.commission_percentage', 10)
+            ->assertJsonPath('data.commission_amount', 100)
+            ->assertJsonPath('data.net_amount', 2100);
+
+        $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', -2100);
+    }
+
+    public function test_commission_sums_multiple_visits_and_ignores_visits_outside_the_paid_period(): void
+    {
+        $manager = $this->makeManager();
+        $doctor = User::factory()->create([
+            'company_id' => $manager->company_id,
+            'is_doctor' => true,
+            'monthly_salary' => 1000,
+            'commission_percentage' => 20,
+        ]);
+        Sanctum::actingAs($manager);
+
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-08-01', 500);
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-08-28', 500);
+        // Outside the paid period -- must not be counted.
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-07-31', 9000);
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-09-01', 9000);
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $doctor->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()
+            ->assertJsonPath('data.treatment_revenue', 1000)
+            ->assertJsonPath('data.commission_amount', 200)
+            ->assertJsonPath('data.net_amount', 1200);
+    }
+
+    public function test_commission_is_zero_when_the_doctor_has_no_commission_percentage_set(): void
+    {
+        $manager = $this->makeManager();
+        $doctor = User::factory()->create([
+            'company_id' => $manager->company_id,
+            'is_doctor' => true,
+            'monthly_salary' => 2000,
+        ]);
+        Sanctum::actingAs($manager);
+
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-08-15', 1000);
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $doctor->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()
+            ->assertJsonPath('data.commission_amount', 0)
+            ->assertJsonPath('data.net_amount', 2000);
+    }
+
+    public function test_commission_percentage_on_a_non_doctor_user_is_not_applied(): void
+    {
+        $manager = $this->makeManager();
+        // A commission_percentage could theoretically be set on a non-doctor
+        // record (e.g. left over from a role change); it must never pay out
+        // since there's no clinical revenue to attribute to them.
+        $employee = User::factory()->create([
+            'company_id' => $manager->company_id,
+            'is_doctor' => false,
+            'monthly_salary' => 1500,
+            'commission_percentage' => 50,
+        ]);
+        Sanctum::actingAs($manager);
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()
+            ->assertJsonPath('data.commission_amount', 0)
+            ->assertJsonPath('data.net_amount', 1500);
     }
 }

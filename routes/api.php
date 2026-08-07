@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AiTreatmentPlanController;
+use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CapitalTransactionController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\LabPartnerController;
 use App\Http\Controllers\Api\SalaryAdvanceController;
 use App\Http\Controllers\Api\SalaryPaymentController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\XrayImageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -40,11 +42,14 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
+    });
+
+    Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
         Route::get('me', [AuthController::class, 'me']);
     });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::get('doctors', [UserController::class, 'doctors']);
     Route::get('companies/{company}', [CompanyController::class, 'show']);
     Route::get('companies/{company}/subscriptions', [CompanyController::class, 'subscriptions']);
@@ -124,4 +129,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('clients/{client}/lab-cases', [LabCaseController::class, 'store']);
     Route::put('lab-cases/{labCase}', [LabCaseController::class, 'update']);
     Route::delete('lab-cases/{labCase}', [LabCaseController::class, 'destroy']);
+
+    Route::get('settings/api-tokens', [ApiTokenController::class, 'index']);
+    Route::post('settings/api-tokens', [ApiTokenController::class, 'store']);
+    Route::delete('settings/api-tokens/{token}', [ApiTokenController::class, 'destroy']);
+
+    Route::get('xray-images', [XrayImageController::class, 'index']);
+    Route::post('xray-images', [XrayImageController::class, 'store']);
+    Route::put('xray-images/{xrayImage}', [XrayImageController::class, 'update']);
+    Route::delete('xray-images/{xrayImage}', [XrayImageController::class, 'destroy']);
 });

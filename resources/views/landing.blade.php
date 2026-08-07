@@ -20,6 +20,7 @@
             'meta_title' => 'Dentavaria — The clinical operating system for modern dental practices',
             'form_name' => 'Your name', 'form_email' => 'Email address',
             'field_required' => 'This field is required.', 'nav_login' => 'Log in', 'close' => 'Close',
+            'nav_api_docs' => 'API Documentation', 'nav_admin' => 'Go to admin panel', 'nav_dashboard' => 'Go to dashboard', 'nav_options' => 'Options',
         ],
         'ar' => [
             'nav_home' => 'الرئيسية', 'nav_features' => 'المزايا', 'nav_how' => 'كيف يعمل', 'nav_pricing' => 'الأسعار', 'nav_faq' => 'الأسئلة الشائعة', 'nav_contact' => 'تواصل معنا',
@@ -38,6 +39,7 @@
             'meta_title' => 'Dentavaria — نظام التشغيل السريري لعيادات الأسنان الحديثة',
             'form_name' => 'اسمك', 'form_email' => 'البريد الإلكتروني',
             'field_required' => 'هذا الحقل مطلوب.', 'nav_login' => 'تسجيل الدخول', 'close' => 'إغلاق',
+            'nav_api_docs' => 'وثائق API', 'nav_admin' => 'الذهاب إلى لوحة التحكم', 'nav_dashboard' => 'الذهاب إلى لوحة القيادة', 'nav_options' => 'خيارات',
         ],
         'tr' => [
             'nav_home' => 'Ana sayfa', 'nav_features' => 'Özellikler', 'nav_how' => 'Nasıl çalışır', 'nav_pricing' => 'Fiyatlandırma', 'nav_faq' => 'SSS', 'nav_contact' => 'İletişim',
@@ -56,11 +58,13 @@
             'meta_title' => 'Dentavaria — Modern diş kliniklerinin klinik işletim sistemi',
             'form_name' => 'Adınız', 'form_email' => 'E-posta adresi',
             'field_required' => 'Bu alan zorunludur.', 'nav_login' => 'Giriş yap', 'close' => 'Kapat',
+            'nav_api_docs' => 'API Dokümantasyonu', 'nav_admin' => 'Yönetim paneline git', 'nav_dashboard' => 'Panele git', 'nav_options' => 'Seçenekler',
         ],
     ][$locale];
 
     $languages = ['en' => 'EN', 'ar' => 'AR', 'tr' => 'TR'];
     $frontendLoginUrl = rtrim(config('app.frontend_url'), '/') . '/login';
+    $isAdminLoggedIn = auth()->check() && auth()->user()->isProjectAdmin() && auth()->user()->isActive();
 
     $autoOpenModal = null;
     if (session('inquiry_success') === 'contact') {
@@ -277,8 +281,8 @@
                 <button type="button" data-open-modal="contact-modal" class="bg-transparent border-0 p-0 cursor-pointer transition hover:text-white">{{ $ui['nav_contact'] }}</button>
             </nav>
 
-            <div class="flex items-center gap-3">
-                <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light/dark theme">
+            <div class="hidden items-center gap-3 md:flex">
+                <button type="button" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light/dark theme">
                     <svg class="icon-sun h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 15a5 5 0 100-10 5 5 0 000 10zM10 0a1 1 0 011 1v1a1 1 0 11-2 0V1a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM3.05 3.05a1 1 0 011.414 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zm11.78 11.78a1 1 0 011.415 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zM0 10a1 1 0 011-1h1a1 1 0 110 2H1a1 1 0 01-1-1zm17 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM3.05 16.95a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM14.83 5.17a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0z"/></svg>
                     <svg class="icon-moon h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
                 </button>
@@ -287,10 +291,65 @@
                         <a href="{{ route('home', $code) }}" class="px-2.5 py-1.5 transition {{ $locale === $code ? 'bg-white/10 text-white' : 'hover:text-white' }}">{{ $label }}</a>
                     @endforeach
                 </div>
-                <a href="{{ $frontendLoginUrl }}" class="hidden text-sm font-medium text-slate-300 transition hover:text-white sm:block">{{ $ui['nav_login'] }}</a>
-                <button type="button" data-open-modal="contact-modal" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
-                    {{ $ui['nav_cta'] }}
+                @if ($isAdminLoggedIn)
+                    <a href="{{ route('admin.dashboard') }}" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
+                        {{ $ui['nav_admin'] }}
+                    </a>
+                @else
+                    <a href="{{ $frontendLoginUrl }}" data-auth-cta="guest" class="hidden text-sm font-medium text-slate-300 transition hover:text-white sm:block">{{ $ui['nav_login'] }}</a>
+                    <button type="button" data-open-modal="contact-modal" data-auth-cta="guest" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
+                        {{ $ui['nav_cta'] }}
+                    </button>
+                    <a href="{{ rtrim(config('app.frontend_url'), '/') }}" data-auth-cta="app-user" class="hidden rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
+                        {{ $ui['nav_dashboard'] }}
+                    </a>
+                @endif
+            </div>
+
+            <button type="button" id="mobile-menu-toggle" class="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white md:hidden" aria-expanded="false" aria-controls="mobile-menu-panel">
+                {{ $ui['nav_options'] }}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+
+        <div id="mobile-menu-panel" class="hidden border-t border-white/5 px-6 py-6 md:hidden">
+            <nav class="flex flex-col gap-4 text-base text-slate-300">
+                <a href="#top" class="transition hover:text-white">{{ $ui['nav_home'] }}</a>
+                <a href="#features" class="transition hover:text-white">{{ $ui['nav_features'] }}</a>
+                <a href="#how-it-works" class="transition hover:text-white">{{ $ui['nav_how'] }}</a>
+                <a href="#pricing" class="transition hover:text-white">{{ $ui['nav_pricing'] }}</a>
+                <a href="#faq" class="transition hover:text-white">{{ $ui['nav_faq'] }}</a>
+                <button type="button" data-open-modal="contact-modal" class="bg-transparent border-0 p-0 text-start cursor-pointer transition hover:text-white">{{ $ui['nav_contact'] }}</button>
+            </nav>
+
+            <div class="mt-6 flex items-center justify-between border-t border-white/5 pt-6">
+                <button type="button" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light/dark theme">
+                    <svg class="icon-sun h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 15a5 5 0 100-10 5 5 0 000 10zM10 0a1 1 0 011 1v1a1 1 0 11-2 0V1a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM3.05 3.05a1 1 0 011.414 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zm11.78 11.78a1 1 0 011.415 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 01-1.414 0zM0 10a1 1 0 011-1h1a1 1 0 110 2H1a1 1 0 01-1-1zm17 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM3.05 16.95a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM14.83 5.17a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg class="icon-moon h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
                 </button>
+                <div class="flex items-center overflow-hidden rounded-full border border-white/10 text-xs font-semibold text-slate-400">
+                    @foreach ($languages as $code => $label)
+                        <a href="{{ route('home', $code) }}" class="px-2.5 py-1.5 transition {{ $locale === $code ? 'bg-white/10 text-white' : 'hover:text-white' }}">{{ $label }}</a>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="mt-5 flex flex-col gap-3">
+                @if ($isAdminLoggedIn)
+                    <a href="{{ route('admin.dashboard') }}" class="rounded-full bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
+                        {{ $ui['nav_admin'] }}
+                    </a>
+                @else
+                    <a href="{{ $frontendLoginUrl }}" data-auth-cta="guest" class="rounded-full border border-white/15 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:border-white/30">
+                        {{ $ui['nav_login'] }}
+                    </a>
+                    <button type="button" data-open-modal="contact-modal" data-auth-cta="guest" class="rounded-full bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
+                        {{ $ui['nav_cta'] }}
+                    </button>
+                    <a href="{{ rtrim(config('app.frontend_url'), '/') }}" data-auth-cta="app-user" class="hidden rounded-full bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 transition hover:bg-emerald-50">
+                        {{ $ui['nav_dashboard'] }}
+                    </a>
+                @endif
             </div>
         </div>
     </header>
@@ -459,6 +518,9 @@
                             'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5',
                             'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
                             'M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z',
+                            'M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z',
+                            'M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2',
+                            'M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12',
                         ];
                     @endphp
 
@@ -510,7 +572,7 @@
                         <span class="relative inline-block">
                             <input type="checkbox" id="billing-toggle" class="peer sr-only">
                             <span class="track block h-6 w-11 rounded-full bg-white/15 transition-colors"></span>
-                            <span class="dot absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform"></span>
+                            <span class="dot absolute start-1 top-1 h-4 w-4 rounded-full bg-white transition-transform"></span>
                         </span>
                         <span class="text-sm text-slate-400">{{ $ui['billing_yearly'] }} <span class="text-emerald-400">{{ $ui['billing_save'] }}</span></span>
                     </label>
@@ -673,6 +735,7 @@
                         <li><a href="#features" class="transition hover:text-slate-300">{{ $ui['nav_features'] }}</a></li>
                         <li><a href="#pricing" class="transition hover:text-slate-300">{{ $ui['nav_pricing'] }}</a></li>
                         <li><a href="#faq" class="transition hover:text-slate-300">{{ $ui['nav_faq'] }}</a></li>
+                        <li><a href="{{ route('api-docs') }}" class="transition hover:text-slate-300">{{ $ui['nav_api_docs'] }}</a></li>
                     </ul>
                 </div>
 
@@ -681,15 +744,20 @@
                     <ul class="mt-4 space-y-3 text-sm text-slate-500">
                         <li><a href="#top" class="transition hover:text-slate-300">{{ $ui['footer_about'] }}</a></li>
                         <li><button type="button" data-open-modal="contact-modal" class="bg-transparent border-0 p-0 cursor-pointer transition hover:text-slate-300">{{ $ui['footer_contact'] }}</button></li>
-                        <li><a href="{{ $frontendLoginUrl }}" class="transition hover:text-slate-300">{{ $ui['nav_login'] }}</a></li>
+                        @if ($isAdminLoggedIn)
+                            <li><a href="{{ route('admin.dashboard') }}" class="transition hover:text-slate-300">{{ $ui['nav_admin'] }}</a></li>
+                        @else
+                            <li data-auth-cta="guest"><a href="{{ $frontendLoginUrl }}" class="transition hover:text-slate-300">{{ $ui['nav_login'] }}</a></li>
+                            <li data-auth-cta="app-user" class="hidden"><a href="{{ rtrim(config('app.frontend_url'), '/') }}" class="transition hover:text-slate-300">{{ $ui['nav_dashboard'] }}</a></li>
+                        @endif
                     </ul>
                 </div>
 
                 <div>
                     <p class="text-sm font-semibold text-white">{{ $ui['footer_legal'] }}</p>
                     <ul class="mt-4 space-y-3 text-sm text-slate-500">
-                        <li><a href="#" class="transition hover:text-slate-300">{{ $ui['footer_privacy'] }}</a></li>
-                        <li><a href="#" class="transition hover:text-slate-300">{{ $ui['footer_terms'] }}</a></li>
+                        <li><a href="{{ route('privacy', $locale) }}" class="transition hover:text-slate-300">{{ $ui['footer_privacy'] }}</a></li>
+                        <li><a href="{{ route('terms', $locale) }}" class="transition hover:text-slate-300">{{ $ui['footer_terms'] }}</a></li>
                     </ul>
                 </div>
             </div>
@@ -807,13 +875,33 @@
     </dialog>
 
     <script>
-        // Light/dark theme toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
+        // Light/dark theme toggle (a desktop instance and a mobile-menu instance both exist)
+        document.querySelectorAll('[data-theme-toggle]').forEach((themeToggle) => {
             themeToggle.addEventListener('click', () => {
                 const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', next);
                 localStorage.setItem('dentavaria-theme', next);
+            });
+        });
+
+        // Mobile "Options" menu: toggle open/closed, and auto-close when a
+        // link or action inside it is used (but not the theme toggle, since
+        // that's a preference flip the visitor may want to keep the menu
+        // open for).
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenuPanel = document.getElementById('mobile-menu-panel');
+        if (mobileMenuToggle && mobileMenuPanel) {
+            mobileMenuToggle.addEventListener('click', () => {
+                const willOpen = mobileMenuPanel.classList.contains('hidden');
+                mobileMenuPanel.classList.toggle('hidden');
+                mobileMenuToggle.setAttribute('aria-expanded', String(willOpen));
+            });
+
+            mobileMenuPanel.querySelectorAll('a, button:not([data-theme-toggle])').forEach((el) => {
+                el.addEventListener('click', () => {
+                    mobileMenuPanel.classList.add('hidden');
+                    mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                });
             });
         }
 
@@ -890,6 +978,35 @@
         @if ($autoOpenModal)
             document.getElementById('{{ $autoOpenModal }}')?.showModal();
         @endif
+
+        // If a clinic user is already signed in to the app (bearer token in
+        // localStorage, set by the SPA at /app), swap the Login/Book-a-demo
+        // CTAs for a direct link to their dashboard. The server can't see
+        // this token (it's not a cookie), so this has to run client-side.
+        @unless ($isAdminLoggedIn)
+            (function () {
+                function normalizeToken(value) {
+                    if (typeof value !== 'string') return '';
+                    var trimmed = value.trim();
+                    if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return '';
+                    return trimmed;
+                }
+
+                var token = normalizeToken(window.localStorage.getItem('dental_api_token'));
+                if (!token) return;
+
+                fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } })
+                    .then(function (response) {
+                        if (!response.ok) return;
+                        // Inline style, not the `hidden` class: the guest login link also
+                        // carries `sm:block` (desktop-only), whose media-query rule cascades
+                        // after `.hidden` and would otherwise win at desktop widths.
+                        document.querySelectorAll('[data-auth-cta="guest"]').forEach(function (el) { el.style.display = 'none'; });
+                        document.querySelectorAll('[data-auth-cta="app-user"]').forEach(function (el) { el.classList.remove('hidden'); });
+                    })
+                    .catch(function () {});
+            })();
+        @endunless
     </script>
 </body>
 </html>

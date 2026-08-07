@@ -15,6 +15,7 @@ class UpdateEmployeeSalaryRequest extends FormRequest
     {
         return [
             'monthly_salary' => ['required', 'numeric', 'min:0'],
+            'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 }

@@ -14,7 +14,9 @@ class EmployeeSalaryResource extends JsonResource
             'uuid' => $this->uuid,
             'name' => $this->name,
             'job_title' => $this->job_title,
+            'is_doctor' => (bool) $this->is_doctor,
             'monthly_salary' => $this->monthly_salary !== null ? (float) $this->monthly_salary : null,
+            'commission_percentage' => $this->commission_percentage !== null ? (float) $this->commission_percentage : null,
         ];
     }
 }

@@ -30,7 +30,8 @@
             <div>
                 @if ($company->currentSubscription)
                     {{ $company->currentSubscription->plan_name }}<br>
-                    <span class="muted">{{ $company->currentSubscription->active_users }}/{{ $company->currentSubscription->max_users }}</span>
+                    <span class="muted">{{ $company->currentSubscription->active_users }}/{{ $company->currentSubscription->max_users }} users</span><br>
+                    <span class="muted">{{ $company->currentSubscription->ai_tokens_used }}/{{ $company->currentSubscription->max_ai_tokens ?? '∞' }} AI tokens</span>
                 @else
                     No active subscription
                 @endif
@@ -90,6 +91,7 @@
                     <th>Status</th>
                     <th>Period</th>
                     <th>Users Limit</th>
+                    <th>AI Tokens</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -103,6 +105,7 @@
                             <small>{{ $subscription->ends_at?->format('Y-m-d') ?? 'Open end' }}</small>
                         </td>
                         <td>{{ $subscription->active_users }}/{{ $subscription->max_users }}</td>
+                        <td>{{ $subscription->ai_tokens_used }}/{{ $subscription->max_ai_tokens ?? '∞' }}</td>
                         <td>
                             <div class="actions-row table-actions">
                                 <button class="btn-muted" type="button" data-open-modal="toggle-subscription-{{ $subscription->id }}">
@@ -196,6 +199,7 @@
                 <input type="date" name="starts_at" required>
                 <input type="date" name="ends_at">
                 <input type="number" min="1" name="max_users" placeholder="Max users" required>
+                <input type="number" min="0" name="max_ai_tokens" placeholder="Max AI tokens (blank = unlimited)">
                 <input type="number" step="0.01" min="0" name="price" placeholder="Price">
                 <textarea name="notes" placeholder="Notes"></textarea>
                 <button class="btn" type="submit">Create Subscription</button>
@@ -305,6 +309,7 @@
                     <input type="date" name="starts_at" value="{{ $subscription->starts_at?->format('Y-m-d') }}" required>
                     <input type="date" name="ends_at" value="{{ $subscription->ends_at?->format('Y-m-d') }}">
                     <input type="number" min="1" name="max_users" value="{{ $subscription->max_users }}" required>
+                    <input type="number" min="0" name="max_ai_tokens" value="{{ $subscription->max_ai_tokens }}" placeholder="Max AI tokens (blank = unlimited)">
                     <input type="number" step="0.01" min="0" name="price" value="{{ $subscription->price }}">
                     <textarea name="notes">{{ $subscription->notes }}</textarea>
                     <button class="btn" type="submit">Update Subscription</button>

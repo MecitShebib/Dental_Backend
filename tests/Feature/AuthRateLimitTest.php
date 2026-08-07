@@ -85,13 +85,13 @@ class AuthRateLimitTest extends TestCase
     {
         for ($i = 0; $i < 5; $i++) {
             $this->post('/admin/login', [
-                'email' => 'nobody@example.com',
+                'phone' => '900000000',
                 'password' => 'wrong',
-            ])->assertSessionHasErrors('email');
+            ])->assertSessionHasErrors('phone');
         }
 
         $this->post('/admin/login', [
-            'email' => 'nobody@example.com',
+            'phone' => '900000000',
             'password' => 'wrong',
         ])->assertStatus(429);
     }

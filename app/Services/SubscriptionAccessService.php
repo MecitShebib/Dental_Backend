@@ -19,6 +19,10 @@ class SubscriptionAccessService
             return false;
         }
 
+        if ($user->isProjectAdmin()) {
+            return true;
+        }
+
         return $this->hasActiveSubscription($user);
     }
 

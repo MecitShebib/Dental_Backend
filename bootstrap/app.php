@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveClinicAccess;
 use App\Http\Middleware\EnsureAdminUser;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => EnsureAdminUser::class,
+            'active.clinic' => EnsureActiveClinicAccess::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('admin.login'));
