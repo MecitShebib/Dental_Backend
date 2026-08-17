@@ -11,6 +11,7 @@ use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\Clinical\ClientQueryService;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -109,5 +110,22 @@ class ClientQueryServiceTest extends TestCase
         $result = app(ClientQueryService::class)->list($manager, null, ['phone' => $bob->phone]);
         $this->assertCount(1, $result->items());
         $this->assertSame('Bob Nomatch', $result->items()[0]->name);
+    }
+
+    public function test_a_manager_never_sees_another_companys_clients_even_with_matching_specialty(): void
+    {
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+        $manager = User::factory()->create(['company_id' => $companyA->id]);
+        Sanctum::actingAs($manager);
+
+        $ownClient = $this->makeClient($companyA, 'Own Company Patient');
+        $otherCompanyClient = $this->makeClient($companyB, 'Other Company Patient');
+
+        $result = app(ClientQueryService::class)->list($manager, null, []);
+
+        $names = collect($result->items())->pluck('name');
+        $this->assertTrue($names->contains('Own Company Patient'));
+        $this->assertFalse($names->contains('Other Company Patient'));
     }
 }

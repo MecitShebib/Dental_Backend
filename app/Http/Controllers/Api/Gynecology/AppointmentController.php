@@ -9,6 +9,7 @@ use App\Http\Requests\Appointment\StoreAppointmentRequest;
 use App\Http\Requests\Appointment\UpdateAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\Specialty;
 use App\Models\TreatmentCharge;
 use App\Models\User;
 use App\Services\AppointmentConflictService;
@@ -34,7 +35,7 @@ class AppointmentController extends Controller
     {
         $appointments = $this->appointmentQuery->list([
             ...$request->validated(),
-            'specialty' => 'gynecology',
+            'specialty' => Specialty::GYNECOLOGY,
         ]);
 
         return $this->success(AppointmentResource::collection($appointments));

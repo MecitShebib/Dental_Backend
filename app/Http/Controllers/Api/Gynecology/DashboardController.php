@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Gynecology;
 
 use App\Http\Controllers\Controller;
+use App\Models\Specialty;
 use App\Services\Clinical\DashboardStatsService;
 use Illuminate\Http\Request;
 
@@ -28,7 +29,7 @@ class DashboardController extends Controller
             dateTo: $request->date_to,
             doctorId: $request->doctor_id,
             branchId: $request->branch_id,
-            specialtyKey: 'gynecology',
+            specialtyKey: Specialty::GYNECOLOGY,
         );
 
         return $this->success($stats);

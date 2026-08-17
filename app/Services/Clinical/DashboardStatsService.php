@@ -18,9 +18,11 @@ class DashboardStatsService
 {
     public function stats(string $dateFrom, string $dateTo, ?int $doctorId, ?int $branchId, ?string $specialtyKey): array
     {
-        $specialtyId = $specialtyKey
-            ? Specialty::query()->where('key', $specialtyKey)->value('id')
-            : null;
+        $specialtyId = null;
+        $specialtyFilterRequested = $specialtyKey !== null;
+        if ($specialtyFilterRequested) {
+            $specialtyId = Specialty::query()->where('key', $specialtyKey)->value('id');
+        }
 
         // whereDate() (not whereBetween on the raw column) because MySQL's DATE
         // column type silently truncates any time component on insert, but a
@@ -34,7 +36,9 @@ class DashboardStatsService
             ->whereDate('date', '<=', $dateTo)
             ->where('type', '!=', 'unavailable')
             ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
-            ->when($specialtyId, fn ($q) => $q->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId)))
+            ->when($specialtyFilterRequested, function ($q) use ($specialtyId) {
+                $q->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId));
+            })
             ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where('branch_id', $branchId)));
 
         $total = (clone $apptBase)->count();
@@ -61,7 +65,7 @@ class DashboardStatsService
                     $vq->where('doctor_id', $doctorId);
                 });
             })
-            ->when($specialtyId, function ($q) use ($specialtyId) {
+            ->when($specialtyFilterRequested, function ($q) use ($specialtyId) {
                 $q->whereHas('visit.doctor', function ($dq) use ($specialtyId) {
                     $dq->where('specialty_id', $specialtyId);
                 });
