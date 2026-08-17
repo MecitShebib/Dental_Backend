@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Brainstorming companion mockups (local scratch, not project artifacts)
+.superpowers/
