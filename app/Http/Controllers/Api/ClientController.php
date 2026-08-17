@@ -9,45 +9,62 @@ use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Resources\ClientListResource;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
+use App\Models\Specialty;
+use App\Services\Clinical\ClientQueryService;
+use App\Services\ClientSpecialtyEnrollmentService;
 use Illuminate\Support\Str;
 
 class ClientController extends Controller
 {
+    public function __construct(
+        protected ClientQueryService $clientQuery,
+        protected ClientSpecialtyEnrollmentService $enrollment,
+    ) {}
+
     public function index(IndexClientRequest $request)
     {
-        $clients = Client::query()
-            ->with(['appointments' => fn ($query) => $query->with(['client', 'doctor'])->where('status', 'scheduled')->whereDate('date', '>=', now()->toDateString())->orderBy('date')->orderBy('start_time')->limit(1)])
-            ->when(request('name'), fn ($query) => $query->where('name', 'like', '%'.request('name').'%'))
-            ->when(request('phone'), fn ($query) => $query->where('phone', 'like', '%'.request('phone').'%'))
-            ->latest()
-            ->paginate(request()->has('per_page') ? (int) request('per_page') : null)
-            ->withQueryString();
+        $clients = $this->clientQuery->list(
+            $request->user(),
+            $request->filled('specialty') ? $request->string('specialty')->value() : null,
+            $request->validated()
+        );
 
         $resource = ClientListResource::collection($clients);
 
         return $this->success(
-            request()->has('per_page') ? $resource->response()->getData(true) : $resource
+            $request->has('per_page') ? $resource->response()->getData(true) : $resource
         );
     }
 
     public function store(StoreClientRequest $request)
     {
         $data = $request->validated();
+        $specialtyId = $data['specialty_id'] ?? null;
+        unset($data['specialty_id']);
+
+        $actingUser = $request->user();
+
         $client = Client::create([
             ...$data,
             'client_code' => $data['client_code'] ?? 'CL-'.strtoupper(Str::random(8)),
-            'created_by' => $request->user()->id,
-            'updated_by' => $request->user()->id,
+            'created_by' => $actingUser->id,
+            'updated_by' => $actingUser->id,
             'status' => $data['status'] ?? 'new',
         ]);
 
-        return $this->success(ClientResource::make($client->load(['appointments' => fn ($query) => $query->with(['client', 'doctor'])->where('status', 'scheduled')->whereDate('date', '>=', now()->toDateString())->orderBy('date')->orderBy('start_time')->limit(1)])), 'Client created successfully.', 201);
+        if ($actingUser->is_doctor) {
+            $this->enrollment->ensureEnrolled($client, $actingUser);
+        } elseif ($specialtyId && $specialty = Specialty::find($specialtyId)) {
+            $this->enrollment->ensureEnrolledForSpecialty($client, $specialty, $actingUser);
+        }
+
+        return $this->success(ClientResource::make($client->load($this->clientQuery->nextAppointmentEagerLoad())), 'Client created successfully.', 201);
     }
 
     public function show(Client $client)
     {
         $client->load([
-            'appointments' => fn ($query) => $query->with(['client', 'doctor'])->where('status', 'scheduled')->whereDate('date', '>=', now()->toDateString())->orderBy('date')->orderBy('start_time')->limit(1),
+            ...$this->clientQuery->nextAppointmentEagerLoad(),
             'treatmentRecord',
         ]);
 
@@ -61,7 +78,7 @@ class ClientController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
-        return $this->success(ClientResource::make($client->load(['appointments' => fn ($query) => $query->with(['client', 'doctor'])->where('status', 'scheduled')->whereDate('date', '>=', now()->toDateString())->orderBy('date')->orderBy('start_time')->limit(1)])), 'Client updated successfully.');
+        return $this->success(ClientResource::make($client->load($this->clientQuery->nextAppointmentEagerLoad())), 'Client updated successfully.');
     }
 
     public function destroy(Client $client)
