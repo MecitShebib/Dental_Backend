@@ -1,0 +1,62 @@
+<?php
+
+namespace Tests\Feature\Gynecology;
+
+use App\Models\Appointment;
+use App\Models\Client;
+use App\Models\Company;
+use App\Models\Specialty;
+use App\Models\User;
+use Database\Seeders\SpecialtySeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+class DashboardControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(SpecialtySeeder::class);
+    }
+
+    public function test_stats_only_counts_gynecology_appointments_even_without_a_specialty_query_param(): void
+    {
+        $company = Company::factory()->create();
+        $manager = User::factory()->create(['company_id' => $company->id]);
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $gynecology->id]);
+        $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
+
+        foreach ([$gynDoctor, $dentalDoctor] as $doctor) {
+            $client = Client::create([
+                'company_id' => $company->id,
+                'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
+                'name' => 'Patient of '.$doctor->id,
+                'phone' => fake()->unique()->e164PhoneNumber(),
+                'gender' => 'female',
+                'status' => 'new',
+            ]);
+            Appointment::create([
+                'company_id' => $company->id,
+                'client_id' => $client->id,
+                'doctor_id' => $doctor->id,
+                'type' => 'booked',
+                'status' => 'scheduled',
+                'date' => now()->toDateString(),
+                'start_time' => '10:00:00',
+                'duration_minutes' => 30,
+            ]);
+        }
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->getJson('/api/gynecology/dashboard/stats?date_from='.now()->toDateString().'&date_to='.now()->toDateString());
+
+        $response->assertOk();
+        $response->assertJsonPath('data.appointments.total', 1);
+    }
+}
