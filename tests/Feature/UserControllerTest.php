@@ -158,4 +158,20 @@ class UserControllerTest extends TestCase
         $response->assertOk();
         $this->assertSame($gynecology->id, $doctor->fresh()->specialty_id);
     }
+
+    public function test_the_doctors_endpoint_includes_specialty_key(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        Sanctum::actingAs($manager);
+
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+        User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'status' => 'active', 'specialty_id' => $gynecology->id]);
+
+        $response = $this->getJson('/api/doctors');
+
+        $response->assertOk();
+        $keys = collect($response->json('data'))->pluck('specialty_key');
+        $this->assertTrue($keys->contains('gynecology'));
+    }
 }

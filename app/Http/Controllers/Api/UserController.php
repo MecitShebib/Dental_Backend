@@ -18,7 +18,7 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::with(['roles', 'permissions', 'company'])->latest()->paginate();
+        $users = User::with(['roles', 'permissions', 'company', 'branch'])->latest()->paginate();
 
         return $this->success(UserResource::collection($users));
     }
@@ -46,12 +46,12 @@ class UserController extends Controller
         $user->permissions()->sync($data['permission_ids'] ?? []);
         $this->companyUserLimit->syncActiveUsers($company);
 
-        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company'])), 'User created successfully.', 201);
+        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])), 'User created successfully.', 201);
     }
 
     public function show(User $user)
     {
-        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company'])));
+        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])));
     }
 
     public function update(UpdateUserRequest $request, User $user)
@@ -76,7 +76,7 @@ class UserController extends Controller
         $user->permissions()->sync($data['permission_ids'] ?? $user->permissions()->pluck('permissions.id')->all());
         $this->companyUserLimit->syncActiveUsers($company);
 
-        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company'])), 'User updated successfully.');
+        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])), 'User updated successfully.');
     }
 
     public function destroy(Request $request, User $user)
@@ -105,7 +105,7 @@ class UserController extends Controller
 
     public function doctors()
     {
-        $doctors = User::with(['roles', 'permissions', 'company'])->where('is_doctor', true)->where('status', 'active')->get();
+        $doctors = User::with(['roles', 'permissions', 'company', 'branch', 'specialty'])->where('is_doctor', true)->where('status', 'active')->get();
 
         return $this->success(UserResource::collection($doctors));
     }
