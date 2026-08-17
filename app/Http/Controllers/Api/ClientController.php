@@ -10,8 +10,8 @@ use App\Http\Resources\ClientListResource;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
 use App\Models\Specialty;
-use App\Services\Clinical\ClientQueryService;
 use App\Services\ClientSpecialtyEnrollmentService;
+use App\Services\Clinical\ClientQueryService;
 use Illuminate\Support\Str;
 
 class ClientController extends Controller

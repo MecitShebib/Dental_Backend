@@ -12,8 +12,8 @@ use App\Models\Appointment;
 use App\Models\TreatmentCharge;
 use App\Models\User;
 use App\Services\AppointmentConflictService;
-use App\Services\Clinical\AppointmentQueryService;
 use App\Services\ClientSpecialtyEnrollmentService;
+use App\Services\Clinical\AppointmentQueryService;
 use App\Services\TreatmentChargeService;
 use Illuminate\Validation\ValidationException;
 

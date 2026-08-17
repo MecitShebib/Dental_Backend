@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Gynecology;
 
+use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Specialty;
@@ -39,7 +40,7 @@ class AppointmentControllerTest extends TestCase
                 'gender' => 'female',
                 'status' => 'new',
             ]);
-            \App\Models\Appointment::create([
+            Appointment::create([
                 'company_id' => $company->id,
                 'client_id' => $client->id,
                 'doctor_id' => $doctor->id,

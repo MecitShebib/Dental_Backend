@@ -6,8 +6,10 @@ use App\Models\Appointment;
 use App\Models\Branch;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Payment;
 use App\Models\Specialty;
 use App\Models\User;
+use App\Models\Visit;
 use App\Services\Clinical\DashboardStatsService;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -93,13 +95,13 @@ class DashboardStatsServiceTest extends TestCase
                 'gender' => 'male',
                 'status' => 'new',
             ]);
-            $visit = \App\Models\Visit::create([
+            $visit = Visit::create([
                 'client_id' => $client->id,
                 'doctor_id' => $doctor->id,
                 'visit_date' => now()->toDateString(),
                 'attendance_status' => 'attended',
             ]);
-            \App\Models\Payment::create([
+            Payment::create([
                 'client_id' => $client->id,
                 'visit_id' => $visit->id,
                 'payment_date' => now()->toDateString(),
