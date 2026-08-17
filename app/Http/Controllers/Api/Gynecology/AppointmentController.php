@@ -37,7 +37,7 @@ class AppointmentController extends Controller
             'specialty' => 'gynecology',
         ]);
 
-        return $this->success(AppointmentResource::collection($appointments)->response()->getData(true));
+        return $this->success(AppointmentResource::collection($appointments));
     }
 
     public function store(StoreAppointmentRequest $request)

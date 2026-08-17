@@ -17,10 +17,6 @@ class AppointmentResource extends JsonResource
             'uuid' => $this->uuid,
             'client_id' => $this->client_id,
             'client_name' => optional($this->whenLoaded('client'))->name,
-            'client' => $this->whenLoaded('client', fn () => [
-                'id' => $this->client->id,
-                'name' => $this->client->name,
-            ]),
             'doctor_id' => $this->doctor_id,
             'doctor_name' => optional($this->whenLoaded('doctor'))->name,
             'type' => $this->type?->value ?? $this->type,

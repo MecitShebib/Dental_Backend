@@ -56,7 +56,7 @@ class AppointmentControllerTest extends TestCase
         $response = $this->getJson('/api/gynecology/appointments');
 
         $response->assertOk();
-        $names = collect($response->json('data.data'))->pluck('client.name');
+        $names = collect($response->json('data'))->pluck('client_name');
         $this->assertTrue($names->contains('Patient of '.$gynDoctor->id));
         $this->assertFalse($names->contains('Patient of '.$dentalDoctor->id));
     }
