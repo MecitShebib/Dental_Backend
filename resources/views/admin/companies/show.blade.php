@@ -31,6 +31,7 @@
                 @if ($company->currentSubscription)
                     {{ $company->currentSubscription->plan_name }}<br>
                     <span class="muted">{{ $company->currentSubscription->active_users }}/{{ $company->currentSubscription->max_users }} users</span><br>
+                    <span class="muted">{{ $company->branches()->count() }}/{{ $company->currentSubscription->max_branches }} branches</span><br>
                     <span class="muted">{{ $company->currentSubscription->ai_tokens_used }}/{{ $company->currentSubscription->max_ai_tokens ?? '∞' }} AI tokens</span>
                 @else
                     No active subscription
@@ -87,6 +88,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Specialty</th>
                     <th>Plan</th>
                     <th>Status</th>
                     <th>Period</th>
@@ -98,6 +100,7 @@
             <tbody>
                 @foreach ($subscriptions as $subscription)
                     <tr>
+                        <td>{{ $subscription->specialty->brand_name ?? '—' }}</td>
                         <td>{{ $subscription->plan_name }}</td>
                         <td><span class="status">{{ $subscription->status->value ?? $subscription->status }}</span></td>
                         <td>
@@ -171,6 +174,12 @@
                     <option value="0">Not Doctor</option>
                     <option value="1">Doctor</option>
                 </select>
+                <select name="specialty_id">
+                    <option value="">No specialty (staff only)</option>
+                    @foreach ($specialties as $specialty)
+                        <option value="{{ $specialty->id }}">{{ $specialty->brand_name }}</option>
+                    @endforeach
+                </select>
                 <select name="role_ids[]">
                     @foreach ($roles as $role)
                         <option value="{{ $role->id }}">{{ $role->name }}</option>
@@ -191,6 +200,15 @@
             <form method="POST" action="{{ route('admin.subscriptions.store') }}">
                 @csrf
                 <input type="hidden" name="company_id" value="{{ $company->id }}">
+                <fieldset>
+                    <legend>Specialties (select one or more)</legend>
+                    @foreach ($specialties as $specialty)
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="specialty_ids[]" value="{{ $specialty->id }}" @checked($specialty->key === 'dental')>
+                            {{ $specialty->brand_name }} ({{ $specialty->name_en }}){{ $specialty->is_active ? '' : ' — not built yet' }}
+                        </label>
+                    @endforeach
+                </fieldset>
                 <input name="plan_name" placeholder="Plan name" required>
                 <select name="status" required>
                     <option value="active">active</option>
@@ -199,6 +217,7 @@
                 <input type="date" name="starts_at" required>
                 <input type="date" name="ends_at">
                 <input type="number" min="1" name="max_users" placeholder="Max users" required>
+                <input type="number" min="1" name="max_branches" placeholder="Max branches" value="1" required>
                 <input type="number" min="0" name="max_ai_tokens" placeholder="Max AI tokens (blank = unlimited)">
                 <input type="number" step="0.01" min="0" name="price" placeholder="Price">
                 <textarea name="notes" placeholder="Notes"></textarea>
@@ -247,6 +266,12 @@
                     <select name="is_doctor">
                         <option value="0" @selected(! $user->is_doctor)>Not Doctor</option>
                         <option value="1" @selected($user->is_doctor)>Doctor</option>
+                    </select>
+                    <select name="specialty_id">
+                        <option value="">No specialty (staff only)</option>
+                        @foreach ($specialties as $specialty)
+                            <option value="{{ $specialty->id }}" @selected($user->specialty_id === $specialty->id)>{{ $specialty->brand_name }}</option>
+                        @endforeach
                     </select>
                     <select name="role_ids[]">
                         @foreach ($roles as $role)
@@ -301,6 +326,15 @@
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="company_id" value="{{ $company->id }}">
+                    <fieldset>
+                        <legend>Specialties (this row + any extra to also subscribe to)</legend>
+                        @foreach ($specialties as $specialty)
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="specialty_ids[]" value="{{ $specialty->id }}" @checked($subscription->specialty_id === $specialty->id)>
+                                {{ $specialty->brand_name }} ({{ $specialty->name_en }}){{ $specialty->is_active ? '' : ' — not built yet' }}
+                            </label>
+                        @endforeach
+                    </fieldset>
                     <input name="plan_name" value="{{ $subscription->plan_name }}" required>
                     <select name="status" required>
                         <option value="active" @selected(($subscription->status->value ?? $subscription->status) === 'active')>active</option>
@@ -309,6 +343,7 @@
                     <input type="date" name="starts_at" value="{{ $subscription->starts_at?->format('Y-m-d') }}" required>
                     <input type="date" name="ends_at" value="{{ $subscription->ends_at?->format('Y-m-d') }}">
                     <input type="number" min="1" name="max_users" value="{{ $subscription->max_users }}" required>
+                    <input type="number" min="1" name="max_branches" value="{{ $subscription->max_branches }}" placeholder="Max branches" required>
                     <input type="number" min="0" name="max_ai_tokens" value="{{ $subscription->max_ai_tokens }}" placeholder="Max AI tokens (blank = unlimited)">
                     <input type="number" step="0.01" min="0" name="price" value="{{ $subscription->price }}">
                     <textarea name="notes">{{ $subscription->notes }}</textarea>

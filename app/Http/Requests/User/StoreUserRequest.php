@@ -23,6 +23,7 @@ class StoreUserRequest extends FormRequest
             // exist in validated() so accessing it doesn't throw; "nullable" (vs.
             // "sometimes") guarantees that regardless of which caller omits it.
             'company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -31,6 +32,7 @@ class StoreUserRequest extends FormRequest
             'branch_name' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'is_doctor' => ['nullable', 'boolean'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id', 'required_if:is_doctor,true'],
             'notes' => ['nullable', 'string'],
             'role_ids' => ['nullable', 'array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],

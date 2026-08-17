@@ -19,6 +19,7 @@ class UpdateUserRequest extends FormRequest
 
         return [
             'company_id' => ['sometimes', 'required', 'integer', 'exists:companies,id'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -27,6 +28,7 @@ class UpdateUserRequest extends FormRequest
             'branch_name' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'is_doctor' => ['nullable', 'boolean'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id', 'required_if:is_doctor,true'],
             'notes' => ['nullable', 'string'],
             'role_ids' => ['nullable', 'array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
