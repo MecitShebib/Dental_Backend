@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Clinical;
 
 use App\Models\Appointment;
+use App\Models\Branch;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Specialty;
@@ -116,5 +117,83 @@ class DashboardStatsServiceTest extends TestCase
         );
 
         $this->assertSame(100.0, $stats['income']['total']);
+    }
+
+    public function test_doctor_id_filter_scopes_appointment_totals(): void
+    {
+        $company = Company::factory()->create();
+        $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $doctorB = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+
+        foreach ([$doctorA, $doctorB] as $doctor) {
+            $client = Client::create([
+                'company_id' => $company->id,
+                'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
+                'name' => 'Patient of '.$doctor->id,
+                'phone' => fake()->unique()->e164PhoneNumber(),
+                'gender' => 'male',
+                'status' => 'new',
+            ]);
+            Appointment::create([
+                'company_id' => $company->id,
+                'client_id' => $client->id,
+                'doctor_id' => $doctor->id,
+                'type' => 'booked',
+                'status' => 'scheduled',
+                'date' => now()->toDateString(),
+                'start_time' => '10:00:00',
+                'duration_minutes' => 30,
+            ]);
+        }
+
+        $stats = app(DashboardStatsService::class)->stats(
+            dateFrom: now()->toDateString(),
+            dateTo: now()->toDateString(),
+            doctorId: $doctorA->id,
+            branchId: null,
+            specialtyKey: null,
+        );
+
+        $this->assertSame(1, $stats['appointments']['total']);
+    }
+
+    public function test_branch_id_filter_scopes_appointment_totals(): void
+    {
+        $company = Company::factory()->create();
+        $branchA = Branch::create(['company_id' => $company->id, 'name' => 'Branch A', 'status' => 'active']);
+        $branchB = Branch::create(['company_id' => $company->id, 'name' => 'Branch B', 'status' => 'active']);
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+
+        foreach ([$branchA, $branchB] as $branch) {
+            $client = Client::create([
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
+                'name' => 'Patient of '.$branch->id,
+                'phone' => fake()->unique()->e164PhoneNumber(),
+                'gender' => 'male',
+                'status' => 'new',
+            ]);
+            Appointment::create([
+                'company_id' => $company->id,
+                'client_id' => $client->id,
+                'doctor_id' => $doctor->id,
+                'type' => 'booked',
+                'status' => 'scheduled',
+                'date' => now()->toDateString(),
+                'start_time' => '10:00:00',
+                'duration_minutes' => 30,
+            ]);
+        }
+
+        $stats = app(DashboardStatsService::class)->stats(
+            dateFrom: now()->toDateString(),
+            dateTo: now()->toDateString(),
+            doctorId: null,
+            branchId: $branchA->id,
+            specialtyKey: null,
+        );
+
+        $this->assertSame(1, $stats['appointments']['total']);
     }
 }
