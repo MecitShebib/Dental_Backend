@@ -16,10 +16,14 @@ use Illuminate\Support\Str;
 
 /**
  * Gynevaria's own clinical Client endpoints. Thin delegation to the same
- * ClientQueryService dental's Api\ClientController uses, with the specialty
- * hardcoded to gynecology rather than read from a query param -- the URL
- * namespace itself declares intent, so a caller can't override it. See
- * docs/superpowers/specs/2026-08-17-doctovaria-per-specialty-separation-design.md.
+ * ClientQueryService dental's Api\ClientController uses. For index() and a
+ * non-doctor's store(), the specialty is hardcoded to gynecology rather than
+ * read from a query param -- the URL namespace itself declares intent, so a
+ * caller can't override it. A DOCTOR's store() still enrolls under the
+ * doctor's own specialty_id (via ClientSpecialtyEnrollmentService::
+ * ensureEnrolled(), same as dental's own ClientController) since a doctor's
+ * specialty is a fixed identity, not something the URL needs to disambiguate.
+ * See docs/superpowers/specs/2026-08-17-doctovaria-per-specialty-separation-design.md.
  */
 class ClientController extends Controller
 {

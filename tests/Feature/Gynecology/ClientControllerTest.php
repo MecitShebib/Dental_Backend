@@ -80,4 +80,29 @@ class ClientControllerTest extends TestCase
             'specialty_id' => Specialty::query()->where('key', Specialty::GYNECOLOGY)->value('id'),
         ]);
     }
+
+    public function test_a_gynecology_doctor_can_create_and_see_their_own_patient_through_this_endpoint(): void
+    {
+        $company = Company::factory()->create();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $gynecology->id]);
+        Sanctum::actingAs($doctor);
+
+        $createResponse = $this->postJson('/api/gynecology/clients', [
+            'name' => 'Doctor Created Patient',
+            'phone' => '+15559876543',
+            'gender' => 'female',
+        ]);
+        $createResponse->assertCreated();
+        $client = Client::where('name', 'Doctor Created Patient')->firstOrFail();
+        $this->assertDatabaseHas('client_specialty_records', [
+            'client_id' => $client->id,
+            'specialty_id' => $gynecology->id,
+            'primary_doctor_id' => $doctor->id,
+        ]);
+
+        $indexResponse = $this->getJson('/api/gynecology/clients');
+        $indexResponse->assertOk();
+        $this->assertTrue(collect($indexResponse->json('data'))->pluck('name')->contains('Doctor Created Patient'));
+    }
 }
