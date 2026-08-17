@@ -9,9 +9,12 @@ use App\Http\Requests\Appointment\StoreAppointmentRequest;
 use App\Http\Requests\Appointment\UpdateAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\Specialty;
 use App\Models\TreatmentCharge;
 use App\Models\User;
 use App\Services\AppointmentConflictService;
+use App\Services\Clinical\AppointmentQueryService;
+use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\TreatmentChargeService;
 use Illuminate\Validation\ValidationException;
 
@@ -20,23 +23,13 @@ class AppointmentController extends Controller
     public function __construct(
         protected AppointmentConflictService $conflicts,
         protected TreatmentChargeService $treatmentCharges,
+        protected ClientSpecialtyEnrollmentService $enrollment,
+        protected AppointmentQueryService $appointmentQuery,
     ) {}
 
     public function index(IndexAppointmentRequest $request)
     {
-        $appointments = Appointment::query()
-            ->with(['client', 'doctor'])
-            ->when(request('doctor_id'), fn ($query) => $query->where('doctor_id', request('doctor_id')))
-            ->when(request('client_id'), fn ($query) => $query->where('client_id', request('client_id')))
-            ->when(request('status'), fn ($query) => $query->where('status', request('status')))
-            ->when(
-                request('date_from') && request('date_to'),
-                fn ($query) => $query->whereBetween('date', [request('date_from'), request('date_to')]),
-                fn ($query) => $query->when(request('date'), fn ($q) => $q->whereDate('date', request('date')))
-            )
-            ->orderBy('date')
-            ->orderBy('start_time')
-            ->paginate((int) request('per_page', 20));
+        $appointments = $this->appointmentQuery->list($request->validated());
 
         return $this->success(AppointmentResource::collection($appointments));
     }
@@ -63,6 +56,7 @@ class AppointmentController extends Controller
 
         if ($appointment->client_id) {
             $this->treatmentCharges->syncItems($appointment->client, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, $chargeItems);
+            $this->enrollment->ensureEnrolled($appointment->client, $doctor);
         }
 
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])), 'Appointment created successfully.', 201);
@@ -106,7 +100,7 @@ class AppointmentController extends Controller
 
     public function destroy(Appointment $appointment)
     {
-        $this->treatmentCharges->deleteAllForAppointment($appointment->id);
+        $this->treatmentCharges->deleteAllForAppointment($appointment->id, $appointment->client?->company_id);
         $appointment->delete();
 
         return $this->success(null, 'Appointment deleted successfully.');
