@@ -51,17 +51,20 @@ class ClientQueryServiceTest extends TestCase
     public function test_a_doctor_only_sees_their_own_claimed_patients_regardless_of_specialty_key_argument(string $specialtyKey): void
     {
         $company = Company::factory()->create();
-        $specialty = Specialty::query()->where('key', $specialtyKey)->firstOrFail();
-        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $specialty->id]);
-        $otherDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $specialty->id]);
+        // Doctor is ALWAYS gynecology, regardless of the data provider's $specialtyKey.
+        $doctorSpecialty = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $doctorSpecialty->id]);
+        $otherDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $doctorSpecialty->id]);
 
         $ownPatient = $this->makeClient($company, 'Own Patient');
         $otherDoctorsPatient = $this->makeClient($company, 'Other Doctors Patient');
         app(ClientSpecialtyEnrollmentService::class)->ensureEnrolled($ownPatient, $doctor);
         app(ClientSpecialtyEnrollmentService::class)->ensureEnrolled($otherDoctorsPatient, $otherDoctor);
 
-        // Passing a DIFFERENT specialty key than the doctor's own must not matter --
-        // a doctor is always hard-scoped to their own specialty_id (Doctovaria Phase 8).
+        // Passing a specialty key (from data provider) that is DIFFERENT from the doctor's own
+        // (gynecology) must not matter -- a doctor is always hard-scoped to their own specialty_id
+        // (Doctovaria Phase 8). For at least some data-provider cases, $specialtyKey genuinely
+        // differs from the doctor's actual specialty.
         $result = app(ClientQueryService::class)->list($doctor, $specialtyKey, []);
 
         $this->assertCount(1, $result->items());
@@ -94,12 +97,17 @@ class ClientQueryServiceTest extends TestCase
     {
         $company = Company::factory()->create();
         $manager = User::factory()->create(['company_id' => $company->id]);
-        $this->makeClient($company, 'Alice Match');
-        $this->makeClient($company, 'Bob Nomatch');
+        $alice = $this->makeClient($company, 'Alice Match');
+        $bob = $this->makeClient($company, 'Bob Nomatch');
 
+        // Test name filter
         $result = app(ClientQueryService::class)->list($manager, null, ['name' => 'Alice']);
-
         $this->assertCount(1, $result->items());
         $this->assertSame('Alice Match', $result->items()[0]->name);
+
+        // Test phone filter
+        $result = app(ClientQueryService::class)->list($manager, null, ['phone' => $bob->phone]);
+        $this->assertCount(1, $result->items());
+        $this->assertSame('Bob Nomatch', $result->items()[0]->name);
     }
 }
