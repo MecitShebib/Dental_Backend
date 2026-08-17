@@ -74,4 +74,47 @@ class DashboardStatsServiceTest extends TestCase
 
         $this->assertSame(1, $stats['appointments']['total']);
     }
+
+    public function test_income_totals_are_scoped_to_the_requested_specialty(): void
+    {
+        $company = Company::factory()->create();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+        $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
+        $gynDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $gynecology->id]);
+
+        foreach ([$dentalDoctor, $gynDoctor] as $doctor) {
+            $client = Client::create([
+                'company_id' => $company->id,
+                'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
+                'name' => 'Patient of '.$doctor->id,
+                'phone' => fake()->unique()->e164PhoneNumber(),
+                'gender' => 'male',
+                'status' => 'new',
+            ]);
+            $visit = \App\Models\Visit::create([
+                'client_id' => $client->id,
+                'doctor_id' => $doctor->id,
+                'visit_date' => now()->toDateString(),
+                'attendance_status' => 'attended',
+            ]);
+            \App\Models\Payment::create([
+                'client_id' => $client->id,
+                'visit_id' => $visit->id,
+                'payment_date' => now()->toDateString(),
+                'amount' => 100,
+                'payment_method' => 'cash',
+            ]);
+        }
+
+        $stats = app(DashboardStatsService::class)->stats(
+            dateFrom: now()->toDateString(),
+            dateTo: now()->toDateString(),
+            doctorId: null,
+            branchId: null,
+            specialtyKey: 'dental',
+        );
+
+        $this->assertSame(100.0, $stats['income']['total']);
+    }
 }
