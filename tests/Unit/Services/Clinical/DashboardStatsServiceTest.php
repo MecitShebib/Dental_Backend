@@ -45,6 +45,7 @@ class DashboardStatsServiceTest extends TestCase
         $otherSpecialty = Specialty::query()->where('key', '!=', $specialtyKey)->firstOrFail();
         $matchingDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $specialty->id]);
         $otherDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $otherSpecialty->id]);
+        $actingUser = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
 
         foreach ([$matchingDoctor, $otherDoctor] as $doctor) {
             $client = Client::create([
@@ -68,6 +69,7 @@ class DashboardStatsServiceTest extends TestCase
         }
 
         $stats = app(DashboardStatsService::class)->stats(
+            actingUser: $actingUser,
             dateFrom: now()->toDateString(),
             dateTo: now()->toDateString(),
             doctorId: null,
@@ -85,6 +87,7 @@ class DashboardStatsServiceTest extends TestCase
         $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
         $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
         $gynDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $gynecology->id]);
+        $actingUser = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
 
         foreach ([$dentalDoctor, $gynDoctor] as $doctor) {
             $client = Client::create([
@@ -111,6 +114,7 @@ class DashboardStatsServiceTest extends TestCase
         }
 
         $stats = app(DashboardStatsService::class)->stats(
+            actingUser: $actingUser,
             dateFrom: now()->toDateString(),
             dateTo: now()->toDateString(),
             doctorId: null,
@@ -122,6 +126,46 @@ class DashboardStatsServiceTest extends TestCase
     }
 
     public function test_doctor_id_filter_scopes_appointment_totals(): void
+    {
+        $company = Company::factory()->create();
+        $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $doctorB = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $actingUser = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
+
+        foreach ([$doctorA, $doctorB] as $doctor) {
+            $client = Client::create([
+                'company_id' => $company->id,
+                'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
+                'name' => 'Patient of '.$doctor->id,
+                'phone' => fake()->unique()->e164PhoneNumber(),
+                'gender' => 'male',
+                'status' => 'new',
+            ]);
+            Appointment::create([
+                'company_id' => $company->id,
+                'client_id' => $client->id,
+                'doctor_id' => $doctor->id,
+                'type' => 'booked',
+                'status' => 'scheduled',
+                'date' => now()->toDateString(),
+                'start_time' => '10:00:00',
+                'duration_minutes' => 30,
+            ]);
+        }
+
+        $stats = app(DashboardStatsService::class)->stats(
+            actingUser: $actingUser,
+            dateFrom: now()->toDateString(),
+            dateTo: now()->toDateString(),
+            doctorId: $doctorA->id,
+            branchId: null,
+            specialtyKey: null,
+        );
+
+        $this->assertSame(1, $stats['appointments']['total']);
+    }
+
+    public function test_a_doctor_only_ever_sees_their_own_totals_even_if_another_doctor_id_is_requested(): void
     {
         $company = Company::factory()->create();
         $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
@@ -149,9 +193,10 @@ class DashboardStatsServiceTest extends TestCase
         }
 
         $stats = app(DashboardStatsService::class)->stats(
+            actingUser: $doctorA,
             dateFrom: now()->toDateString(),
             dateTo: now()->toDateString(),
-            doctorId: $doctorA->id,
+            doctorId: $doctorB->id,
             branchId: null,
             specialtyKey: null,
         );
@@ -165,6 +210,7 @@ class DashboardStatsServiceTest extends TestCase
         $branchA = Branch::create(['company_id' => $company->id, 'name' => 'Branch A', 'status' => 'active']);
         $branchB = Branch::create(['company_id' => $company->id, 'name' => 'Branch B', 'status' => 'active']);
         $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $actingUser = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
 
         foreach ([$branchA, $branchB] as $branch) {
             $client = Client::create([
@@ -189,6 +235,7 @@ class DashboardStatsServiceTest extends TestCase
         }
 
         $stats = app(DashboardStatsService::class)->stats(
+            actingUser: $actingUser,
             dateFrom: now()->toDateString(),
             dateTo: now()->toDateString(),
             doctorId: null,

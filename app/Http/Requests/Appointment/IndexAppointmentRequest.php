@@ -16,12 +16,14 @@ class IndexAppointmentRequest extends FormRequest
     {
         return [
             'date_from' => ['nullable', 'date_format:Y-m-d'],
-            'date_to'   => ['nullable', 'date_format:Y-m-d', 'gte:date_from'],
-            'date'      => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'gte:date_from'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'doctor_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer'],
             'client_id' => ['nullable', 'integer'],
-            'status'    => ['nullable', 'string'],
-            'per_page'  => ['nullable', 'integer', 'min:1', 'max:100'],
+            'status' => ['nullable', 'string'],
+            'specialty' => ['nullable', 'string', 'exists:specialties,key'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 

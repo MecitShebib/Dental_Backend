@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\TreatmentRecord;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class TreatmentRecordService
 {
+    public function __construct(protected LabCaseAutoCreationService $labCaseAutoCreation) {}
+
     public function update(Client $client, array $payload, ?int $userId = null): TreatmentRecord
     {
         return DB::transaction(function () use ($client, $payload, $userId) {
@@ -46,6 +49,14 @@ class TreatmentRecordService
 
             $record->total_services_amount = $teeth->sum('unit_price');
             $record->save();
+
+            // TreatmentRecord has no doctor_id of its own (it's the client's
+            // single "current condition" chart, not tied to one clinician) --
+            // attribute an auto-created lab case to whoever is saving it.
+            $actingUser = $userId ? User::find($userId) : null;
+            if ($actingUser) {
+                $this->labCaseAutoCreation->createFromOdontogramSnapshot($client, $actingUser, $record->notes, null, $userId);
+            }
 
             return $record->load('teeth.treatmentCatalog');
         });

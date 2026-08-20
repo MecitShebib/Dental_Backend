@@ -30,6 +30,8 @@ class User extends Authenticatable
     protected $fillable = [
         'uuid',
         'company_id',
+        'specialty_id',
+        'branch_id',
         'name',
         'email',
         'phone',
@@ -80,6 +82,16 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class);
     }
 
+    /**
+     * Set for a doctor (a doctor belongs to exactly one specialty); null for
+     * non-doctor staff, who work across every specialty the company
+     * subscribes to.
+     */
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
+    }
+
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'permission_user');
@@ -128,6 +140,11 @@ class User extends Authenticatable
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function currentSubscription(): ?Subscription

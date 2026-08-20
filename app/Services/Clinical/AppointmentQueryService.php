@@ -4,6 +4,7 @@ namespace App\Services\Clinical;
 
 use App\Models\Appointment;
 use App\Models\Specialty;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\Paginator;
 
 /**
@@ -21,11 +22,16 @@ class AppointmentQueryService
      *                status?: ?string, date_from?: ?string, date_to?: ?string, date?: ?string,
      *                per_page?: ?int}  $filters
      */
-    public function list(array $filters): Paginator
+    public function list(User $actingUser, array $filters): Paginator
     {
+        // A doctor only ever sees their own schedule -- overrides whatever
+        // doctor_id the request asked for, the same rule
+        // ClientQueryService::list() already enforces for patients.
+        $doctorId = $actingUser->is_doctor ? $actingUser->id : ($filters['doctor_id'] ?? null);
+
         return Appointment::query()
             ->with(['client', 'doctor'])
-            ->when($filters['doctor_id'] ?? null, fn ($query) => $query->where('doctor_id', $filters['doctor_id']))
+            ->when($doctorId, fn ($query) => $query->where('doctor_id', $doctorId))
             ->when($filters['specialty'] ?? null, function ($query) use ($filters) {
                 $specialtyId = Specialty::query()->where('key', $filters['specialty'])->value('id');
                 $query->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId));

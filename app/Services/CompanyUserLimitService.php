@@ -11,9 +11,7 @@ class CompanyUserLimitService
 {
     public function assertCanHaveAnotherActiveUser(Company $company, ?User $ignoreUser = null): void
     {
-        $subscription = $company->currentSubscription()->first();
-
-        if (! $subscription) {
+        if (! $company->currentSubscription()->exists()) {
             throw ValidationException::withMessages([
                 'company_id' => ['The selected company does not have an active subscription.'],
             ]);
@@ -24,7 +22,9 @@ class CompanyUserLimitService
             ->when($ignoreUser, fn ($query) => $query->whereKeyNot($ignoreUser->id))
             ->count();
 
-        if (($activeUsers + 1) > $subscription->max_users) {
+        $maxUsers = $company->aggregatedSubscriptionLimit('max_users');
+
+        if ($maxUsers !== null && ($activeUsers + 1) > $maxUsers) {
             throw ValidationException::withMessages([
                 'status' => ['Active users cannot exceed the company subscription max users limit.'],
             ]);
@@ -33,19 +33,17 @@ class CompanyUserLimitService
 
     public function syncActiveUsers(Company $company): void
     {
-        $subscription = $company->currentSubscription()->first();
-
-        if ($subscription) {
-            $subscription->update([
-                'active_users' => $company->users()->where('status', 'active')->count(),
-            ]);
-        }
+        // active_users is a denormalized display counter (the real check in
+        // assertCanHaveAnotherActiveUser() above counts User rows directly)
+        // -- written to every active subscription, not just one, since the
+        // count it represents is now a company-wide total, not a per-
+        // specialty one.
+        $count = $company->users()->where('status', 'active')->count();
+        $company->activeSubscriptions()->each(fn (Subscription $subscription) => $subscription->update(['active_users' => $count]));
     }
 
     public function syncSubscription(Subscription $subscription): void
     {
-        $subscription->update([
-            'active_users' => $subscription->company->users()->where('status', 'active')->count(),
-        ]);
+        $this->syncActiveUsers($subscription->company);
     }
 }

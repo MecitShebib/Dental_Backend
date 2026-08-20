@@ -227,8 +227,11 @@ class LabCaseTest extends TestCase
         $this->getJson("/api/clients/{$otherClient->id}/lab-cases")->assertNotFound();
     }
 
-    public function test_a_lab_cost_automatically_posts_an_expense_to_the_company_fund(): void
+    public function test_setting_a_lab_cost_alone_does_not_touch_the_company_fund(): void
     {
+        // lab_cost is just the quoted/invoiced total now -- it stops being an
+        // automatic full expense the moment it's set. Only an actual recorded
+        // LabPayment should move money (see LabPaymentTest).
         $company = Company::factory()->create();
         $user = $this->makeManager($company);
         $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
@@ -240,84 +243,17 @@ class LabCaseTest extends TestCase
             'work_type' => 'crown',
             'sent_date' => '2026-08-03',
             'lab_cost' => 300,
-        ])->assertCreated()->json('data.id');
+        ])->assertCreated()
+            ->assertJsonPath('data.lab_cost', 300)
+            ->assertJsonPath('data.total_paid', 0)
+            ->assertJsonPath('data.remaining_balance', 300)
+            ->assertJsonPath('data.expense_id', null)
+            ->json('data.id');
 
-        $this->getJson('/api/fund/summary')
-            ->assertJsonPath('data.balance', -300)
-            ->assertJsonPath('data.by_source.expense', -300);
-
-        $expenseId = $this->getJson("/api/clients/{$client->id}/lab-cases")
-            ->json('data.0.expense_id');
-        $this->assertNotNull($expenseId);
-
-        $this->getJson('/api/expenses')
-            ->assertJsonPath('data.0.category', 'lab_fees')
-            ->assertJsonPath('data.0.amount', 300);
-    }
-
-    public function test_updating_the_lab_cost_adjusts_the_linked_expense_and_fund(): void
-    {
-        $company = Company::factory()->create();
-        $user = $this->makeManager($company);
-        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
-        $client = $this->makeClient($company);
-        Sanctum::actingAs($user);
-
-        $labCaseId = $this->postJson("/api/clients/{$client->id}/lab-cases", [
-            'doctor_id' => $doctor->id,
-            'work_type' => 'crown',
-            'sent_date' => '2026-08-03',
-            'lab_cost' => 300,
-        ])->assertCreated()->json('data.id');
+        $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', 0);
+        $this->getJson('/api/expenses')->assertJsonCount(0, 'data');
 
         $this->putJson("/api/lab-cases/{$labCaseId}", ['lab_cost' => 450])->assertOk();
-
-        // Still exactly one expense row -- the same one, amount updated in place.
-        $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', -450);
-        $this->getJson('/api/expenses')->assertJsonCount(1, 'data');
-    }
-
-    public function test_clearing_the_lab_cost_removes_the_linked_expense_and_fund_impact(): void
-    {
-        $company = Company::factory()->create();
-        $user = $this->makeManager($company);
-        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
-        $client = $this->makeClient($company);
-        Sanctum::actingAs($user);
-
-        $labCaseId = $this->postJson("/api/clients/{$client->id}/lab-cases", [
-            'doctor_id' => $doctor->id,
-            'work_type' => 'crown',
-            'sent_date' => '2026-08-03',
-            'lab_cost' => 300,
-        ])->assertCreated()->json('data.id');
-
-        $this->putJson("/api/lab-cases/{$labCaseId}", ['lab_cost' => null])->assertOk();
-
         $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', 0);
-        $this->getJson('/api/expenses')->assertJsonCount(0, 'data');
-        $this->getJson("/api/clients/{$client->id}/lab-cases")
-            ->assertJsonPath('data.0.expense_id', null);
-    }
-
-    public function test_deleting_a_lab_case_removes_its_linked_expense_and_fund_impact(): void
-    {
-        $company = Company::factory()->create();
-        $user = $this->makeManager($company);
-        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
-        $client = $this->makeClient($company);
-        Sanctum::actingAs($user);
-
-        $labCaseId = $this->postJson("/api/clients/{$client->id}/lab-cases", [
-            'doctor_id' => $doctor->id,
-            'work_type' => 'crown',
-            'sent_date' => '2026-08-03',
-            'lab_cost' => 300,
-        ])->assertCreated()->json('data.id');
-
-        $this->deleteJson("/api/lab-cases/{$labCaseId}")->assertOk();
-
-        $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', 0);
-        $this->getJson('/api/expenses')->assertJsonCount(0, 'data');
     }
 }

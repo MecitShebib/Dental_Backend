@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Admin Panel' }} · Dentavaria</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     <style>
@@ -47,21 +48,16 @@
             display: flex;
             align-items: center;
             gap: .65rem;
-            margin: 0 0 2rem;
+            margin: 0 0 1rem;
             font-size: 1.1rem;
             font-weight: 700;
             letter-spacing: -0.01em;
             color: var(--text);
         }
-        .brand-mark {
-            display: grid;
-            place-items: center;
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-2));
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
-            flex: 0 0 auto;
+        .brand-logo {
+            display: block;
+            height: 70px;
+            width: auto;
         }
         .nav { display: flex; flex-direction: column; gap: .35rem; flex: 1; }
         .nav a, .nav button {
@@ -147,6 +143,11 @@
             box-shadow: 0 0 0 3px var(--accent-soft);
         }
         textarea { min-height: 90px; resize: vertical; }
+        fieldset { border: 1px solid var(--border); border-radius: 10px; padding: .7rem .85rem; margin: 0 0 .65rem; }
+        fieldset legend { padding: 0 .4rem; font-size: .78rem; font-weight: 600; color: var(--text-muted); }
+        .checkbox-option { display: flex; align-items: center; gap: .5rem; font-size: .88rem; margin-bottom: .4rem; }
+        .checkbox-option:last-child { margin-bottom: 0; }
+        .checkbox-option input[type="checkbox"] { width: auto; margin: 0; }
         label.field-label { display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: .35rem; }
         .btn, .btn-soft, .btn-muted, .btn-danger, .btn-link {
             display: inline-flex;
@@ -236,10 +237,7 @@
     <div class="shell">
         <aside class="sidebar">
             <div class="brand">
-                <span class="brand-mark">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3c-3 0-5 2-5 5 0 2.5 1 4 1 7 0 2 .8 3.5 2 3.5s1.5-2 2-4c.3-1.2.7-1.2 1 0 .5 2 .8 4 2 4s2-1.5 2-3.5c0-3 1-4.5 1-7 0-3-2-5-5-5-.7 0-1 .3-1.5.6-.5-.3-.8-.6-1.5-.6Z" fill="white"/></svg>
-                </span>
-                Dentavaria Admin
+                <img src="/brand/doctovaria_logo.png" alt="Doctovaria Admin" class="brand-logo">
             </div>
             <div class="nav">
                 <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>

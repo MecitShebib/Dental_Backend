@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Expense;
 
+use App\Enums\CariCurrency;
 use App\Enums\ExpenseCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,10 @@ class UpdateExpenseRequest extends FormRequest
             'expense_date' => ['sometimes', 'required', 'date'],
             'description' => ['nullable', 'string'],
             'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+            'cari_partyable_type' => ['nullable', 'string', Rule::in(['cari_party', 'user', 'lab_partner'])],
+            'cari_partyable_id' => ['required_with:cari_partyable_type', 'nullable', 'integer'],
+            'cari_currency' => ['nullable', Rule::enum(CariCurrency::class)],
+            'cari_exchange_rate' => ['nullable', 'numeric', 'min:0.0001'],
         ];
     }
 }

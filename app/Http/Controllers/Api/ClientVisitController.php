@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\AppointmentStatus;
 use App\Enums\AttendanceStatus;
+use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Appointment\CheckInAppointmentRequest;
 use App\Http\Requests\Appointment\NoShowAppointmentRequest;
@@ -14,16 +15,27 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\TreatmentCharge;
 use App\Models\Visit;
+use App\Services\ClientSpecialtyEnrollmentService;
+use App\Services\LabCaseAutoCreationService;
 use App\Services\TreatmentChargeService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ClientVisitController extends Controller
 {
-    public function __construct(protected TreatmentChargeService $treatmentCharges) {}
+    use AuthorizesOwnDoctorRecords;
 
-    public function index(Client $client)
+    public function __construct(
+        protected TreatmentChargeService $treatmentCharges,
+        protected LabCaseAutoCreationService $labCaseAutoCreation,
+        protected ClientSpecialtyEnrollmentService $enrollment,
+    ) {}
+
+    public function index(Request $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $visits = $client->visits()->with(['doctor', 'appointment'])->latest('visit_date')->paginate();
 
         return $this->success(VisitResource::collection($visits));
@@ -35,6 +47,8 @@ class ClientVisitController extends Controller
         $chargeItems = $data['charge_items'] ?? [];
         unset($data['charge_items']);
 
+        $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
+
         $visit = $client->visits()->create([
             ...$data,
             'attendance_status' => AttendanceStatus::WalkIn->value,
@@ -44,15 +58,23 @@ class ClientVisitController extends Controller
 
         $client->forceFill(['last_visit_at' => $visit->visit_date?->toDateString().' '.($visit->start_time ?? '00:00:00')])->save();
         $this->treatmentCharges->syncItems($client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeItems);
+        $this->labCaseAutoCreation->createFromOdontogramSnapshot($client, $visit->doctor, $visit->summary, $visit->appointment_id, $request->user()->id);
+        $this->enrollment->ensureEnrolled($client, $visit->doctor);
 
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Visit created successfully.', 201);
     }
 
     public function update(UpdateVisitRequest $request, Visit $visit)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $visit->doctor_id);
+
         $data = $request->validated();
         $chargeItems = $data['charge_items'] ?? [];
         unset($data['charge_items']);
+
+        if (array_key_exists('doctor_id', $data)) {
+            $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
+        }
 
         $visit->update([
             ...$data,
@@ -63,12 +85,17 @@ class ClientVisitController extends Controller
             $this->treatmentCharges->syncItems($visit->client, TreatmentCharge::SOURCE_VISIT, $visit->id, $chargeItems);
         }
 
+        $this->labCaseAutoCreation->createFromOdontogramSnapshot($visit->client, $visit->doctor, $visit->summary, $visit->appointment_id, $request->user()->id);
+
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Visit updated successfully.');
     }
 
-    public function destroy(Visit $visit)
+    public function destroy(Request $request, Visit $visit)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $visit->doctor_id);
+
         $this->treatmentCharges->deleteForSource(TreatmentCharge::SOURCE_VISIT, $visit->id);
+        $this->treatmentCharges->reverseConsumptionForSource($visit->client?->company_id, TreatmentCharge::SOURCE_VISIT, $visit->id);
         $visit->delete();
 
         return $this->success(null, 'Visit deleted successfully.');
@@ -76,6 +103,8 @@ class ClientVisitController extends Controller
 
     public function checkIn(CheckInAppointmentRequest $request, Appointment $appointment)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $appointment->doctor_id);
+
         $visit = DB::transaction(function () use ($request, $appointment) {
             $this->assertAppointmentCanBeClosed($appointment);
 
@@ -124,11 +153,15 @@ class ClientVisitController extends Controller
             return $visit;
         });
 
+        $this->labCaseAutoCreation->createFromOdontogramSnapshot($visit->client, $visit->doctor, $visit->summary, $visit->appointment_id, $request->user()->id);
+
         return $this->success(VisitResource::make($visit->load(['doctor', 'appointment'])), 'Appointment checked in successfully.');
     }
 
     public function noShow(NoShowAppointmentRequest $request, Appointment $appointment)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $appointment->doctor_id);
+
         $visit = DB::transaction(function () use ($request, $appointment) {
             $this->assertAppointmentCanBeClosed($appointment);
 
@@ -152,7 +185,7 @@ class ClientVisitController extends Controller
             // Nothing was actually performed, so any charge tied to this
             // appointment (an AI-confirmed plan's cost, or one added manually)
             // shouldn't count toward the client's total anymore.
-            $this->treatmentCharges->deleteAllForAppointment($appointment->id);
+            $this->treatmentCharges->deleteAllForAppointment($appointment->id, $appointment->client?->company_id);
 
             return $visit;
         });

@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\ResolvesTreatingDoctor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiTreatmentPlan\AddAiTreatmentPlanChargeRequest;
 use App\Http\Requests\AiTreatmentPlan\ConfirmAiTreatmentPlanRequest;
-use App\Http\Requests\AiTreatmentPlan\PreviewAiTreatmentPlanRequest;
+use App\Http\Requests\AiTreatmentPlan\GenerateAiTreatmentPlanRequest;
+use App\Http\Requests\AiTreatmentPlan\SendAiConversationMessageRequest;
 use App\Http\Requests\AiTreatmentPlan\TranscribeAiTreatmentPlanAudioRequest;
+use App\Http\Resources\AiConversationMessageResource;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Client;
+use App\Models\Specialty;
 use App\Models\TreatmentCharge;
 use App\Models\User;
+use App\Services\AiConversationService;
 use App\Services\AiTokenUsageService;
 use App\Services\AiTreatmentPlanService;
 use App\Services\ClientFinancialSummaryService;
@@ -19,29 +24,52 @@ use Illuminate\Validation\ValidationException;
 
 class AiTreatmentPlanController extends Controller
 {
+    use ResolvesTreatingDoctor;
+
     public function __construct(
         protected AiTreatmentPlanService $plans,
+        protected AiConversationService $conversations,
         protected OpenAiClient $openAi,
         protected AiTokenUsageService $aiTokenUsage,
     ) {}
 
-    public function preview(PreviewAiTreatmentPlanRequest $request, Client $client)
+    public function conversationHistory(Client $client)
+    {
+        $this->assertCanUseAiAssistant(request()->user());
+
+        return $this->success(AiConversationMessageResource::collection($this->conversations->history($client, $this->dentalSpecialty())));
+    }
+
+    public function sendMessage(SendAiConversationMessageRequest $request, Client $client)
     {
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
         $this->aiTokenUsage->assertCanUseAiTokens($actingUser->company);
 
-        $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null);
+        [$userMessage, $assistantMessage] = $this->conversations->sendMessage($client, $actingUser, $request->validated('text'), $this->dentalSpecialty());
 
-        $description = (string) ($request->validated('description') ?? '');
+        return $this->success([
+            'user_message' => AiConversationMessageResource::make($userMessage),
+            'assistant_message' => AiConversationMessageResource::make($assistantMessage),
+        ], 'Message sent.');
+    }
 
-        if ($request->hasFile('audio')) {
-            $description = $this->openAi->transcribe($request->file('audio'));
-        }
+    public function generatePlan(GenerateAiTreatmentPlanRequest $request, Client $client)
+    {
+        $actingUser = $request->user();
+        $this->assertCanUseAiAssistant($actingUser);
+        $this->aiTokenUsage->assertCanUseAiTokens($actingUser->company);
 
-        $plan = $this->plans->preview($treatingDoctor, $actingUser, $client, $description);
+        $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null, 'Please select a doctor to schedule this treatment plan under.');
 
-        return $this->success($plan, 'AI treatment plan generated successfully.');
+        $result = $this->conversations->generatePlan($client, $actingUser, $treatingDoctor, $request->validated('text'), $this->dentalSpecialty());
+
+        return $this->success([
+            'diagnosis_summary' => $result['plan']['diagnosis_summary'],
+            'sessions' => $result['plan']['sessions'],
+            'user_message' => AiConversationMessageResource::make($result['user_message']),
+            'assistant_message' => AiConversationMessageResource::make($result['assistant_message']),
+        ], 'AI treatment plan generated successfully.');
     }
 
     /**
@@ -65,7 +93,7 @@ class AiTreatmentPlanController extends Controller
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
 
-        $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null);
+        $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null, 'Please select a doctor to schedule this treatment plan under.');
 
         $appointments = $this->plans->confirm($client, $treatingDoctor, $request->validated('sessions'), $actingUser->id);
 
@@ -108,30 +136,8 @@ class AiTreatmentPlanController extends Controller
         }
     }
 
-    /**
-     * A doctor always treats under their own schedule. A system manager acting on
-     * behalf of the clinic must pick which doctor's schedule the plan is booked into.
-     */
-    protected function resolveTreatingDoctor(User $actingUser, ?int $doctorId): User
+    protected function dentalSpecialty(): Specialty
     {
-        if ($actingUser->is_doctor) {
-            return $actingUser;
-        }
-
-        $doctor = $doctorId
-            ? User::query()
-                ->where('id', $doctorId)
-                ->where('company_id', $actingUser->company_id)
-                ->where('is_doctor', true)
-                ->first()
-            : null;
-
-        if (! $doctor) {
-            throw ValidationException::withMessages([
-                'doctor_id' => ['Please select a doctor to schedule this treatment plan under.'],
-            ]);
-        }
-
-        return $doctor;
+        return Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
     }
 }

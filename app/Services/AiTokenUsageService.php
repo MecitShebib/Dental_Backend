@@ -12,15 +12,16 @@ class AiTokenUsageService
 {
     public function assertCanUseAiTokens(Company $company): void
     {
-        $subscription = $company->currentSubscription()->first();
-
-        if (! $subscription) {
+        if (! $company->currentSubscription()->exists()) {
             throw ValidationException::withMessages([
                 'ai_tokens' => ['This company does not have an active subscription.'],
             ]);
         }
 
-        if ($subscription->max_ai_tokens !== null && $subscription->ai_tokens_used >= $subscription->max_ai_tokens) {
+        $maxTokens = $company->aggregatedSubscriptionLimit('max_ai_tokens');
+        $tokensUsed = $company->aggregatedSubscriptionUsage('ai_tokens_used');
+
+        if ($maxTokens !== null && $tokensUsed >= $maxTokens) {
             throw ValidationException::withMessages([
                 'ai_tokens' => ['The AI token usage limit for this subscription has been reached. Please raise the limit or upgrade the subscription.'],
             ]);

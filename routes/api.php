@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\LabPartnerController;
 use App\Http\Controllers\Api\LabPaymentController;
 use App\Http\Controllers\Api\MessageTemplateController;
+use App\Http\Controllers\Api\PatientLabResultController;
 use App\Http\Controllers\Api\PatientRecallController;
 use App\Http\Controllers\Api\PrenatalCarePlanController;
 use App\Http\Controllers\Api\PublicBookingController;
@@ -191,6 +192,11 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('lab-cases/{labCase}/payments', [LabPaymentController::class, 'store']);
     Route::delete('lab-payments/{labPayment}', [LabPaymentController::class, 'destroy']);
 
+    Route::get('clients/{client}/lab-results', [PatientLabResultController::class, 'index']);
+    Route::post('clients/{client}/lab-results', [PatientLabResultController::class, 'store']);
+    Route::put('lab-results/{labResult}', [PatientLabResultController::class, 'update']);
+    Route::delete('lab-results/{labResult}', [PatientLabResultController::class, 'destroy']);
+
     Route::get('cari/parties', [CariPartyController::class, 'index']);
     Route::post('cari/parties', [CariPartyController::class, 'store']);
     Route::put('cari/parties/{cariParty}', [CariPartyController::class, 'update']);
@@ -267,3 +273,6 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
 });
 
 require __DIR__.'/api/gynecology.php';
+require __DIR__.'/api/internal_medicine.php';
+require __DIR__.'/api/orthopedics.php';
+require __DIR__.'/api/cosmetic.php';

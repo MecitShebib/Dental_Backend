@@ -36,7 +36,10 @@ class OpenAiClientTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new OpenAiClient)->chatCompletionJson('system prompt', 'user prompt', [
+        $result = (new OpenAiClient)->chatCompletionJson([
+            ['role' => 'system', 'content' => 'system prompt'],
+            ['role' => 'user', 'content' => 'user prompt'],
+        ], [
             'name' => 'x', 'strict' => true, 'schema' => [],
         ]);
 
@@ -47,6 +50,7 @@ class OpenAiClientTest extends TestCase
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.openai.com/v1/chat/completions'
                 && $request['model'] === 'gpt-4o-mini'
+                && $request['messages'][1]['content'] === 'user prompt'
                 && $request['response_format']['type'] === 'json_schema';
         });
     }
@@ -61,7 +65,10 @@ class OpenAiClientTest extends TestCase
             ], 200),
         ]);
 
-        $result = (new OpenAiClient)->chatCompletionJson('system prompt', 'user prompt', [
+        $result = (new OpenAiClient)->chatCompletionJson([
+            ['role' => 'system', 'content' => 'system prompt'],
+            ['role' => 'user', 'content' => 'user prompt'],
+        ], [
             'name' => 'x', 'strict' => true, 'schema' => [],
         ]);
 
@@ -78,7 +85,10 @@ class OpenAiClientTest extends TestCase
 
         $this->expectException(ValidationException::class);
 
-        (new OpenAiClient)->chatCompletionJson('system prompt', 'user prompt', [
+        (new OpenAiClient)->chatCompletionJson([
+            ['role' => 'system', 'content' => 'system prompt'],
+            ['role' => 'user', 'content' => 'user prompt'],
+        ], [
             'name' => 'x', 'strict' => true, 'schema' => [],
         ]);
     }

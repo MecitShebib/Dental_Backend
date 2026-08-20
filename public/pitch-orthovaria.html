@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orthovaria — Pitch Deck</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  :root {
+    --paper: #f8f5f1; --paper-raised: #efe6da; --paper-line: #ffffff;
+    --ink: #241a0e; --ink-soft: #5c4c3a; --ink-faint: #8c7a63;
+    --rule: #ddccb5; --accent: #b56a1f; --accent-strong: #8a4f16; --accent-wash: #f7e6d2;
+    --dark: #0a1122; --dark-raised: #121b34; --dark-ink: #f4f6fb; --dark-ink-soft: #aab4d1;
+    --font-display: "Iowan Old Style", "Sitka Text", Georgia, "Noto Serif", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--dark); font-family: var(--font-body); -webkit-font-smoothing: antialiased; overflow: hidden; }
+  ::selection { background: var(--accent-wash); color: var(--ink); }
+
+  .deck-lang { display: none; }
+  .deck-lang.is-active { display: block; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; background: var(--dark); }
+
+  .slide {
+    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center;
+    padding: 7vh 9vw; opacity: 0; visibility: hidden; transform: translateX(2.5%);
+    transition: opacity .45s ease, transform .45s ease, visibility 0s linear .45s;
+    background: var(--paper); color: var(--ink);
+  }
+  .slide.is-active { opacity: 1; visibility: visible; transform: translateX(0); transition: opacity .45s ease, transform .45s ease; z-index: 2; }
+  .slide.is-prev { transform: translateX(-2.5%); }
+  [dir="rtl"] .slide { transform: translateX(-2.5%); }
+  [dir="rtl"] .slide.is-active { transform: translateX(0); }
+  [dir="rtl"] .slide.is-prev { transform: translateX(2.5%); }
+
+  .slide.dark { background: var(--dark); color: var(--dark-ink); }
+  .slide-inner { max-width: 1040px; margin: 0 auto; width: 100%; }
+
+  .k { font-family: var(--font-mono); font-size: clamp(10px, 1vw, 12px); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+  .slide.dark .k { color: var(--accent); filter: brightness(1.35); }
+
+  .cover-slide .glyph { width: 54px; height: 54px; border-radius: 14px; background: var(--accent); display: grid; place-items: center; margin-bottom: 22px; }
+  .cover-slide .glyph svg { width: 26px; height: 26px; }
+  .cover-slide .word { font-family: var(--font-display); font-size: clamp(20px, 2.4vw, 26px); font-weight: 600; color: var(--dark-ink-soft); margin: 0 0 10px; }
+  h1.slide-h { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; line-height: 1.06; font-size: clamp(34px, 5.6vw, 66px); margin: 18px 0 0; text-wrap: balance; max-width: 17ch; }
+  h2.slide-h { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; font-size: clamp(28px, 4.2vw, 48px); margin: 10px 0 0; text-wrap: balance; max-width: 20ch; }
+  .slide-lede { margin: 20px 0 0; font-size: clamp(15px, 1.35vw, 19px); line-height: 1.55; color: var(--ink-soft); max-width: 58ch; }
+  .slide.dark .slide-lede { color: var(--dark-ink-soft); }
+  .cover-meta-row { margin-top: 40px; display: flex; gap: 32px; flex-wrap: wrap; }
+  .cover-meta-row .m { font-family: var(--font-mono); font-size: 12px; color: var(--dark-ink-soft); }
+  .cover-meta-row .m b { display: block; color: var(--dark-ink); font-family: var(--font-body); font-size: 14px; font-weight: 600; margin-top: 3px; }
+
+  .pain-list { list-style: none; margin: 30px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; max-width: 62ch; }
+  .pain-list li { position: relative; padding-inline-start: 26px; font-size: clamp(15px, 1.3vw, 18px); line-height: 1.5; }
+  .pain-list li::before { content: ""; position: absolute; inset-inline-start: 0; top: 0.55em; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); }
+
+  .flow-row { margin-top: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .flow-item { border-top: 3px solid var(--accent); padding-top: 16px; }
+  .flow-item .fn { font-family: var(--font-mono); font-size: 12px; color: var(--accent-strong); }
+  .flow-item h3 { font-size: clamp(15px, 1.3vw, 18px); margin: 8px 0 6px; font-weight: 700; }
+  .flow-item p { font-size: clamp(12.5px, 1.05vw, 14px); color: var(--ink-soft); margin: 0; line-height: 1.5; }
+
+  .feat-grid { margin-top: 30px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .feat-card { background: var(--paper-raised); border-radius: 12px; padding: 18px; }
+  .feat-card .icon { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-wash); color: var(--accent-strong); display: grid; place-items: center; margin-bottom: 10px; }
+  .feat-card .icon svg { width: 16px; height: 16px; }
+  .feat-card h3 { font-size: clamp(13px, 1.05vw, 15px); font-weight: 700; margin: 0 0 4px; }
+  .feat-card p { font-size: clamp(11.5px, 0.95vw, 12.5px); color: var(--ink-soft); margin: 0; line-height: 1.45; }
+
+  .stat-grid { margin-top: 32px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 28px; max-width: 780px; }
+  .stat-card .rule { width: 34px; height: 3px; background: var(--accent); border-radius: 2px; margin-bottom: 12px; }
+  .stat-card h3 { font-size: clamp(15px, 1.3vw, 18px); font-weight: 700; margin: 0 0 5px; }
+  .stat-card p { font-size: clamp(12.5px, 1.05vw, 14px); color: var(--ink-soft); margin: 0; line-height: 1.5; }
+
+  .trust-row { margin-top: 30px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 30px; max-width: 780px; }
+  .trust-row li { list-style: none; display: flex; gap: 12px; align-items: flex-start; font-size: clamp(13.5px, 1.1vw, 15px); }
+  .trust-row svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; color: var(--accent); }
+
+  .price-row { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; }
+  .price-tile { border: 1px solid var(--rule); border-radius: 14px; padding: 22px 20px; }
+  .price-tile.hi { border-color: var(--accent); background: var(--accent-wash); }
+  .price-tile .tn { font-size: 13px; font-weight: 700; }
+  .price-tile .tp { font-family: var(--font-mono); font-size: 26px; margin-top: 6px; display: block; }
+  .price-tile .tp small { font-size: 11px; color: var(--ink-faint); font-family: var(--font-body); }
+  .price-tile p { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; line-height: 1.5; }
+
+  .cta-slide .glyph { width: 54px; height: 54px; border-radius: 14px; background: var(--accent); display: grid; place-items: center; margin-bottom: 22px; }
+  .cta-slide .glyph svg { width: 26px; height: 26px; }
+  .cta-email-big { display: inline-block; margin-top: 30px; font-family: var(--font-mono); font-size: clamp(16px, 1.6vw, 22px); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 14px 26px; border-radius: 999px; }
+  .cta-note { margin-top: 18px; font-size: 13px; color: var(--dark-ink-soft); }
+
+  /* Chrome: nav arrows, counter, progress, lang switch */
+  .deck-chrome { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+  .deck-progress { position: absolute; top: 0; inset-inline: 0; height: 3px; background: rgba(255,255,255,0.08); }
+  .deck-progress > span { display: block; height: 100%; background: var(--accent); transition: width .35s ease; }
+  .deck-lang-switch { position: absolute; top: 18px; inset-inline-end: 22px; display: inline-flex; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; overflow: hidden; background: rgba(10,17,34,0.55); backdrop-filter: blur(8px); pointer-events: auto; }
+  .deck-lang-switch button { font: inherit; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; padding: 6px 12px; border: 0; background: transparent; color: #aab4d1; cursor: pointer; }
+  .deck-lang-switch button.active { background: var(--accent); color: #fff; }
+  .deck-counter { position: absolute; bottom: 22px; inset-inline-start: 24px; font-family: var(--font-mono); font-size: 12px; color: rgba(255,255,255,0.55); pointer-events: none; letter-spacing: 0.04em; }
+  .deck-nav { position: absolute; bottom: 18px; inset-inline-end: 22px; display: flex; gap: 10px; pointer-events: auto; }
+  .deck-nav button {
+    width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(10,17,34,0.55); backdrop-filter: blur(8px); color: #f4f6fb; cursor: pointer;
+    display: grid; place-items: center; transition: background .15s ease, transform .15s ease;
+  }
+  .deck-nav button:hover { background: var(--accent); transform: translateY(-1px); }
+  .deck-nav button:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+  [dir="rtl"] .deck-nav svg { transform: scaleX(-1); }
+  .click-zone { position: absolute; top: 0; bottom: 0; width: 14%; z-index: 25; cursor: pointer; }
+  .click-zone.prev { inset-inline-start: 0; }
+  .click-zone.next { inset-inline-end: 0; }
+
+  .hint { position: absolute; bottom: 22px; inset-inline: 0; text-align: center; font-size: 12px; color: rgba(255,255,255,0.4); pointer-events: none; }
+  .cover-slide .hint-inline { margin-top: 46px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; color: var(--dark-ink-soft); opacity: 0.8; }
+
+  @media (max-width: 900px) {
+    .flow-row, .feat-grid, .price-row { grid-template-columns: repeat(2, 1fr); }
+    .stat-grid, .trust-row { grid-template-columns: 1fr; }
+    .slide { padding: 6vh 6vw; }
+  }
+  @media (max-width: 560px) {
+    .flow-row, .feat-grid, .price-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck-chrome">
+  <div class="deck-lang-switch" role="tablist" aria-label="Deck language">
+    <button type="button" data-lang="en" class="active">EN</button>
+    <button type="button" data-lang="ar">AR</button>
+    <button type="button" data-lang="tr">TR</button>
+  </div>
+</div>
+
+<!-- ============================================================ EN ============================================================ -->
+<div class="deck-lang is-active" data-deck-lang="en" lang="en" dir="ltr">
+  <div class="deck" data-deck>
+    <div class="deck-progress"><span style="width:0%"></span></div>
+
+    <section class="slide dark cover-slide is-active" data-slide>
+      <div class="slide-inner">
+        <img src="/brand/orthovaria_logo.png" alt="Orthovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
+        <h1 class="slide-h">Every recovery plan.<br>On schedule.</h1>
+        <p class="slide-lede">Orthovaria unifies scheduling, milestone rehab care plans, billing, and AI-assisted treatment planning in one secure platform — built for orthopedic practices.</p>
+        <div class="cover-meta-row">
+          <div class="m">PREPARED FOR<b>—</b></div>
+          <div class="m">PREPARED BY<b>Orthovaria</b></div>
+          <div class="m">DATE<b>—</b></div>
+        </div>
+        <p class="hint-inline">Use → or click to advance</p>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">01 — The problem</p>
+        <h2 class="slide-h">Recovery plans get lost between visits.</h2>
+        <ul class="pain-list">
+          <li>Rehab plans start as notes in a doctor's head — written up later, if at all.</li>
+          <li>Post-op milestones slip through the cracks without someone chasing them.</li>
+          <li>Scheduling, charting, and billing live in three different tools.</li>
+          <li>Patients wait days for a written plan they can read and follow.</li>
+          <li>Adding a doctor or branch means new software, again.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">02 — The AI assistant</p>
+        <h2 class="slide-h">Describe the case. The AI drafts. The doctor decides.</h2>
+        <div class="flow-row">
+          <div class="flow-item"><span class="fn">01</span><h3>Describe</h3><p>Type or speak the case — surgery, injury, or exam.</p></div>
+          <div class="flow-item"><span class="fn">02</span><h3>AI drafts</h3><p>A milestone rehab plan, tied to the procedure date.</p></div>
+          <div class="flow-item"><span class="fn">03</span><h3>Doctor confirms</h3><p>Fully editable. Nothing books itself.</p></div>
+          <div class="flow-item"><span class="fn">04</span><h3>Becomes real</h3><p>Follow-ups scheduled, fees recorded — instantly.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">03 — The platform</p>
+        <h2 class="slide-h">Everything, in one place.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Smart scheduling</h3><p>Conflict-free, across doctors and clinics.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Rehab care records</h3><p>Procedure checklists and milestone plans, always synced.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Financial clarity</h3><p>Charges, payments, balances — automatic.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Secure mobile</h3><p>OTP sign-in, token sessions, no shared passwords.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Multi-clinic</h3><p>Every branch, one login.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Accounting</h3><p>Fund ledger and payroll with doctor commissions.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Lab &amp; test tracking</h3><p>Every result, linked to the chart.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Open API</h3><p>Connect outside equipment straight to the chart.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">04 — What changes</p>
+        <h2 class="slide-h">The first month, in four wins.</h2>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="rule"></div><h3>Plans in seconds</h3><p>Not a callback tomorrow — a confirmed plan today.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>One dashboard</h3><p>Every branch, every doctor, one place.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>Nothing slips</h3><p>Confirming a plan books and bills every follow-up, automatically.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>More time with patients</h3><p>Less time writing plans or reconciling books.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">05 — Security</p>
+        <h2 class="slide-h">Built for clinical data, at scale.</h2>
+        <ul class="trust-row">
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>Case descriptions are never used to train external models.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm11.707-2.293a1 1 0 00-1.414-1.414L9 9.586 7.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>Every clinic's data fully isolated — true multi-tenant.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.06A6 6 0 0116 10a1 1 0 11-2 0 4 4 0 00-4-4V7a1 1 0 11-2 0V6a1 1 0 011-1V3a1 1 0 01-.03-1z"/><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-6a6 6 0 100 12 6 6 0 000-12z" clip-rule="evenodd"/></svg><span>Token-based sessions, OTP-verified mobile login.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg><span>Role-based access — front desk, doctor, admin.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">06 — Investment</p>
+        <h2 class="slide-h">Pricing that scales with your practice.</h2>
+        <div class="price-row">
+          <div class="price-tile"><span class="tn">Essentials</span><span class="tp">$59<small>/mo</small></span><p>Full toolkit, no AI. Up to 3 doctors.</p></div>
+          <div class="price-tile hi"><span class="tn">Growth</span><span class="tp">$199<small>/mo</small></span><p>Everything, plus AI. Up to 10 doctors. Recommended.</p></div>
+          <div class="price-tile"><span class="tn">Enterprise</span><span class="tp">Custom</span><p>Unlimited doctors, dedicated onboarding.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark cta-slide" data-slide>
+      <div class="slide-inner">
+        <img src="/brand/orthovaria_logo.png" alt="Orthovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
+        <h2 class="slide-h">Bring a real case.<br>Watch the AI draft it live.</h2>
+        <p class="slide-lede">30 minutes, real case. We'll show the milestone plan it drafts, then set up a trial on your own schedule and doctors.</p>
+        <span class="cta-email-big">hello@orthovaria.com</span>
+        <p class="cta-note">No credit card required.</p>
+      </div>
+    </section>
+
+    <div class="deck-counter"><span data-current>1</span> / <span data-total>8</span></div>
+    <div class="deck-nav">
+      <button type="button" data-prev aria-label="Previous slide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button type="button" data-next aria-label="Next slide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div class="click-zone prev" data-prev></div>
+    <div class="click-zone next" data-next></div>
+  </div>
+</div>
+
+<!-- ============================================================ AR ============================================================ -->
+<div class="deck-lang" data-deck-lang="ar" lang="ar" dir="rtl">
+  <div class="deck" data-deck>
+    <div class="deck-progress"><span style="width:0%"></span></div>
+
+    <section class="slide dark cover-slide is-active" data-slide>
+      <div class="slide-inner">
+        <img src="/brand/orthovaria_logo.png" alt="Orthovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
+        <h1 class="slide-h">كل خطة تعافٍ.<br>في موعدها.</h1>
+        <p class="slide-lede">توحّد Orthovaria الجدولة وخطط رعاية إعادة التأهيل المبنية على مراحل والفوترة والتخطيط العلاجي المدعوم بالذكاء الاصطناعي في منصة آمنة واحدة — مصممة لممارسات جراحة العظام.</p>
+        <div class="cover-meta-row">
+          <div class="m">مُعدّ لـ<b>—</b></div>
+          <div class="m">مُعدّ من قبل<b>Orthovaria</b></div>
+          <div class="m">التاريخ<b>—</b></div>
+        </div>
+        <p class="hint-inline">استخدم ← للمتابعة أو انقر</p>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">01 — المشكلة</p>
+        <h2 class="slide-h">خطط التعافي تضيع بين الزيارات.</h2>
+        <ul class="pain-list">
+          <li>تبدأ خطط إعادة التأهيل كملاحظات في ذهن الطبيب — تُكتب لاحقاً، إن كُتبت أصلاً.</li>
+          <li>تفلت مراحل المتابعة بعد العملية دون من يتابعها.</li>
+          <li>الجدولة والسجلات والفوترة في ثلاث أدوات مختلفة.</li>
+          <li>ينتظر المرضى أياماً خطة مكتوبة يمكنهم قراءتها واتباعها.</li>
+          <li>إضافة طبيب أو فرع يعني برمجيات جديدة، من جديد.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">02 — مساعد الذكاء الاصطناعي</p>
+        <h2 class="slide-h">صف الحالة. يصيغ الذكاء الاصطناعي. يقرر الطبيب.</h2>
+        <div class="flow-row">
+          <div class="flow-item"><span class="fn">01</span><h3>صف</h3><p>اكتب أو انطق بالحالة — عملية، إصابة، أو فحص.</p></div>
+          <div class="flow-item"><span class="fn">02</span><h3>يصيغ</h3><p>خطة تأهيل مبنية على مراحل، مرتبطة بتاريخ العملية.</p></div>
+          <div class="flow-item"><span class="fn">03</span><h3>يؤكد الطبيب</h3><p>قابلة للتعديل الكامل. لا شيء يُجدول من تلقاء نفسه.</p></div>
+          <div class="flow-item"><span class="fn">04</span><h3>تصبح حقيقية</h3><p>مواعيد متابعة محجوزة، رسوم مسجّلة — فوراً.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">03 — المنصة</p>
+        <h2 class="slide-h">كل شيء، في مكان واحد.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>جدولة ذكية</h3><p>حجز بلا تعارض، بين الأطباء والعيادات.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>سجلات إعادة التأهيل</h3><p>قوائم إجراءات وخطط مراحل، متزامنة دائماً.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>وضوح مالي</h3><p>الرسوم والمدفوعات والأرصدة — تلقائياً.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>وصول آمن عبر الجوال</h3><p>دخول OTP، جلسات برموز، بلا كلمات مرور مشتركة.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>متعدد العيادات</h3><p>كل فرع، تسجيل دخول واحد.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>المحاسبة</h3><p>دفتر صندوق ورواتب بعمولات الأطباء.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>تتبع المخبر والتحاليل</h3><p>كل نتيجة تحليل، مرتبطة بالملف.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>واجهة API مفتوحة</h3><p>وصل أجهزة خارجية مباشرة بالملف.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">04 — ماذا يتغيّر</p>
+        <h2 class="slide-h">الشهر الأول، في أربعة انتصارات.</h2>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="rule"></div><h3>خطط خلال ثوانٍ</h3><p>لا اتصال غداً — خطة مؤكدة اليوم.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>لوحة تحكم واحدة</h3><p>كل فرع، كل طبيب، مكان واحد.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>لا شيء يفوت</h3><p>تأكيد الخطة يحجز كل متابعة ويفوترها تلقائياً.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>وقت أكبر مع المرضى</h3><p>وقت أقل في كتابة الخطط أو تسوية الحسابات.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">05 — الأمان</p>
+        <h2 class="slide-h">مصمم لبيانات سريرية، بمقياس واسع.</h2>
+        <ul class="trust-row">
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>أوصاف الحالات لا تُستخدم أبداً لتدريب نماذج خارجية.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm11.707-2.293a1 1 0 00-1.414-1.414L9 9.586 7.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>بيانات كل عيادة معزولة تماماً — بنية حقيقية متعددة المستأجرين.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.06A6 6 0 0116 10a1 1 0 11-2 0 4 4 0 00-4-4V7a1 1 0 11-2 0V6a1 1 0 011-1V3a1 1 0 01-.03-1z"/><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-6a6 6 0 100 12 6 6 0 000-12z" clip-rule="evenodd"/></svg><span>جلسات قائمة على الرموز، تسجيل دخول موثّق برمز OTP.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg><span>وصول قائم على الأدوار — استقبال، طبيب، إدارة.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">06 — الاستثمار</p>
+        <h2 class="slide-h">تسعير يتناسب مع نمو ممارستك.</h2>
+        <div class="price-row">
+          <div class="price-tile"><span class="tn">أساسيات</span><span class="tp">$59<small>/شهرياً</small></span><p>كل الأدوات، بدون ذكاء اصطناعي. حتى 3 أطباء.</p></div>
+          <div class="price-tile hi"><span class="tn">نمو</span><span class="tp">$199<small>/شهرياً</small></span><p>كل شيء، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء. موصى به.</p></div>
+          <div class="price-tile"><span class="tn">مؤسسات</span><span class="tp">مخصص</span><p>أطباء بلا حدود، تأهيل مخصص.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark cta-slide" data-slide>
+      <div class="slide-inner">
+        <img src="/brand/orthovaria_logo.png" alt="Orthovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
+        <h2 class="slide-h">أحضر حالة فعلية.<br>شاهد الذكاء الاصطناعي يصيغها مباشرة.</h2>
+        <p class="slide-lede">30 دقيقة، حالة حقيقية. سنريك خطة التأهيل التي يصيغها، ثم نُعدّ تجربة بجدولك وأطبائك.</p>
+        <span class="cta-email-big">hello@orthovaria.com</span>
+        <p class="cta-note">دون الحاجة لبطاقة ائتمان.</p>
+      </div>
+    </section>
+
+    <div class="deck-counter"><span data-current>1</span> / <span data-total>8</span></div>
+    <div class="deck-nav">
+      <button type="button" data-prev aria-label="الشريحة السابقة"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button type="button" data-next aria-label="الشريحة التالية"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div class="click-zone prev" data-prev></div>
+    <div class="click-zone next" data-next></div>
+  </div>
+</div>
+
+<!-- ============================================================ TR ============================================================ -->
+<div class="deck-lang" data-deck-lang="tr" lang="tr" dir="ltr">
+  <div class="deck" data-deck>
+    <div class="deck-progress"><span style="width:0%"></span></div>
+
+    <section class="slide dark cover-slide is-active" data-slide>
+      <div class="slide-inner">
+        <img src="/brand/orthovaria_logo.png" alt="Orthovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
+        <h1 class="slide-h">Her iyileşme planı.<br>Zamanında.</h1>
+        <p class="slide-lede">Orthovaria; randevu planlama, kilometre taşı bazlı rehabilitasyon bakım planları, faturalandırma ve yapay zeka destekli tedavi planlamasını tek bir güvenli platformda birleştirir — ortopedi pratikleri için tasarlandı.</p>
+        <div class="cover-meta-row">
+          <div class="m">HAZIRLANAN<b>—</b></div>
+          <div class="m">HAZIRLAYAN<b>Orthovaria</b></div>
+          <div class="m">TARİH<b>—</b></div>
+        </div>
+        <p class="hint-inline">İlerlemek için → veya tıklayın</p>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">01 — Sorun</p>
+        <h2 class="slide-h">İyileşme planları ziyaretler arasında kayboluyor.</h2>
+        <ul class="pain-list">
+          <li>Rehabilitasyon planları hekimin aklındaki notlar olarak başlar — yazıya dökülmesi daha sonradır, dökülürse.</li>
+          <li>Ameliyat sonrası kilometre taşları, kimse takip etmezse gözden kaçar.</li>
+          <li>Randevu, kayıt ve faturalandırma üç farklı araçta yaşar.</li>
+          <li>Hastalar okuyup takip edebilecekleri bir plan için günlerce bekler.</li>
+          <li>Yeni bir doktor ya da şube, yeniden yeni yazılım demektir.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">02 — Yapay zeka asistanı</p>
+        <h2 class="slide-h">Vakayı tarif edin. Yapay zeka hazırlar. Hekim karar verir.</h2>
+        <div class="flow-row">
+          <div class="flow-item"><span class="fn">01</span><h3>Tarif edin</h3><p>Yazın ya da söyleyin — ameliyat, yaralanma ya da muayene.</p></div>
+          <div class="flow-item"><span class="fn">02</span><h3>YZ hazırlar</h3><p>Prosedür tarihine bağlı, kilometre taşı bazlı bir rehabilitasyon planı.</p></div>
+          <div class="flow-item"><span class="fn">03</span><h3>Hekim onaylar</h3><p>Tamamen düzenlenebilir. Hiçbir şey kendiliğinden randevu olmaz.</p></div>
+          <div class="flow-item"><span class="fn">04</span><h3>Gerçek olur</h3><p>Kontrol randevuları ayırtılır, ücretler anında kaydedilir.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">03 — Platform</p>
+        <h2 class="slide-h">Her şey, tek bir yerde.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Akıllı randevu planlama</h3><p>Doktorlar ve klinikler arasında çakışmasız.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Rehabilitasyon bakım kayıtları</h3><p>Prosedür kontrol listeleri ve kilometre taşı planları, hep senkronize.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Finansal netlik</h3><p>Ücretler, ödemeler, bakiyeler — otomatik.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Güvenli mobil erişim</h3><p>OTP girişi, token oturumları, paylaşılan şifre yok.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Çoklu klinik</h3><p>Her şube, tek giriş.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Muhasebe</h3><p>Kasa defteri ve doktor komisyonlu bordro.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Laboratuvar ve tahlil takibi</h3><p>Her tahlil sonucu, dosyaya bağlı.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Açık API</h3><p>Harici cihazları doğrudan dosyaya bağlayın.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">04 — Ne değişir</p>
+        <h2 class="slide-h">İlk ay, dört kazanımla.</h2>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="rule"></div><h3>Saniyeler içinde plan</h3><p>Yarın geri arama değil, bugün onaylı bir plan.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>Tek panel</h3><p>Her şube, her doktor, tek yerde.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>Hiçbir şey atlanmaz</h3><p>Bir planı onaylamak her kontrolü otomatik ayırtır ve faturalar.</p></div>
+          <div class="stat-card"><div class="rule"></div><h3>Hastalarla daha fazla zaman</h3><p>Plan yazmaya ya da defter tutmaya daha az zaman.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">05 — Güvenlik</p>
+        <h2 class="slide-h">Büyük ölçekte klinik veriler için tasarlandı.</h2>
+        <ul class="trust-row">
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>Vaka tarifleri asla harici modelleri eğitmek için kullanılmaz.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm11.707-2.293a1 1 0 00-1.414-1.414L9 9.586 7.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>Her kliniğin verisi tamamen izole — gerçek çok kiracılı mimari.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.06A6 6 0 0116 10a1 1 0 11-2 0 4 4 0 00-4-4V7a1 1 0 11-2 0V6a1 1 0 011-1V3a1 1 0 01-.03-1z"/><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-6a6 6 0 100 12 6 6 0 000-12z" clip-rule="evenodd"/></svg><span>Token tabanlı oturumlar, OTP ile doğrulanmış mobil giriş.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg><span>Role dayalı erişim — resepsiyon, doktor, yönetici.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">06 — Yatırım</p>
+        <h2 class="slide-h">Pratiğinizle birlikte ölçeklenen fiyatlandırma.</h2>
+        <div class="price-row">
+          <div class="price-tile"><span class="tn">Temel</span><span class="tp">$59<small>/ay</small></span><p>Yapay zeka olmadan tam araç seti. 3 doktora kadar.</p></div>
+          <div class="price-tile hi"><span class="tn">Büyüme</span><span class="tp">$199<small>/ay</small></span><p>Her şey, artı yapay zeka. 10 doktora kadar. Önerilen.</p></div>
+          <div class="price-tile"><span class="tn">Kurumsal</span><span class="tp">Özel</span><p>Sınırsız doktor, özel katılım.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark cta-slide" data-slide>
+      <div class="slide-inner">
+        <img src="/brand/orthovaria_logo.png" alt="Orthovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
+        <h2 class="slide-h">Gerçek bir vaka getirin.<br>Yapay zekanın canlı hazırladığını görün.</h2>
+        <p class="slide-lede">30 dakika, gerçek bir vaka. Hazırladığı rehabilitasyon planını gösterelim, ardından kendi programınız ve doktorlarınızla bir deneme kuralım.</p>
+        <span class="cta-email-big">hello@orthovaria.com</span>
+        <p class="cta-note">Kredi kartı gerekmez.</p>
+      </div>
+    </section>
+
+    <div class="deck-counter"><span data-current>1</span> / <span data-total>8</span></div>
+    <div class="deck-nav">
+      <button type="button" data-prev aria-label="Önceki slayt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button type="button" data-next aria-label="Sonraki slayt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div class="click-zone prev" data-prev></div>
+    <div class="click-zone next" data-next></div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var langButtons = document.querySelectorAll('.deck-lang-switch button');
+    var langBlocks = document.querySelectorAll('.deck-lang');
+
+    function initDeck(root) {
+      var slides = Array.prototype.slice.call(root.querySelectorAll('[data-slide]'));
+      var current = slides.findIndex(function (s) { return s.classList.contains('is-active'); });
+      if (current < 0) current = 0;
+      var prevBtn = root.querySelector('[data-prev].deck-nav, [data-prev]');
+      var nextBtn = root.querySelector('[data-next]');
+      var prevBtns = root.querySelectorAll('[data-prev]');
+      var nextBtns = root.querySelectorAll('[data-next]');
+      var counter = root.querySelector('[data-current]');
+      var progress = root.querySelector('.deck-progress > span');
+
+      function render() {
+        slides.forEach(function (s, i) {
+          s.classList.toggle('is-active', i === current);
+          s.classList.toggle('is-prev', i < current);
+        });
+        if (counter) counter.textContent = current + 1;
+        if (progress) progress.style.width = (((current + 1) / slides.length) * 100) + '%';
+        prevBtns.forEach(function (b) { if (b.tagName === 'BUTTON') b.disabled = current === 0; });
+        nextBtns.forEach(function (b) { if (b.tagName === 'BUTTON') b.disabled = current === slides.length - 1; });
+      }
+
+      function go(delta) {
+        var next = current + delta;
+        if (next < 0 || next >= slides.length) return;
+        current = next;
+        render();
+      }
+
+      prevBtns.forEach(function (b) { b.addEventListener('click', function () { go(-1); }); });
+      nextBtns.forEach(function (b) { b.addEventListener('click', function () { go(1); }); });
+
+      root._deckGo = go;
+      render();
+    }
+
+    var decks = document.querySelectorAll('[data-deck]');
+    decks.forEach(initDeck);
+
+    var touchStartX = null;
+    document.addEventListener('touchstart', function (e) { touchStartX = e.touches[0].clientX; });
+    document.addEventListener('touchend', function (e) {
+      if (touchStartX === null) return;
+      var dx = e.changedTouches[0].clientX - touchStartX;
+      touchStartX = null;
+      if (Math.abs(dx) < 40) return;
+      var activeDeck = document.querySelector('.deck-lang.is-active [data-deck]');
+      if (!activeDeck || !activeDeck._deckGo) return;
+      var isRtl = document.querySelector('.deck-lang.is-active').getAttribute('dir') === 'rtl';
+      var forward = dx < 0;
+      activeDeck._deckGo(forward === !isRtl ? 1 : -1);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      var activeDeck = document.querySelector('.deck-lang.is-active [data-deck]');
+      if (!activeDeck || !activeDeck._deckGo) return;
+      if (e.key === 'ArrowRight') activeDeck._deckGo(1);
+      if (e.key === 'ArrowLeft') activeDeck._deckGo(-1);
+    });
+
+    function setLang(lang) {
+      langBlocks.forEach(function (el) {
+        el.classList.toggle('is-active', el.dataset.deckLang === lang);
+      });
+      langButtons.forEach(function (b) {
+        b.classList.toggle('active', b.dataset.lang === lang);
+      });
+    }
+    langButtons.forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.dataset.lang); });
+    });
+  })();
+</script>
+</body>
+</html>

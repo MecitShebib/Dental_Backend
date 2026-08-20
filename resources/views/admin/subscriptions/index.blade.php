@@ -17,6 +17,15 @@
                         <option value="{{ $company->id }}">{{ $company->name }}</option>
                     @endforeach
                 </select>
+                <fieldset>
+                    <legend>Specialties (select one or more)</legend>
+                    @foreach ($specialties as $specialty)
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="specialty_ids[]" value="{{ $specialty->id }}" @checked($specialty->key === 'dental')>
+                            {{ $specialty->brand_name }} ({{ $specialty->name_en }}){{ $specialty->is_active ? '' : ' — not built yet' }}
+                        </label>
+                    @endforeach
+                </fieldset>
                 <input name="plan_name" placeholder="Plan name" required>
                 <select name="status" required>
                     <option value="active">active</option>
@@ -25,6 +34,7 @@
                 <input type="date" name="starts_at" required>
                 <input type="date" name="ends_at">
                 <input type="number" min="1" name="max_users" placeholder="Max users" required>
+                <input type="number" min="1" name="max_branches" placeholder="Max branches" value="1" required>
                 <input type="number" min="0" name="max_ai_tokens" placeholder="Max AI tokens (blank = unlimited)">
                 <input type="number" step="0.01" min="0" name="price" placeholder="Price">
                 <textarea name="notes" placeholder="Notes"></textarea>
@@ -38,6 +48,7 @@
                 <thead>
                     <tr>
                         <th>Company</th>
+                        <th>Specialty</th>
                         <th>Plan</th>
                         <th>Period</th>
                         <th>Status</th>
@@ -51,6 +62,7 @@
                                 <strong>{{ $subscription->company->name }}</strong><br>
                                 <small>{{ $subscription->company->code }}</small>
                             </td>
+                            <td>{{ $subscription->specialty->brand_name ?? '—' }}</td>
                             <td>{{ $subscription->plan_name }}</td>
                             <td>
                                 {{ $subscription->starts_at?->format('Y-m-d') }}<br>
@@ -68,6 +80,15 @@
                                             <option value="{{ $company->id }}" @selected($subscription->company_id === $company->id)>{{ $company->name }}</option>
                                         @endforeach
                                     </select>
+                                    <fieldset>
+                                        <legend>Specialties (this row + any extra to also subscribe to)</legend>
+                                        @foreach ($specialties as $specialty)
+                                            <label class="checkbox-option">
+                                                <input type="checkbox" name="specialty_ids[]" value="{{ $specialty->id }}" @checked($subscription->specialty_id === $specialty->id)>
+                                                {{ $specialty->brand_name }} ({{ $specialty->name_en }}){{ $specialty->is_active ? '' : ' — not built yet' }}
+                                            </label>
+                                        @endforeach
+                                    </fieldset>
                                     <input name="plan_name" value="{{ $subscription->plan_name }}" required>
                                     <select name="status" required>
                                         <option value="active" @selected(($subscription->status->value ?? $subscription->status) === 'active')>active</option>
@@ -76,6 +97,7 @@
                                     <input type="date" name="starts_at" value="{{ $subscription->starts_at?->format('Y-m-d') }}" required>
                                     <input type="date" name="ends_at" value="{{ $subscription->ends_at?->format('Y-m-d') }}">
                                     <input type="number" min="1" name="max_users" value="{{ $subscription->max_users }}" required>
+                                    <input type="number" min="1" name="max_branches" value="{{ $subscription->max_branches }}" placeholder="Max branches" required>
                                     <input type="number" min="0" name="max_ai_tokens" value="{{ $subscription->max_ai_tokens }}" placeholder="Max AI tokens (blank = unlimited)">
                                     <input type="number" step="0.01" min="0" name="price" value="{{ $subscription->price }}">
                                     <textarea name="notes">{{ $subscription->notes }}</textarea>

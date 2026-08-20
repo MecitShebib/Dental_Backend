@@ -128,6 +128,26 @@ class InvoiceTest extends TestCase
         $this->getJson("/api/invoices/{$invoiceId}")->assertNotFound();
     }
 
+    public function test_a_new_invoice_does_not_collide_with_a_deleted_invoices_number(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $client = $this->makeClient($user->company);
+
+        $firstPaymentId = $this->postJson("/api/clients/{$client->id}/payments", [
+            'payment_date' => '2026-08-03', 'amount' => 500, 'payment_method' => 'cash',
+        ])->assertCreated()->json('data.id');
+
+        // Soft-deletes invoice #1 -- it still occupies its (company_id, invoice_number)
+        // slot in the DB-level unique index, so the "next number" calculation must
+        // account for it or the insert below would fail with a duplicate-key error.
+        $this->deleteJson("/api/payments/{$firstPaymentId}")->assertOk();
+
+        $this->postJson("/api/clients/{$client->id}/payments", [
+            'payment_date' => '2026-08-03', 'amount' => 700, 'payment_method' => 'cash',
+        ])->assertCreated()->assertJsonPath('data.invoice_number', 'INV-000002');
+    }
+
     public function test_a_user_cannot_view_another_companys_invoice(): void
     {
         $ownCompany = Company::factory()->create();

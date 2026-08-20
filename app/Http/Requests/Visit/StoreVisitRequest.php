@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Visit;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreVisitRequest extends FormRequest
 {
@@ -24,6 +25,7 @@ class StoreVisitRequest extends FormRequest
             'charge_items' => ['nullable', 'array'],
             'charge_items.*.description' => ['nullable', 'string', 'max:255'],
             'charge_items.*.amount' => ['required', 'numeric'],
+            'charge_items.*.treatment_catalog_id' => ['nullable', 'integer', Rule::exists('treatment_catalog', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
         ];
     }
 }

@@ -4,9 +4,11 @@ namespace Tests\Unit\Services;
 
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\AiTokenUsageService;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -108,5 +110,81 @@ class AiTokenUsageServiceTest extends TestCase
             'completion_tokens' => 80,
             'total_tokens' => 200,
         ]);
+    }
+
+    // ── Multi-specialty aggregation (2026-08-17) ─────────────────────────────
+
+    public function test_the_limit_is_the_sum_of_every_active_specialty_subscription(): void
+    {
+        $this->seed(SpecialtySeeder::class);
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+
+        Subscription::create([
+            'company_id' => $company->id, 'specialty_id' => $dental->id, 'plan_name' => 'Dental',
+            'status' => 'active', 'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10, 'max_ai_tokens' => 1000, 'ai_tokens_used' => 900,
+        ]);
+        Subscription::create([
+            'company_id' => $company->id, 'specialty_id' => $gynecology->id, 'plan_name' => 'Gynecology',
+            'status' => 'active', 'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10, 'max_ai_tokens' => 500, 'ai_tokens_used' => 50,
+        ]);
+
+        // Company-wide used (950) is under the company-wide max (1500) even
+        // though the dental subscription alone is nearly at its own cap --
+        // confirms the two specialties share one pooled limit, not separate
+        // per-specialty gates.
+        app(AiTokenUsageService::class)->assertCanUseAiTokens($company);
+        $this->assertTrue(true);
+    }
+
+    public function test_an_unlimited_specialty_subscription_makes_the_whole_company_unlimited(): void
+    {
+        $this->seed(SpecialtySeeder::class);
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+
+        Subscription::create([
+            'company_id' => $company->id, 'specialty_id' => $dental->id, 'plan_name' => 'Dental',
+            'status' => 'active', 'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10, 'max_ai_tokens' => 100, 'ai_tokens_used' => 100,
+        ]);
+        Subscription::create([
+            'company_id' => $company->id, 'specialty_id' => $gynecology->id, 'plan_name' => 'Gynecology (unlimited)',
+            'status' => 'active', 'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10, 'max_ai_tokens' => null, 'ai_tokens_used' => 0,
+        ]);
+
+        app(AiTokenUsageService::class)->assertCanUseAiTokens($company);
+        $this->assertTrue(true);
+    }
+
+    public function test_the_combined_limit_still_throws_once_the_pooled_usage_reaches_it(): void
+    {
+        $this->seed(SpecialtySeeder::class);
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+
+        Subscription::create([
+            'company_id' => $company->id, 'specialty_id' => $dental->id, 'plan_name' => 'Dental',
+            'status' => 'active', 'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10, 'max_ai_tokens' => 500, 'ai_tokens_used' => 500,
+        ]);
+        Subscription::create([
+            'company_id' => $company->id, 'specialty_id' => $gynecology->id, 'plan_name' => 'Gynecology',
+            'status' => 'active', 'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10, 'max_ai_tokens' => 500, 'ai_tokens_used' => 500,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        app(AiTokenUsageService::class)->assertCanUseAiTokens($company);
     }
 }

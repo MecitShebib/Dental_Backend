@@ -6,14 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DoctorSchedule\UpdateDoctorScheduleRequest;
 use App\Http\Resources\DoctorScheduleResource;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class DoctorScheduleController extends Controller
 {
-    public function show(User $doctor)
+    public function show(Request $request, User $doctor)
     {
         $this->assertDoctor($doctor);
+        $this->assertOwnScheduleOrNonDoctor($request, $doctor);
         $schedule = $doctor->doctorSchedule()->with('workingDays')->firstOrCreate([
             'doctor_id' => $doctor->id,
         ], [
@@ -28,6 +30,7 @@ class DoctorScheduleController extends Controller
     public function update(UpdateDoctorScheduleRequest $request, User $doctor)
     {
         $this->assertDoctor($doctor);
+        $this->assertOwnScheduleOrNonDoctor($request, $doctor);
 
         $schedule = DB::transaction(function () use ($request, $doctor) {
             $schedule = $doctor->doctorSchedule()->updateOrCreate(
@@ -55,6 +58,16 @@ class DoctorScheduleController extends Controller
         if (! $doctor->is_doctor) {
             throw ValidationException::withMessages([
                 'doctor' => ['The selected user is not a doctor.'],
+            ]);
+        }
+    }
+
+    protected function assertOwnScheduleOrNonDoctor(Request $request, User $doctor): void
+    {
+        $actingUser = $request->user();
+        if ($actingUser->is_doctor && $actingUser->id !== $doctor->id) {
+            throw ValidationException::withMessages([
+                'doctor' => ['You are not authorized to view or manage another doctor\'s schedule.'],
             ]);
         }
     }

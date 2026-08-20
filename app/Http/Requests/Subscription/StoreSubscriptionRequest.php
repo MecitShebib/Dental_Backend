@@ -17,12 +17,19 @@ class StoreSubscriptionRequest extends FormRequest
     {
         return [
             'company_id' => ['required', 'integer', 'exists:companies,id'],
+            // Creating a subscription can enroll a company into several
+            // specialties at once (same plan details, one row per
+            // specialty) -- editing an existing row stays single-specialty,
+            // see UpdateSubscriptionRequest.
+            'specialty_ids' => ['required', 'array', 'min:1'],
+            'specialty_ids.*' => ['integer', 'exists:specialties,id'],
             'plan_name' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::enum(SubscriptionStatus::class)],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'max_users' => ['required', 'integer', 'min:1'],
             'active_users' => ['nullable', 'integer', 'min:0'],
+            'max_branches' => ['required', 'integer', 'min:1'],
             'max_ai_tokens' => ['nullable', 'integer', 'min:0'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],

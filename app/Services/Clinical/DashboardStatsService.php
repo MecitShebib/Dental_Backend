@@ -5,6 +5,7 @@ namespace App\Services\Clinical;
 use App\Models\Appointment;
 use App\Models\Payment;
 use App\Models\Specialty;
+use App\Models\User;
 
 /**
  * The one place dashboard-stats query scoping lives, shared by dental's own
@@ -16,8 +17,15 @@ use App\Models\Specialty;
  */
 class DashboardStatsService
 {
-    public function stats(string $dateFrom, string $dateTo, ?int $doctorId, ?int $branchId, ?string $specialtyKey): array
+    public function stats(User $actingUser, string $dateFrom, string $dateTo, ?int $doctorId, ?int $branchId, ?string $specialtyKey): array
     {
+        // Same rule as ClientQueryService/AppointmentQueryService: a doctor
+        // only ever sees their own numbers, regardless of what doctor_id (or
+        // even a mismatched specialty/branch) the request asked for.
+        if ($actingUser->is_doctor) {
+            $doctorId = $actingUser->id;
+        }
+
         $specialtyId = null;
         $specialtyFilterRequested = $specialtyKey !== null;
         if ($specialtyFilterRequested) {

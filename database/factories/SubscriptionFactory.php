@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,6 +18,11 @@ class SubscriptionFactory extends Factory
     {
         return [
             'company_id' => Company::factory(),
+            // Every subscription created in a test is realistically dental
+            // (the only specialty that actually exists) -- null, not an
+            // error, in a test that hasn't seeded Specialty rows at all,
+            // since the column is nullable.
+            'specialty_id' => Specialty::query()->where('key', Specialty::DENTAL)->value('id'),
             'plan_name' => 'Test Plan',
             'status' => 'active',
             'starts_at' => now()->subDay(),

@@ -9,6 +9,7 @@ use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LabCase extends Model
@@ -76,5 +77,20 @@ class LabCase extends Model
     public function expense(): BelongsTo
     {
         return $this->belongsTo(Expense::class);
+    }
+
+    public function labPayments(): HasMany
+    {
+        return $this->hasMany(LabPayment::class);
+    }
+
+    public function totalPaid(): float
+    {
+        return (float) $this->labPayments()->sum('amount');
+    }
+
+    public function remainingBalance(): float
+    {
+        return round((float) ($this->lab_cost ?? 0) - $this->totalPaid(), 2);
     }
 }

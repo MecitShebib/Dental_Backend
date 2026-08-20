@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\IndexClientRequest;
 use App\Http\Requests\Client\StoreClientRequest;
@@ -12,10 +13,13 @@ use App\Models\Client;
 use App\Models\Specialty;
 use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\Clinical\ClientQueryService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ClientController extends Controller
 {
+    use AuthorizesOwnDoctorRecords;
+
     public function __construct(
         protected ClientQueryService $clientQuery,
         protected ClientSpecialtyEnrollmentService $enrollment,
@@ -61,8 +65,10 @@ class ClientController extends Controller
         return $this->success(ClientResource::make($client->load($this->clientQuery->nextAppointmentEagerLoad())), 'Client created successfully.', 201);
     }
 
-    public function show(Client $client)
+    public function show(Request $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $client->load([
             ...$this->clientQuery->nextAppointmentEagerLoad(),
             'treatmentRecord',
@@ -73,6 +79,8 @@ class ClientController extends Controller
 
     public function update(UpdateClientRequest $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $client->update([
             ...$request->validated(),
             'updated_by' => $request->user()->id,
@@ -81,8 +89,10 @@ class ClientController extends Controller
         return $this->success(ClientResource::make($client->load($this->clientQuery->nextAppointmentEagerLoad())), 'Client updated successfully.');
     }
 
-    public function destroy(Client $client)
+    public function destroy(Request $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $client->delete();
 
         return $this->success(null, 'Client deleted successfully.');

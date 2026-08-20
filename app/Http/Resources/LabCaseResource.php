@@ -30,6 +30,8 @@ class LabCaseResource extends JsonResource
             'received_date' => $this->received_date?->format('Y-m-d'),
             'lab_cost' => $this->lab_cost !== null ? (float) $this->lab_cost : null,
             'expense_id' => $this->expense_id,
+            'total_paid' => $this->totalPaid(),
+            'remaining_balance' => $this->remainingBalance(),
             'notes' => $this->notes,
             'created_at' => $this->created_at?->toIso8601String(),
         ];

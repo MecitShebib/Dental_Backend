@@ -8,6 +8,10 @@ A Laravel 12 REST API backend for a dental clinic management system, with a sepa
 
 **Deployment**: this app and the separate `Dental_FrontEnd` React SPA deploy together on one server/domain, split by path (`/`, `/admin`, `/api` here; `/app` for the frontend) — see `DEPLOYMENT.md` in the `Dental_FrontEnd` repo for the full Nginx setup.
 
+**Multi-specialty platform ("Doctovaria")**: this product is an umbrella platform of 5 specialties sharing one Laravel+React codebase — Dentavaria (dental), Gynevaria (gynecology), Medivaria (internal medicine), Orthovaria (orthopedics), Estevaria (cosmetic). See `app/Models/Specialty.php` and the `specialties` table (`key`/`brand_name`/`is_active`). Every specialty now has a real, if narrow, v1 backend+frontend — each `App\Specialties\{Specialty}\{Specialty}Module::isBuilt()` returns `true`, and each has its own care-plan workflow (`App\Services\CarePlanService` for the generic scheduling/charging engine, `App\Services\MilestoneCarePlanService` for the "fixed list of visits N days after an anchor date" shape Medivaria/Orthovaria/Estevaria share, `App\Specialties\Gynecology\PrenatalCarePlanService` kept separate since it has real domain math). `Subscription`, `User` (doctors only), and `TreatmentCatalog` all carry a nullable `specialty_id`. A company can hold one active `Subscription` per specialty (the admin "Create Subscription" form can select several specialties at once, creating one row per specialty — see `Admin\SubscriptionController::store()`); capacity limits (`max_users`/`max_ai_tokens`/`max_branches`) are a pooled company-wide total across every active subscription, not gated per specialty — see `Company::aggregatedSubscriptionLimit()`/`aggregatedSubscriptionUsage()`, used by `AiTokenUsageService`/`CompanyUserLimitService`/`CompanyBranchLimitService`. `Company::currentSubscription()` (singular "the latest active subscription regardless of specialty") is still used as-is by the plain existence checks (`EnsureActiveClinicAccess`, `SubscriptionAccessService`) and by display-only eager-loads (`CompanyResource`, `AuthController`, the admin panel) — fine since those don't need to pick a specific specialty.
+
+**Patient/specialty data separation (Zoho-CRM-Deal-like)**: `client_specialty_records` (`ClientSpecialtyRecord` model) is the join that makes a `Client` (the one shared person record) a "patient" of a given specialty — `client_id` + `specialty_id`, unique together, plus a nullable `primary_doctor_id` (the record's "owner"). `App\Services\ClientSpecialtyEnrollmentService::ensureEnrolled($client, $doctor)` creates/claims this record and is called from every place an Appointment or Visit gets created (`AppointmentController`, `ClientVisitController`, `CarePlanService`, `AiTreatmentPlanService`, `PublicBookingService`, `ClientController::store()`) — a second doctor of the same specialty never steals an already-claimed patient. Read-side filtering: a doctor acting user is hard-scoped to `specialty_id = own AND primary_doctor_id = own` (ignores any `?specialty=` param); a non-doctor is scoped by an explicit `?specialty=` query param if given (`ClientController::index()`, `DashboardController::stats()`, `AppointmentController::index()`), else unfiltered. On the frontend, `activeSpecialtyKey` (`AppStateApiContext.jsx`) tracks which specialty "app" the user is currently inside — auto-set to a doctor's own specialty, or a single-specialty company's one option, or explicitly by `LauncherPage.jsx` when staff at a multi-specialty company pick a tile; `Sidebar.jsx` shows the active specialty's name and (non-doctors only) a "switch app" icon back to the launcher.
+
 ## Commands
 
 ```bash
@@ -40,7 +44,7 @@ php artisan tinker
 
 ### Dual authentication surfaces
 
-**Mobile API** (`routes/api.php`, prefix `/api`): Stateless, Sanctum token-based. Login is a two-step OTP flow — `POST /auth/login` issues a challenge, `POST /auth/login/verify-otp` verifies it and returns a bearer token. OTP codes are delivered via Turkey SMS (`MobileOtpService`) when `TURKEYSMS_ENABLED=true`; otherwise a random 6-digit code is logged to the console for local dev.
+**Mobile API** (`routes/api.php`, prefix `/api`): Stateless, Sanctum token-based. Login is a two-step OTP flow — `POST /auth/login` issues a challenge, `POST /auth/login/verify-otp` verifies it and returns a bearer token. OTP codes are delivered via Infobip (`MobileOtpService`) when `INFOBIP_ENABLED=true`; otherwise a random 6-digit code is logged to the console for local dev.
 
 **Admin Panel** (`routes/web.php`): Session-based, email+password. Only users with `is_project_admin=true` can access it. Admin routes use the `EnsureAdminUser` middleware.
 
@@ -94,7 +98,7 @@ Backed PHP enums under `app/Enums/` for: `UserStatus`, `ClientGender`, `ClientSt
 
 Copy `.env.example` to `.env` before first run. Key non-obvious settings:
 
-- `TURKEYSMS_ENABLED` — set to `false` locally to skip real SMS; OTP is printed to the Laravel log instead.
+- `INFOBIP_ENABLED` — set to `false` locally to skip real SMS; OTP is printed to the Laravel log instead.
 - `DB_CONNECTION` — defaults to `sqlite`; change to `mysql` and set `DB_HOST/DB_DATABASE/DB_USERNAME/DB_PASSWORD` for production.
 - `QUEUE_CONNECTION=database` — requires the queue worker (`php artisan queue:listen`) to be running for background jobs.
 - `OPENAI_API_KEY` — required for the AI treatment plan assistant (`AiTreatmentPlanController`/`AiTreatmentPlanService`), which calls OpenAI for chat completions and Whisper transcription. `OPENAI_CHAT_MODEL`/`OPENAI_WHISPER_MODEL` default to `gpt-4o-mini`/`whisper-1`.

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserOtp;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +22,7 @@ class MobileOtpService
         $otp = $this->generateOtp();
 
         if ($this->providerEnabled()) {
-            $this->sendTurkeySmsOtp($mobile, $otp);
+            $this->sendInfobipOtp($mobile, $otp);
         }
 
         $challenge = UserOtp::query()->create([
@@ -39,7 +38,7 @@ class MobileOtpService
             'user_id' => $user->id,
             'purpose' => $purpose,
             'mobile' => $mobile,
-            'otp' => $this->providerEnabled() ? 'sent_via_turkeysms' : $otp,
+            'otp' => $this->providerEnabled() ? 'sent_via_infobip' : $otp,
             'reference' => $challenge->reference,
         ]);
 
@@ -129,62 +128,30 @@ class MobileOtpService
 
     protected function providerEnabled(): bool
     {
-        return (bool) config('services.turkeysms.enabled');
+        return app(InfobipSmsService::class)->enabled();
     }
 
     protected function generateOtp(): string
     {
-        $fixed = (string) config('services.turkeysms.fixed_otp', '');
+        $fixed = (string) config('services.otp.fixed_code', '');
         if ($fixed !== '') {
             return $fixed;
         }
 
-        $digits = max(1, (int) config('services.turkeysms.otp_digits', 6));
+        $digits = max(1, (int) config('services.otp.digits', 6));
         $min = (int) str_pad('1', $digits, '0');
         $max = (int) str_pad('', $digits, '9');
 
         return (string) random_int($min, $max);
     }
 
-    protected function sendTurkeySmsOtp(string $mobile, string $otp): void
+    protected function sendInfobipOtp(string $mobile, string $otp): void
     {
-        $apiKey = (string) config('services.turkeysms.api_key');
+        $sent = app(InfobipSmsService::class)->send($mobile, "Your Dentavaria verification code is: {$otp}");
 
-        if ($apiKey === '') {
-            throw ValidationException::withMessages([
-                'mobile' => ['Turkey SMS API key is not configured.'],
-            ]);
-        }
-
-        $response = Http::acceptJson()
-            ->timeout(15)
-            ->post(rtrim((string) config('services.turkeysms.base_url'), '/').'/api/v3/gonder/add-content', [
-                'api_key' => $apiKey,
-                'sentto' => $this->normalizeMobile($mobile),
-                'title' => (string) config('services.turkeysms.title', 'ELECMINDS'),
-                'text' => "Your Dentavaria verification code is: {$otp}",
-            ]);
-
-        if (! $response->successful()) {
-            Log::error('Turkey SMS request failed.', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
+        if (! $sent) {
             throw ValidationException::withMessages([
                 'mobile' => ['Failed to send OTP SMS.'],
-            ]);
-        }
-
-        $payload = $response->json();
-
-        if (! is_array($payload) || ! ($payload['result'] ?? false)) {
-            Log::error('Turkey SMS response was invalid.', [
-                'payload' => $payload,
-            ]);
-
-            throw ValidationException::withMessages([
-                'mobile' => [$payload['result_message'] ?? 'Failed to send OTP SMS.'],
             ]);
         }
     }

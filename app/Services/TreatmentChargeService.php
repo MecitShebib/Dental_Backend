@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\TreatmentCharge;
+use App\Models\TreatmentChargeInventoryConsumption;
 
 /**
  * Keeps a client's treatment_charges ledger in sync with whatever visit,
@@ -14,6 +15,8 @@ use App\Models\TreatmentCharge;
  */
 class TreatmentChargeService
 {
+    public function __construct(protected InventoryService $inventory) {}
+
     /**
      * Replaces every charge row for a source with exactly the line items
      * given -- the caller (visit/appointment/AI-plan-session save) always
@@ -22,24 +25,33 @@ class TreatmentChargeService
      * source's rows an exact mirror of that set without needing to diff
      * individual items.
      *
-     * @param  array<int, array{description?: ?string, amount: float}>  $items
+     * @param  array<int, array{description?: ?string, amount: float, treatment_catalog_id?: ?int}>  $items
      */
     public function syncItems(Client $client, string $sourceType, int $sourceId, array $items): void
     {
         $this->deleteForSource($sourceType, $sourceId);
 
-        if (empty($items)) {
-            return;
+        if (! empty($items)) {
+            $client->treatmentCharges()->createMany(
+                collect($items)->map(fn (array $item) => [
+                    'source_type' => $sourceType,
+                    'source_id' => $sourceId,
+                    'amount' => (float) $item['amount'],
+                    'description' => $item['description'] ?? null,
+                    'treatment_catalog_id' => $item['treatment_catalog_id'] ?? null,
+                ])->all()
+            );
         }
 
-        $client->treatmentCharges()->createMany(
-            collect($items)->map(fn (array $item) => [
-                'source_type' => $sourceType,
-                'source_id' => $sourceId,
-                'amount' => (float) $item['amount'],
-                'description' => $item['description'] ?? null,
-            ])->all()
-        );
+        // Only line items picked from the priced catalog carry a
+        // treatment_catalog_id (see ChargeItemsEditor on the frontend) --
+        // free-text/manual amounts never trigger inventory consumption.
+        $catalogIdCounts = collect($items)
+            ->filter(fn (array $item) => ! empty($item['treatment_catalog_id']))
+            ->countBy('treatment_catalog_id')
+            ->all();
+
+        $this->inventory->syncConsumptionForSource($client->company_id, $sourceType, $sourceId, $catalogIdCounts);
     }
 
     public function deleteForSource(string $sourceType, int $sourceId): void
@@ -55,11 +67,18 @@ class TreatmentChargeService
      * created_by/timestamps -- used when an appointment (source "ai_plan" or
      * "appointment") is checked in and becomes a visit, so the same charge
      * keeps tracking the same real-world treatment instead of being
-     * duplicated or orphaned.
+     * duplicated or orphaned. Also re-points any auto-consumption tracking
+     * rows for that source, so a later re-sync under the new source key
+     * diffs against the right baseline instead of re-consuming from scratch.
      */
     public function retarget(string $fromType, int $fromId, string $toType, int $toId): void
     {
         TreatmentCharge::query()
+            ->where('source_type', $fromType)
+            ->where('source_id', $fromId)
+            ->update(['source_type' => $toType, 'source_id' => $toId]);
+
+        TreatmentChargeInventoryConsumption::query()
             ->where('source_type', $fromType)
             ->where('source_id', $fromId)
             ->update(['source_type' => $toType, 'source_id' => $toId]);
@@ -70,11 +89,30 @@ class TreatmentChargeService
      * (auto-computed at plan confirm) or "appointment" (added/edited later) --
      * callers acting on the appointment itself (delete, no-show) don't need to
      * know which, so this clears both possibilities for that appointment id.
+     * Also reverses any auto-consumed inventory for either source, since
+     * there is no charge sync afterwards to diff against.
      */
-    public function deleteAllForAppointment(int $appointmentId): void
+    public function deleteAllForAppointment(int $appointmentId, ?int $companyId = null): void
     {
         $this->deleteForSource(TreatmentCharge::SOURCE_AI_PLAN, $appointmentId);
         $this->deleteForSource(TreatmentCharge::SOURCE_APPOINTMENT, $appointmentId);
+
+        $this->reverseConsumptionForSource($companyId, TreatmentCharge::SOURCE_AI_PLAN, $appointmentId);
+        $this->reverseConsumptionForSource($companyId, TreatmentCharge::SOURCE_APPOINTMENT, $appointmentId);
+    }
+
+    /**
+     * Reverses any inventory auto-consumed for a source that's being deleted
+     * outright with no follow-up charge sync to diff against -- a no-op if
+     * that source never triggered any auto-consumption in the first place.
+     */
+    public function reverseConsumptionForSource(?int $companyId, string $sourceType, int $sourceId): void
+    {
+        if ($companyId === null) {
+            return;
+        }
+
+        $this->inventory->syncConsumptionForSource($companyId, $sourceType, $sourceId, []);
     }
 
     /**

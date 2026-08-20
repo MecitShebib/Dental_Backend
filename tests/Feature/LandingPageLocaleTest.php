@@ -15,7 +15,7 @@ class LandingPageLocaleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('dir="ltr"', false);
-        $response->assertSee('The clinical operating system for modern dental practices.');
+        $response->assertSee('The clinical operating system for modern healthcare practices.');
     }
 
     public function test_arabic_locale_renders_rtl_with_arabic_copy(): void
@@ -24,7 +24,7 @@ class LandingPageLocaleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('dir="rtl"', false);
-        $response->assertSee('نظام التشغيل السريري لعيادات الأسنان الحديثة.');
+        $response->assertSee('نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة.');
     }
 
     public function test_turkish_locale_renders_turkish_copy(): void
@@ -33,7 +33,7 @@ class LandingPageLocaleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('dir="ltr"', false);
-        $response->assertSee('Modern diş kliniklerinin klinik işletim sistemi.');
+        $response->assertSee('Modern sağlık pratiklerinin klinik işletim sistemi.');
     }
 
     public function test_invalid_locale_segment_falls_through_to_other_routes(): void

@@ -82,6 +82,82 @@ class CompanyTreatmentProductApiTest extends TestCase
         ]);
     }
 
+    public function test_it_applies_a_percentage_increase_to_every_catalog_item(): void
+    {
+        [, $company] = $this->authenticatedUser();
+
+        $companyScoped = TreatmentCatalog::query()->create([
+            'company_id' => $company->id,
+            'scope' => TreatmentCatalog::SCOPE_COMPANY,
+            'code' => 'consultation',
+            'name_ar' => 'ar', 'name_en' => 'Consultation', 'name_tr' => 'tr',
+            'default_price' => 100,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $odontogramScoped = TreatmentCatalog::query()->create([
+            'company_id' => $company->id,
+            'scope' => TreatmentCatalog::SCOPE_ODONTOGRAM,
+            'code' => 'fillingMaterial:composite',
+            'name_ar' => 'ar', 'name_en' => 'Composite filling', 'name_tr' => 'tr',
+            'default_price' => 50,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->postJson("/api/companies/{$company->id}/treatment-products/bulk-price-adjustment", [
+            'type' => 'percentage',
+            'value' => 10,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('treatment_catalog', ['id' => $companyScoped->id, 'default_price' => 110]);
+        $this->assertDatabaseHas('treatment_catalog', ['id' => $odontogramScoped->id, 'default_price' => 55]);
+    }
+
+    public function test_it_applies_a_fixed_amount_decrease_and_clamps_at_zero(): void
+    {
+        [, $company] = $this->authenticatedUser();
+
+        $product = TreatmentCatalog::query()->create([
+            'company_id' => $company->id,
+            'code' => 'cheap-item',
+            'name_ar' => 'ar', 'name_en' => 'Cheap item', 'name_tr' => 'tr',
+            'default_price' => 20,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->postJson("/api/companies/{$company->id}/treatment-products/bulk-price-adjustment", [
+            'type' => 'fixed',
+            'value' => -50,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('treatment_catalog', ['id' => $product->id, 'default_price' => 0]);
+    }
+
+    public function test_bulk_price_adjustment_rejects_a_percentage_that_would_zero_out_or_invert_prices(): void
+    {
+        [, $company] = $this->authenticatedUser();
+
+        $this->postJson("/api/companies/{$company->id}/treatment-products/bulk-price-adjustment", [
+            'type' => 'percentage',
+            'value' => -100,
+        ])->assertJsonValidationErrors('value');
+    }
+
+    public function test_bulk_price_adjustment_is_scoped_to_the_requesters_company(): void
+    {
+        [, $company] = $this->authenticatedUser();
+        $otherCompany = Company::factory()->create(['status' => 'active']);
+
+        $this->postJson("/api/companies/{$otherCompany->id}/treatment-products/bulk-price-adjustment", [
+            'type' => 'percentage',
+            'value' => 10,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('company');
+    }
+
     protected function authenticatedUser(): array
     {
         $company = Company::factory()->create([

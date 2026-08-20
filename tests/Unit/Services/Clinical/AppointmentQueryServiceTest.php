@@ -65,11 +65,15 @@ class AppointmentQueryServiceTest extends TestCase
         $otherSpecialty = Specialty::query()->where('key', '!=', $specialtyKey)->firstOrFail();
         $matchingDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $specialty->id]);
         $otherDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $otherSpecialty->id]);
+        // Non-doctor acting user -- a doctor acting user would force-scope
+        // doctor_id to themselves regardless of the specialty filter,
+        // which isn't what this test is exercising.
+        $actingUser = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
 
         $this->makeAppointment($company, $matchingDoctor, 'Matching Patient');
         $this->makeAppointment($company, $otherDoctor, 'Other Patient');
 
-        $result = app(AppointmentQueryService::class)->list(['specialty' => $specialtyKey]);
+        $result = app(AppointmentQueryService::class)->list($actingUser, ['specialty' => $specialtyKey]);
 
         $this->assertCount(1, $result->items());
         $this->assertSame('Matching Patient', $result->items()[0]->client->name);
@@ -80,10 +84,25 @@ class AppointmentQueryServiceTest extends TestCase
         $company = Company::factory()->create();
         $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
         $doctorB = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $actingUser = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
         $this->makeAppointment($company, $doctorA, 'A Patient');
         $this->makeAppointment($company, $doctorB, 'B Patient');
 
-        $result = app(AppointmentQueryService::class)->list(['doctor_id' => $doctorA->id]);
+        $result = app(AppointmentQueryService::class)->list($actingUser, ['doctor_id' => $doctorA->id]);
+
+        $this->assertCount(1, $result->items());
+        $this->assertSame('A Patient', $result->items()[0]->client->name);
+    }
+
+    public function test_a_doctor_only_ever_sees_their_own_appointments_even_if_another_doctor_id_is_requested(): void
+    {
+        $company = Company::factory()->create();
+        $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $doctorB = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $this->makeAppointment($company, $doctorA, 'A Patient');
+        $this->makeAppointment($company, $doctorB, 'B Patient');
+
+        $result = app(AppointmentQueryService::class)->list($doctorA, ['doctor_id' => $doctorB->id]);
 
         $this->assertCount(1, $result->items());
         $this->assertSame('A Patient', $result->items()[0]->client->name);

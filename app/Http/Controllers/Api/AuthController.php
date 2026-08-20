@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserOtp;
 use App\Services\MobileOtpService;
 use App\Services\SubscriptionAccessService;
+use App\Specialties\SpecialtyModuleRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -21,10 +22,9 @@ class AuthController extends Controller
 {
     public function __construct(
         protected SubscriptionAccessService $subscriptionAccess,
-        protected MobileOtpService $otpService
-    )
-    {
-    }
+        protected MobileOtpService $otpService,
+        protected SpecialtyModuleRegistry $specialtyModules,
+    ) {}
 
     public function login(LoginRequest $request)
     {
@@ -84,9 +84,11 @@ class AuthController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
         $token = $user->createToken('api-token')->plainTextToken;
 
+        $user->setAttribute('requires_specialty_selection', $this->requiresSpecialtySelection($user));
+
         return response()->json([
             'token' => $token,
-            'user' => UserResource::make($user->load(['roles', 'permissions', 'company.currentSubscription'])),
+            'user' => UserResource::make($user->load(['roles', 'permissions', 'specialty', 'company.currentSubscription'])),
         ]);
     }
 
@@ -187,7 +189,23 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return $this->success(UserResource::make($request->user()->load(['roles', 'permissions', 'company'])));
+        $user = $request->user()->load(['roles', 'permissions', 'specialty', 'company']);
+        $user->setAttribute('requires_specialty_selection', $this->requiresSpecialtySelection($user));
+
+        return $this->success(UserResource::make($user));
+    }
+
+    protected function requiresSpecialtySelection(User $user): bool
+    {
+        if ($user->specialty_id) {
+            return false;
+        }
+
+        $usableCount = $user->company->activeSpecialties()
+            ->filter(fn ($specialty) => $this->specialtyModules->get($specialty->key)?->isBuilt())
+            ->count();
+
+        return $usableCount > 1;
     }
 
     protected function findUserByMobile(string $mobile, ?string $branchCode = null): ?User

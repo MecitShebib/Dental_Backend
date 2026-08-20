@@ -22,6 +22,23 @@ class CompanyController extends Controller
         return $this->success(CompanyResource::make($company));
     }
 
+    /**
+     * recall_interval_days: null resets the company to the configured
+     * default, 0 explicitly disables recalls, any positive int overrides it.
+     */
+    public function updateRecallSettings(Request $request, Company $company)
+    {
+        $this->assertBelongsToRequester($request, $company);
+
+        $validated = $request->validate([
+            'recall_interval_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+        ]);
+
+        $company->update($validated);
+
+        return $this->success(CompanyResource::make($company->fresh()));
+    }
+
     public function subscriptions(Request $request, Company $company)
     {
         $this->assertBelongsToRequester($request, $company);

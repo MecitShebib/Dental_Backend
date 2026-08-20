@@ -27,6 +27,7 @@ class UpdateVisitRequest extends FormRequest
             'charge_items' => ['nullable', 'array'],
             'charge_items.*.description' => ['nullable', 'string', 'max:255'],
             'charge_items.*.amount' => ['required', 'numeric'],
+            'charge_items.*.treatment_catalog_id' => ['nullable', 'integer', Rule::exists('treatment_catalog', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
         ];
     }
 }

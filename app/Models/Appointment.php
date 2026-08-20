@@ -22,7 +22,9 @@ class Appointment extends Model
         'client_id',
         'doctor_id',
         'type',
+        'booked_online',
         'status',
+        'reminder_sent_at',
         'date',
         'start_time',
         'duration_minutes',
@@ -39,9 +41,11 @@ class Appointment extends Model
     {
         return [
             'type' => AppointmentType::class,
+            'booked_online' => 'boolean',
             'status' => AppointmentStatus::class,
             'date' => 'date',
             'duration_minutes' => 'integer',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 

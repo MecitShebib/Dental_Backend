@@ -19,6 +19,10 @@ class CompanyResource extends JsonResource
             'address' => $this->address,
             'status' => $this->status,
             'notes' => $this->notes,
+            'recall_interval_days' => $this->recall_interval_days,
+            'effective_recall_interval_days' => $this->recallIntervalDays(),
+            'booking_slug' => $this->booking_slug,
+            'booking_url' => $this->bookingUrl(),
             'users_count' => $this->whenCounted('users', $this->users_count),
             'active_users_count' => $this->when(isset($this->active_users_count), $this->active_users_count),
             'latest_active_subscription' => $this->whenLoaded('currentSubscription', function () {

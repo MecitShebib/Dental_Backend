@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\TreatmentCatalog;
 use Illuminate\Database\Seeder;
 
@@ -250,12 +251,18 @@ class TreatmentCatalogSeeder extends Seeder
      */
     public function seedCompany(Company $company): void
     {
+        // Every item this seeder knows about is dental (Dentavaria) content;
+        // a future specialty gets its own seeder rather than a parameter
+        // here, since there's nothing else to seed yet.
+        $dentalSpecialtyId = Specialty::query()->where('key', Specialty::DENTAL)->value('id');
+
         foreach ($this->companyItems() as $index => $item) {
             TreatmentCatalog::query()->updateOrCreate(
                 ['company_id' => $company->id, 'code' => $item['code']],
                 [
                     ...$item,
                     'company_id' => $company->id,
+                    'specialty_id' => $dentalSpecialtyId,
                     'scope' => TreatmentCatalog::SCOPE_COMPANY,
                     'sort_order' => $index + 1,
                     'is_active' => true,
@@ -269,6 +276,7 @@ class TreatmentCatalogSeeder extends Seeder
                 [
                     ...$item,
                     'company_id' => $company->id,
+                    'specialty_id' => $dentalSpecialtyId,
                     'scope' => TreatmentCatalog::SCOPE_ODONTOGRAM,
                     'sort_order' => $index + 1,
                     'is_active' => true,

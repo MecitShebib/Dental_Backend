@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctovaria — Platform Proposal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<style>
+  :root {
+    --paper: #f4f6fb;
+    --paper-raised: #e8edf8;
+    --paper-line: #ffffff;
+    --ink: #10182b;
+    --ink-soft: #454f6b;
+    --ink-faint: #7a84a0;
+    --rule: #ccd3e6;
+    --accent: #2563eb;
+    --accent-strong: #1e40af;
+    --accent-wash: #dbe8fd;
+    --shadow: 0 1px 2px rgba(16, 24, 43, 0.06);
+
+    --font-display: "Iowan Old Style", "Sitka Text", Georgia, "Noto Serif", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0a0f1c; --paper-raised: #131b2e; --paper-line: #0d1424;
+      --ink: #eef1f9; --ink-soft: #a7b0c9; --ink-faint: #6c7591;
+      --rule: #24304a; --accent: #5b8def; --accent-strong: #8fb4f5; --accent-wash: #172440;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0a0f1c; --paper-raised: #131b2e; --paper-line: #0d1424;
+    --ink: #eef1f9; --ink-soft: #a7b0c9; --ink-faint: #6c7591;
+    --rule: #24304a; --accent: #5b8def; --accent-strong: #8fb4f5; --accent-wash: #172440;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  :root[data-theme="light"] {
+    --paper: #f4f6fb; --paper-raised: #e8edf8; --paper-line: #ffffff;
+    --ink: #10182b; --ink-soft: #454f6b; --ink-faint: #7a84a0;
+    --rule: #ccd3e6; --accent: #2563eb; --accent-strong: #1e40af; --accent-wash: #dbe8fd;
+    --shadow: 0 1px 2px rgba(16, 24, 43, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body { padding: 0 0 64px; }
+  ::selection { background: var(--accent-wash); color: var(--ink); }
+
+  .doc-shell { max-width: 760px; margin: 0 auto; padding: 0 28px; }
+  .full-bleed { background: var(--accent-wash); }
+  .full-bleed .doc-shell { padding-top: 4px; }
+
+  .chrome-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 28px; background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--rule); }
+  .chrome-inner { max-width: 760px; margin: 0 auto; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .lang-switch { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; background: var(--paper-line); }
+  .lang-switch button { font: inherit; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; padding: 7px 14px; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; }
+  .lang-switch button.active { background: var(--accent); color: #f5f8ff; }
+  .print-hint { font-size: 12.5px; color: var(--ink-faint); }
+  .print-hint kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 6px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; background: var(--paper-line); color: var(--ink-soft); }
+
+  .cover { padding: 0px 0 40px; border-bottom: 1px solid var(--rule); }
+  .cover-eyebrow { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-strong); }
+  .cover-mark { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+  .cover-mark .glyph { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 9px; background: var(--accent); display: grid; place-items: center; }
+  .cover-mark .glyph svg { width: 17px; height: 17px; }
+  .cover-mark .word { font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+  .cover h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(30px, 4.6vw, 42px); line-height: 1.14; letter-spacing: -0.015em; margin: 22px 0 0; text-wrap: balance; max-width: 21ch; }
+  .cover .lede { margin: 16px 0 0; max-width: 56ch; color: var(--ink-soft); font-size: 16.5px; line-height: 1.55; }
+
+  .cover-meta { margin-top: 32px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; border-top: 1px solid var(--rule); padding-top: 20px; }
+  .cover-meta .field { display: flex; flex-direction: column; gap: 6px; }
+  .cover-meta label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+  .cover-meta input { font: inherit; font-size: 14.5px; color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--rule); padding: 2px 0 6px; width: 100%; }
+  .cover-meta input:focus { outline: none; border-bottom-color: var(--accent); }
+  .cover-meta input::placeholder { color: var(--ink-faint); }
+
+  .intro-line { margin: 28px 0 0; padding: 20px 22px; background: var(--paper-raised); border-inline-start: 3px solid var(--accent); border-radius: 3px; font-size: 15.5px; color: var(--ink); max-width: 62ch; }
+
+  .doc-section { display: grid; grid-template-columns: 108px 1fr; gap: 20px; padding: 44px 0; border-bottom: 1px solid var(--rule); }
+  .doc-section:last-of-type { border-bottom: 0; }
+  .full-bleed.doc-section { border-bottom: 1px solid var(--rule); padding: 48px 28px; margin: 0 -28px; }
+  .full-bleed .sec-eyebrow, .full-bleed .sec-num { color: var(--accent-strong); }
+
+  .sec-marker { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+  .sec-num { font-family: var(--font-mono); font-size: 22px; color: var(--rule); font-variant-numeric: tabular-nums; }
+  .sec-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-strong); max-width: 9ch; }
+
+  .sec-body h2 { font-family: var(--font-display); font-weight: 600; font-size: 25px; letter-spacing: -0.01em; margin: 0 0 14px; text-wrap: balance; break-after: avoid; }
+  .full-bleed .sec-body h2 { font-size: 29px; }
+  .sec-body > p.sec-intro { color: var(--ink-soft); max-width: 58ch; margin: 0 0 18px; }
+
+  .diagnosis-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .diagnosis-list li { position: relative; padding-inline-start: 20px; max-width: 58ch; color: var(--ink); }
+  .diagnosis-list li::before { content: ""; position: absolute; inset-inline-start: 0; top: 0.62em; width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+
+  .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .feature-card { background: var(--paper-raised); border-radius: 10px; padding: 16px 18px; break-inside: avoid; }
+  .feature-card .icon { width: 28px; height: 28px; border-radius: 7px; background: var(--accent-wash); color: var(--accent-strong); display: grid; place-items: center; margin-bottom: 10px; }
+  .feature-card .icon svg { width: 15px; height: 15px; }
+  .feature-card h3 { font-size: 14.5px; font-weight: 700; margin: 0 0 5px; }
+  .feature-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.5; }
+
+  .ai-flow { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
+  .ai-step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 20px 0; border-top: 1px solid var(--rule); }
+  .ai-step:first-child { border-top: 0; padding-top: 0; }
+  .ai-step .num-circle { width: 34px; height: 34px; border-radius: 999px; background: var(--accent); color: #f5f8ff; display: grid; place-items: center; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .ai-step h3 { font-size: 16.5px; font-weight: 700; margin: 0 0 5px; }
+  .ai-step p { font-size: 14px; color: var(--ink-soft); margin: 0; max-width: 56ch; }
+
+  .trust-callout { margin-top: 26px; padding: 18px 22px; border-inline-start: 3px solid var(--accent-strong); background: var(--paper-line); border-radius: 3px; }
+  .trust-callout p { font-family: var(--font-display); font-style: italic; font-size: 18px; margin: 0; color: var(--ink); }
+
+  .specialty-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 6px; }
+  .specialty-card { border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; break-inside: avoid; }
+  .specialty-card .bar { width: 26px; height: 4px; border-radius: 2px; margin-bottom: 12px; }
+  .specialty-card .name { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin: 0 0 3px; }
+  .specialty-card .tagline { font-size: 11.5px; font-weight: 700; letter-spacing: 0.03em; margin: 0 0 8px; }
+  .specialty-card p { font-size: 13px; color: var(--ink-soft); margin: 0; line-height: 1.5; }
+  .specialty-card.wide { grid-column: 1 / -1; }
+
+  .outcome-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 22px; }
+  .outcome-card { break-inside: avoid; }
+  .outcome-card .stat-rule { width: 30px; height: 3px; background: var(--accent); border-radius: 2px; margin-bottom: 10px; }
+  .outcome-card h3 { font-size: 14.5px; font-weight: 700; margin: 0 0 5px; }
+  .outcome-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; }
+
+  .trust-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 13px; }
+  .trust-list li { display: grid; grid-template-columns: 18px 1fr; gap: 12px; max-width: 58ch; }
+  .trust-list li svg { width: 15px; height: 15px; margin-top: 3px; color: var(--accent-strong); }
+  .trust-list li span { font-size: 14px; color: var(--ink); }
+
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .price-card { border: 1px solid var(--rule); border-radius: 10px; padding: 18px 16px; break-inside: avoid; display: flex; flex-direction: column; gap: 8px; }
+  .price-card.featured { border-color: var(--accent); background: var(--accent-wash); }
+  .price-card .tier-name { font-size: 13px; font-weight: 700; }
+  .price-card .tier-flag { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-strong); }
+  .price-card .tier-price { font-family: var(--font-mono); font-size: 22px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .price-card .tier-price small { font-size: 11px; color: var(--ink-faint); font-family: var(--font-body); }
+  .price-card p { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0 0; line-height: 1.5; }
+  .pricing-note { margin-top: 14px; font-size: 12.5px; color: var(--ink-faint); }
+
+  .cta-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+  .cta-email { font-family: var(--font-mono); font-size: 15px; color: var(--accent-strong); padding: 10px 16px; background: var(--accent-wash); border-radius: 999px; }
+
+  .signature-grid { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .signature-block .sig-role { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+  .sig-line { border: 0; border-bottom: 1px solid var(--rule); background: transparent; font: inherit; font-size: 14px; color: var(--ink); width: 100%; padding: 8px 0; }
+  .sig-line:focus { outline: none; border-bottom-color: var(--accent); }
+  .sig-line + .sig-line { margin-top: 18px; }
+  .sig-caption { font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
+
+  footer.doc-footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ink-faint); }
+
+  [dir="rtl"] .diagnosis-list li, [dir="rtl"] .trust-list li span { text-align: right; }
+  [dir="rtl"] .sec-eyebrow { max-width: none; }
+
+  .cover-graphic { display: none; }
+
+  @media (max-width: 640px) {
+    .doc-section { grid-template-columns: 1fr; }
+    .sec-marker { flex-direction: row; align-items: baseline; gap: 10px; }
+    .feature-grid, .outcome-grid, .pricing-grid, .cover-meta, .signature-grid, .specialty-grid { grid-template-columns: 1fr; }
+    .full-bleed.doc-section { margin: 0 -16px; padding: 40px 16px; }
+  }
+
+  @media print {
+    .chrome-bar { display: none; }
+    html { background: #fff; }
+    body { padding: 0; background: #fff; font-size: 14px; line-height: 1.5; }
+    .doc-shell { max-width: none; padding: 0 6mm; }
+    .doc-section { grid-template-columns: 1fr; padding: 16px 0; }
+    .doc-section:first-of-type { padding-top: 0; }
+    .sec-marker { flex-direction: row; align-items: baseline; gap: 10px; }
+    .full-bleed.doc-section { margin: 0; padding: 14px 3mm; }
+
+    /* Page grouping: cover+01 / 02 / 03 / 04+05 / 06 / 07+08 */
+    .doc-shell > section.doc-section.full-bleed,
+    .doc-shell > section.doc-section:nth-of-type(4),
+    .doc-shell > section.doc-section:nth-of-type(5),
+    .doc-shell > section.doc-section:nth-of-type(7),
+    .doc-shell > section.doc-section:nth-of-type(8) {
+      break-before: page;
+      page-break-before: always;
+    }
+
+    h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+    .ai-step, .outcome-card, .price-card, .specialty-card,
+    .signature-block, .diagnosis-list li, .trust-list li {
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    p, li { orphans: 3; widows: 3; }
+
+    .cover { padding: 0 0 24px; }
+    .cover-mark { margin-top: 12px; }
+    .cover h1 { font-size: 28px; line-height: 1.18; margin-top: 16px; }
+    .cover .lede { font-size: 14.5px; line-height: 1.5; margin-top: 12px; }
+    .cover-meta { margin-top: 22px; padding-top: 14px; gap: 16px; }
+    .intro-line { margin-top: 18px; padding: 14px 18px; font-size: 14px; }
+    .sec-body h2 { font-size: 22px; margin-bottom: 12px; }
+    .full-bleed .sec-body h2 { font-size: 24px; margin-bottom: 8px; }
+    .sec-body > p.sec-intro { margin-bottom: 10px; max-width: none; }
+    .diagnosis-list { gap: 9px; }
+    .ai-step { padding: 6px 0; }
+    .ai-step h3 { margin-bottom: 3px; }
+    .ai-step p { max-width: none; }
+    .trust-callout { margin-top: 12px; padding: 10px 12px; }
+    .trust-callout p { font-size: 16px; }
+    .feature-grid, .specialty-grid { gap: 12px; }
+    .feature-card, .specialty-card { padding: 12px 14px; }
+    .outcome-grid { gap: 10px 14px; }
+    .trust-list { gap: 10px; }
+    .pricing-grid { gap: 10px; }
+    .price-card { padding: 14px; gap: 7px; }
+    .pricing-note { margin-top: 10px; }
+    .signature-grid { margin-top: 16px; gap: 16px; }
+    .signature-block .sig-role { margin-bottom: 6px; }
+    .sig-line { padding: 5px 0; }
+    .sig-line + .sig-line { margin-top: 6px; }
+    .sig-caption { margin-top: 3px; }
+    .cta-row { margin-top: 6px; }
+    .cta-email { padding: 8px 16px; }
+    footer.doc-footer { margin-top: 10px; padding-top: 8px; }
+
+    .intro-line, .feature-card, .price-card, .trust-callout, .specialty-card { background: #f4f6fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .full-bleed, .full-bleed.doc-section { background: #dbe8fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    a { color: inherit; text-decoration: none; }
+  }
+  @page { size: A4; margin: 14mm 12mm; }
+</style>
+</head>
+<body>
+
+<div class="chrome-bar no-print">
+  <div class="chrome-inner">
+    <div class="lang-switch" role="tablist" aria-label="Document language">
+      <button type="button" data-lang="en" class="active">EN</button>
+      <button type="button" data-lang="ar">AR</button>
+      <button type="button" data-lang="tr">TR</button>
+    </div>
+    <div class="print-hint">Fill in the blanks, then <kbd>Ctrl</kbd>+<kbd>P</kbd> → Save as PDF</div>
+  </div>
+</div>
+
+<!-- ============================================================ EN ============================================================ -->
+<div class="doc-lang" data-doc-lang="en" lang="en" dir="ltr">
+  <div class="doc-shell">
+    <section class="cover">
+      <p class="cover-eyebrow">One Platform, Five Medical Specialties</p>
+      <div class="cover-mark">
+        <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:68px;width:auto;display:block;">
+      </div>
+      <h1>Five specialties. One platform. A confirmed care plan in minutes, not days.</h1>
+      <p class="lede">Doctovaria is the clinical operating system behind Dentavaria, Gynevaria, Medivaria, Orthovaria, and Estevaria — one secure platform that runs scheduling, clinical records, billing, and AI-assisted care planning for dental, gynecology &amp; obstetrics, internal medicine, orthopedics, and cosmetic medicine practices.</p>
+
+      <div class="cover-meta">
+        <div class="field"><label>Prepared for</label><input type="text" placeholder="Clinic, hospital or group name"></div>
+        <div class="field"><label>Prepared by</label><input type="text" value="Doctovaria"></div>
+        <div class="field"><label>Date</label><input type="text" placeholder="DD / MM / YYYY"></div>
+      </div>
+
+      <p class="intro-line">Groups running more than one type of clinic get every specialty on the same login, the same billing ledger, and the same security model — instead of stitching together a different system for each one.</p>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">01</span><span class="sec-eyebrow">The problem</span></div>
+      <div class="sec-body">
+        <h2>Where multi-specialty groups lose time</h2>
+        <p class="sec-intro">Running more than one kind of practice usually means running more than one kind of software:</p>
+        <ul class="diagnosis-list">
+          <li>Each specialty ends up on its own scheduling tool, its own records system, and its own billing spreadsheet — none of them talking to each other.</li>
+          <li>A care plan usually starts as notes in a doctor's head, written up properly later, if at all — and every doctor documents it a little differently.</li>
+          <li>Group-wide reporting means manually combining numbers from every clinic and every specialty by hand, every month.</li>
+          <li>Patients wait, sometimes days, for a written plan they can actually read, discuss, and approve.</li>
+          <li>Adding a new location, or a new specialty, means re-buying and re-learning software all over again.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section full-bleed">
+      <div class="sec-marker"><span class="sec-num">02</span><span class="sec-eyebrow">The AI assistant</span></div>
+      <div class="sec-body">
+        <h2>From a case description to a confirmed plan — in every specialty</h2>
+        <p class="sec-intro">The same AI Care Plan Assistant runs across all five specialties, shaped to fit how each one actually plans care.</p>
+        <div class="ai-flow">
+          <div class="ai-step"><span class="num-circle">01</span><div><h3>Describe the case</h3><p>Type it, or speak it — the assistant transcribes the recording and reads it as clinical input. No forms, no data entry.</p></div></div>
+          <div class="ai-step"><span class="num-circle">02</span><div><h3>The AI drafts the plan</h3><p>A structured plan is generated instantly, shaped for that specialty — procedure-by-procedure for dental, prenatal milestones for gynecology, a chronic-care or rehab or session schedule for the rest.</p></div></div>
+          <div class="ai-step"><span class="num-circle">03</span><div><h3>The doctor reviews and confirms</h3><p>Every session, procedure, and price stays fully editable. Nothing is scheduled until the treating doctor confirms it.</p></div></div>
+          <div class="ai-step"><span class="num-circle">04</span><div><h3>It becomes real appointments</h3><p>Once confirmed, each session is booked automatically as a real appointment, and its fee is recorded straight to the patient's account.</p></div></div>
+        </div>
+        <div class="trust-callout"><p>"The AI drafts. The doctor decides." Nothing reaches a patient's chart or calendar without a confirming click from the treating doctor — in any specialty.</p></div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">03</span><span class="sec-eyebrow">The platform</span></div>
+      <div class="sec-body">
+        <h2>Built into a complete system, not five separate tools</h2>
+        <p class="sec-intro">Every specialty shares the same underlying platform:</p>
+        <div class="feature-grid">
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Smart scheduling</h3><p>Conflict-free booking across doctors, locations, and specialties, with a real-time availability grid.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Clinical records, per specialty</h3><p>An odontogram for dental, milestone care plans for the rest — charting that stays synced across every visit and device.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Financial clarity</h3><p>Charges, payments, and balances — including every AI-confirmed plan's fee — tracked automatically per patient, per specialty.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Multi-clinic, multi-specialty</h3><p>One login for every branch and every specialty a group runs, each with its own subscription, limits, and staff.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Secure mobile access</h3><p>OTP-verified sign-in on every device, token-based sessions, never a shared password.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Accounting &amp; payroll</h3><p>One company fund ledger across every clinic, plus payroll that adds each doctor's revenue-share commission automatically.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Lab &amp; test tracking</h3><p>Dental lab cases from sent to delivered, or lab and test results for the other four specialties — reflected in your books automatically.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Open API &amp; integrations</h3><p>Generate API tokens from Settings and connect outside equipment straight into a patient's chart, in any specialty.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">04</span><span class="sec-eyebrow">The specialties</span></div>
+      <div class="sec-body">
+        <h2>Five specialties, one platform</h2>
+        <p class="sec-intro">Each product runs the same platform underneath, shaped to how that specialty actually plans and delivers care.</p>
+        <div class="specialty-grid">
+          <div class="specialty-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tagline" style="color:#1f4e8c">DENTAL</p><p>Odontogram-based charting and procedure-by-procedure AI treatment plans.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tagline" style="color:#a6295e">GYNECOLOGY &amp; OBSTETRICS</p><p>Milestone-based prenatal care plans that track a full pregnancy journey.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#1f7a5c"></div><p class="name">Medivaria</p><p class="tagline" style="color:#1f7a5c">INTERNAL MEDICINE</p><p>Chronic-care follow-up plans scheduled automatically after an anchor visit.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tagline" style="color:#b56a1f">ORTHOPEDICS</p><p>Rehabilitation and follow-up visit plans built around a procedure date.</p></div>
+          <div class="specialty-card wide"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">COSMETIC MEDICINE</p><p>Session-based treatment plans for multi-visit cosmetic programs.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">05</span><span class="sec-eyebrow">What changes</span></div>
+      <div class="sec-body">
+        <h2>What the first month looks like</h2>
+        <div class="outcome-grid">
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Plans in seconds, not a callback tomorrow</h3><p>A consultation that used to end with "we'll send you a written plan" can now end with a confirmed one — in every specialty.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>One dashboard for the whole group</h3><p>Owners and managers see every clinic and every specialty's numbers in one place, not five spreadsheets.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Nothing slips through after confirmation</h3><p>Confirming a plan books every session and records its fee in the same step — nothing left to do by hand.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>More time with patients, less at the keyboard</h3><p>The time doctors get back goes to patients, not to writing up plans or reconciling books.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">06</span><span class="sec-eyebrow">Security</span></div>
+      <div class="sec-body">
+        <h2>Built for clinical data, at group scale</h2>
+        <ul class="trust-list">
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>Case descriptions sent to the assistant are used only to generate the plan you review — never used to train external models.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.06A6 6 0 0116 10a1 1 0 11-2 0 4 4 0 00-4-4V7a1 1 0 11-2 0V6a1 1 0 011-1V3a1 1 0 01-.03-1z"/><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-6a6 6 0 100 12 6 6 0 000-12z" clip-rule="evenodd"/></svg><span>Token-based authentication for every session, plus one-time-passcode verification on every mobile login.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm11.707-2.293a1 1 0 00-1.414-1.414L9 9.586 7.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>Each clinic's data is fully isolated from every other clinic on the platform — a true multi-tenant architecture, across every specialty.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg><span>Role-based access — receptionists, doctors, and system managers each see only what their role needs, in the specialty they belong to.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">07</span><span class="sec-eyebrow">Investment</span></div>
+      <div class="sec-body">
+        <h2>Pricing that scales with the group</h2>
+        <div class="pricing-grid">
+          <div class="price-card"><span class="tier-name">Essentials</span><span class="tier-price">$59<small>/mo</small></span><p>The full toolkit, without AI. Up to 3 doctors per specialty — scheduling, records, billing, accounting, lab tracking, reports, and API access.</p></div>
+          <div class="price-card featured"><span class="tier-flag">Recommended</span><span class="tier-name">Growth</span><span class="tier-price">$199<small>/mo</small></span><p>Everything in Essentials, plus AI. Up to 10 doctors, the AI Care Plan Assistant, priority support.</p></div>
+          <div class="price-card"><span class="tier-name">Enterprise</span><span class="tier-price">Custom</span><p>Groups running several specialties at scale. Unlimited doctors, dedicated onboarding, custom integrations, volume pricing.</p></div>
+        </div>
+        <p class="pricing-note">Each specialty is its own subscription, priced independently — activate the ones your group needs, add another any time. Every plan can be trialled with your own schedule, doctors, and services, no credit card required.</p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">08</span><span class="sec-eyebrow">Next steps</span></div>
+      <div class="sec-body">
+        <h2>Bring a real case from any specialty. Watch the assistant draft it live.</h2>
+        <p class="sec-intro">Book a 30-minute walkthrough — bring one real case description from any of your specialties and we'll show the plan it drafts, then set up a trial group on your own schedule and doctors.</p>
+        <div class="cta-row"><span class="cta-email">hello@doctovaria.com</span></div>
+
+        <div class="signature-grid">
+          <div class="signature-block">
+            <p class="sig-role">Prepared by</p>
+            <input class="sig-line" type="text" value="Doctovaria">
+            <input class="sig-line" type="text" placeholder="Date">
+            <p class="sig-caption">Name &amp; date</p>
+          </div>
+          <div class="signature-block">
+            <p class="sig-role">Reviewed by</p>
+            <input class="sig-line" type="text" placeholder="Name">
+            <input class="sig-line" type="text" placeholder="Date / signature">
+            <p class="sig-caption">Group or hospital representative</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="doc-footer">
+      <span>Doctovaria — the clinical operating system for five medical specialties.</span>
+      <span>© 2026 Doctovaria. Confidential proposal.</span>
+    </footer>
+  </div>
+</div>
+
+<!-- ============================================================ AR ============================================================ -->
+<div class="doc-lang" data-doc-lang="ar" lang="ar" dir="rtl" style="display:none">
+  <div class="doc-shell">
+    <section class="cover">
+      <p class="cover-eyebrow">منصة واحدة، خمسة تخصصات طبية</p>
+      <div class="cover-mark">
+        <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:68px;width:auto;display:block;">
+      </div>
+      <h1>خمسة تخصصات. منصة واحدة. خطة رعاية مؤكدة خلال دقائق، لا أيام.</h1>
+      <p class="lede">Doctovaria هو نظام التشغيل السريري خلف Dentavaria وGynevaria وMedivaria وOrthovaria وEstevaria — منصة آمنة واحدة تدير الجدولة والسجلات السريرية والفوترة وتخطيط الرعاية المدعوم بالذكاء الاصطناعي لممارسات طب الأسنان وأمراض النساء والتوليد والطب الباطني وجراحة العظام والطب التجميلي.</p>
+
+      <div class="cover-meta">
+        <div class="field"><label>مُعدّ لـ</label><input type="text" placeholder="اسم العيادة أو المستشفى أو المجموعة"></div>
+        <div class="field"><label>مُعدّ من قبل</label><input type="text" value="Doctovaria"></div>
+        <div class="field"><label>التاريخ</label><input type="text" placeholder="يوم / شهر / سنة"></div>
+      </div>
+
+      <p class="intro-line">المجموعات التي تدير أكثر من نوع واحد من العيادات تحصل على كل تخصص بنفس تسجيل الدخول، ونفس دفتر الفوترة، ونفس نموذج الأمان — بدلاً من ربط نظام مختلف لكل تخصص.</p>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">01</span><span class="sec-eyebrow">المشكلة</span></div>
+      <div class="sec-body">
+        <h2>أين تخسر المجموعات متعددة التخصصات وقتها</h2>
+        <p class="sec-intro">إدارة أكثر من نوع واحد من الممارسات تعني عادة إدارة أكثر من نوع واحد من البرمجيات:</p>
+        <ul class="diagnosis-list">
+          <li>ينتهي الأمر بكل تخصص على أداة جدولة خاصة به، ونظام سجلات خاص، وجدول فوترة خاص — لا يتواصل أي منها مع الآخر.</li>
+          <li>خطة الرعاية عادة ما تبدأ كملاحظات في ذهن الطبيب، تُكتب لاحقاً بشكل رسمي إن كُتبت أصلاً — وكل طبيب يوثّقها بطريقة مختلفة قليلاً.</li>
+          <li>التقارير على مستوى المجموعة تعني دمج الأرقام يدوياً من كل عيادة وكل تخصص، كل شهر.</li>
+          <li>ينتظر المرضى، أحياناً أياماً، خطة مكتوبة يمكنهم فعلاً قراءتها ومناقشتها والموافقة عليها.</li>
+          <li>إضافة فرع جديد، أو تخصص جديد، تعني إعادة شراء وتعلّم برمجيات من جديد.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section full-bleed">
+      <div class="sec-marker"><span class="sec-num">02</span><span class="sec-eyebrow">مساعد الذكاء الاصطناعي</span></div>
+      <div class="sec-body">
+        <h2>من وصف الحالة إلى خطة مؤكدة — في كل تخصص</h2>
+        <p class="sec-intro">مساعد خطة الرعاية بالذكاء الاصطناعي نفسه يعمل عبر التخصصات الخمسة، بشكل يناسب كيفية تخطيط الرعاية في كل منها.</p>
+        <div class="ai-flow">
+          <div class="ai-step"><span class="num-circle">01</span><div><h3>صف الحالة</h3><p>اكتبها أو انطق بها — يقوم المساعد بتفريغ التسجيل الصوتي وقراءته كمُدخل سريري، دون نماذج أو إدخال بيانات.</p></div></div>
+          <div class="ai-step"><span class="num-circle">02</span><div><h3>يصيغ الذكاء الاصطناعي الخطة</h3><p>تُولَّد خطة منظمة فوراً، بشكل يناسب ذلك التخصص — إجراءً بإجراء لطب الأسنان، مراحل ما قبل الولادة لأمراض النساء، وجدول رعاية مزمنة أو تأهيل أو جلسات لبقية التخصصات.</p></div></div>
+          <div class="ai-step"><span class="num-circle">03</span><div><h3>يراجعها الطبيب ويؤكدها</h3><p>تبقى كل جلسة وإجراء وسعر قابلاً للتعديل الكامل. لا شيء يُجدول حتى يؤكده الطبيب المعالج.</p></div></div>
+          <div class="ai-step"><span class="num-circle">04</span><div><h3>تتحول إلى مواعيد فعلية</h3><p>بعد التأكيد، تُحجز كل جلسة تلقائياً كموعد فعلي، وتُسجَّل رسومها مباشرة في حساب المريض.</p></div></div>
+        </div>
+        <div class="trust-callout"><p>"الذكاء الاصطناعي يصيغ، والطبيب يقرر." لا شيء يصل إلى ملف المريض أو التقويم دون تأكيد صريح من الطبيب المعالج — في أي تخصص.</p></div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">03</span><span class="sec-eyebrow">المنصة</span></div>
+      <div class="sec-body">
+        <h2>نظام متكامل واحد، لا خمس أدوات منفصلة</h2>
+        <p class="sec-intro">كل تخصص يشارك المنصة الأساسية نفسها:</p>
+        <div class="feature-grid">
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>جدولة ذكية</h3><p>حجز بلا تعارض بين الأطباء والفروع والتخصصات، مع شبكة توافر لحظية.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>سجلات سريرية، لكل تخصص</h3><p>رسم بياني للأسنان لطب الأسنان، وخطط رعاية مبنية على مراحل لبقية التخصصات — تبقى متزامنة عبر كل زيارة وجهاز.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>وضوح مالي</h3><p>الرسوم والمدفوعات والأرصدة — بما فيها رسوم كل خطة أكدها الذكاء الاصطناعي — تُتابع تلقائياً لكل مريض ولكل تخصص.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>إدارة متعددة العيادات والتخصصات</h3><p>تسجيل دخول واحد لكل فرع وكل تخصص تديره المجموعة، لكل منها اشتراكه وحدوده وطاقمه.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>وصول آمن عبر الجوال</h3><p>تسجيل دخول موثّق برمز تحقق لكل جهاز، وجلسات قائمة على الرموز، دون كلمة مرور مشتركة أبداً.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>المحاسبة والرواتب</h3><p>دفتر صندوق واحد للشركة عبر كل عيادة، ورواتب تضيف نسبة عمولة كل طبيب تلقائياً.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>تتبع المخبر والتحاليل</h3><p>حالات مخبر الأسنان من الإرسال حتى التسليم، أو نتائج التحاليل لبقية التخصصات الأربعة — تنعكس تلقائياً في حساباتك.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>واجهة برمجية مفتوحة وتكاملات</h3><p>أنشئ رموز API من الإعدادات وصِل أجهزة خارجية مباشرة بملف المريض، في أي تخصص.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">04</span><span class="sec-eyebrow">التخصصات</span></div>
+      <div class="sec-body">
+        <h2>خمسة تخصصات، منصة واحدة</h2>
+        <p class="sec-intro">كل منتج يعمل على المنصة نفسها، بشكل يناسب كيفية تخطيط وتقديم الرعاية في ذلك التخصص.</p>
+        <div class="specialty-grid">
+          <div class="specialty-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tagline" style="color:#1f4e8c">طب الأسنان</p><p>سجلات مبنية على مخطط الأسنان وخطط علاج بالذكاء الاصطناعي إجراءً بإجراء.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tagline" style="color:#a6295e">أمراض النساء والتوليد</p><p>خطط رعاية ما قبل الولادة مبنية على مراحل تتابع رحلة الحمل الكاملة.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#1f7a5c"></div><p class="name">Medivaria</p><p class="tagline" style="color:#1f7a5c">الطب الباطني</p><p>خطط متابعة رعاية مزمنة تُجدول تلقائياً بعد زيارة مرجعية.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tagline" style="color:#b56a1f">جراحة العظام</p><p>خطط تأهيل ومتابعة تُبنى حول تاريخ الإجراء.</p></div>
+          <div class="specialty-card wide"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">الطب التجميلي</p><p>خطط علاج مبنية على جلسات لبرامج تجميلية متعددة الزيارات.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">05</span><span class="sec-eyebrow">ماذا يتغيّر</span></div>
+      <div class="sec-body">
+        <h2>هكذا يبدو الشهر الأول</h2>
+        <div class="outcome-grid">
+          <div class="outcome-card"><div class="stat-rule"></div><h3>خطط خلال ثوانٍ، لا اتصال غداً</h3><p>الاستشارة التي كانت تنتهي بـ"سنرسل لك خطة مكتوبة" باتت تنتهي بخطة مؤكدة — في كل تخصص.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>لوحة تحكم واحدة للمجموعة كاملة</h3><p>يرى الملّاك والمدراء أرقام كل عيادة وكل تخصص في مكان واحد، لا خمسة جداول بيانات.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>لا شيء يفوت بعد التأكيد</h3><p>تأكيد الخطة يحجز كل جلسة ويسجّل رسومها في الخطوة نفسها — لا شيء يُترك يدوياً.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>وقت أكبر مع المرضى، أقل على لوحة المفاتيح</h3><p>الوقت الذي يستعيده الأطباء يذهب للمرضى، لا لكتابة الخطط أو تسوية الحسابات.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">06</span><span class="sec-eyebrow">الأمان</span></div>
+      <div class="sec-body">
+        <h2>مصمم لبيانات سريرية، بمقياس المجموعات</h2>
+        <ul class="trust-list">
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>أوصاف الحالات المرسلة إلى المساعد تُستخدم فقط لصياغة الخطة التي تراجعها — ولا تُستخدم أبداً لتدريب نماذج خارجية.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.06A6 6 0 0116 10a1 1 0 11-2 0 4 4 0 00-4-4V7a1 1 0 11-2 0V6a1 1 0 011-1V3a1 1 0 01-.03-1z"/><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-6a6 6 0 100 12 6 6 0 000-12z" clip-rule="evenodd"/></svg><span>مصادقة قائمة على الرموز لكل جلسة، مع تحقق برمز استخدام واحد (OTP) عند كل تسجيل دخول عبر الجوال.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm11.707-2.293a1 1 0 00-1.414-1.414L9 9.586 7.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>بيانات كل عيادة معزولة تماماً عن بقية العيادات على المنصة — بنية حقيقية متعددة المستأجرين، عبر كل تخصص.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg><span>وصول قائم على الأدوار — كل من موظف الاستقبال والطبيب ومدير النظام يرى فقط ما يحتاجه دوره، ضمن تخصصه.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">07</span><span class="sec-eyebrow">الاستثمار</span></div>
+      <div class="sec-body">
+        <h2>تسعير يتناسب مع نمو المجموعة</h2>
+        <div class="pricing-grid">
+          <div class="price-card"><span class="tier-name">أساسيات</span><span class="tier-price">$59<small>/شهرياً</small></span><p>كل الأدوات، بدون الذكاء الاصطناعي. حتى 3 أطباء لكل تخصص — جدولة، سجلات، فوترة، محاسبة، تتبع مخبر، تقارير، ووصول API.</p></div>
+          <div class="price-card featured"><span class="tier-flag">الأكثر شيوعاً</span><span class="tier-name">نمو</span><span class="tier-price">$199<small>/شهرياً</small></span><p>كل ما في أساسيات، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء، مساعد خطة الرعاية بالذكاء الاصطناعي، دعم ذو أولوية.</p></div>
+          <div class="price-card"><span class="tier-name">مؤسسات</span><span class="tier-price">مخصص</span><p>للمجموعات التي تدير عدة تخصصات بمقياس واسع. أطباء بلا حدود، تأهيل مخصص، تكاملات مخصصة، تسعير بالجملة.</p></div>
+        </div>
+        <p class="pricing-note">كل تخصص هو اشتراك مستقل بسعره الخاص — فعّل ما تحتاجه مجموعتك، وأضف تخصصاً آخر في أي وقت. يمكن تجربة كل خطة بجدولك وأطبائك وخدماتك الفعلية، دون الحاجة لبطاقة ائتمان.</p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">08</span><span class="sec-eyebrow">الخطوات التالية</span></div>
+      <div class="sec-body">
+        <h2>أحضر حالة فعلية من أي تخصص. شاهد المساعد يصيغها مباشرة.</h2>
+        <p class="sec-intro">احجز جلسة تعريفية مدتها 30 دقيقة — أحضر وصف حالة فعلية من أي من تخصصاتك وسنريك الخطة التي يصيغها، ثم نُعدّ مجموعة تجريبية بجدولك وأطبائك.</p>
+        <div class="cta-row"><span class="cta-email">hello@doctovaria.com</span></div>
+
+        <div class="signature-grid">
+          <div class="signature-block">
+            <p class="sig-role">أُعدّ من قبل</p>
+            <input class="sig-line" type="text" value="Doctovaria">
+            <input class="sig-line" type="text" placeholder="التاريخ">
+            <p class="sig-caption">الاسم والتاريخ</p>
+          </div>
+          <div class="signature-block">
+            <p class="sig-role">تمت المراجعة من قبل</p>
+            <input class="sig-line" type="text" placeholder="الاسم">
+            <input class="sig-line" type="text" placeholder="التاريخ / التوقيع">
+            <p class="sig-caption">ممثل المجموعة أو المستشفى</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="doc-footer">
+      <span>Doctovaria — نظام التشغيل السريري لخمسة تخصصات طبية.</span>
+      <span>© 2026 Doctovaria. مقترح سري.</span>
+    </footer>
+  </div>
+</div>
+
+<!-- ============================================================ TR ============================================================ -->
+<div class="doc-lang" data-doc-lang="tr" lang="tr" dir="ltr" style="display:none">
+  <div class="doc-shell">
+    <section class="cover">
+      <p class="cover-eyebrow">Tek Platform, Beş Tıbbi Uzmanlık Alanı</p>
+      <div class="cover-mark">
+        <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:68px;width:auto;display:block;">
+      </div>
+      <h1>Beş uzmanlık alanı. Tek platform. Dakikalar içinde onaylı bir bakım planı, günler değil.</h1>
+      <p class="lede">Doctovaria; Dentavaria, Gynevaria, Medivaria, Orthovaria ve Estevaria'nın arkasındaki klinik işletim sistemidir — diş hekimliği, kadın hastalıkları &amp; doğum, dahiliye, ortopedi ve estetik tıp pratikleri için randevu planlamasını, klinik kayıtları, faturalandırmayı ve yapay zeka destekli bakım planlamasını tek güvenli platformda yürütür.</p>
+
+      <div class="cover-meta">
+        <div class="field"><label>Hazırlanan</label><input type="text" placeholder="Klinik, hastane veya grup adı"></div>
+        <div class="field"><label>Hazırlayan</label><input type="text" value="Doctovaria"></div>
+        <div class="field"><label>Tarih</label><input type="text" placeholder="GG / AA / YYYY"></div>
+      </div>
+
+      <p class="intro-line">Birden fazla klinik türü işleten gruplar, her uzmanlık alanı için ayrı bir sisteme geçmek yerine, aynı girişte, aynı faturalandırma defterinde ve aynı güvenlik modelinde her uzmanlık alanına sahip olur.</p>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">01</span><span class="sec-eyebrow">Sorun</span></div>
+      <div class="sec-body">
+        <h2>Çok uzmanlıklı gruplar zamanı nerede kaybeder</h2>
+        <p class="sec-intro">Birden fazla pratik türü işletmek genellikle birden fazla yazılım türü işletmek demektir:</p>
+        <ul class="diagnosis-list">
+          <li>Her uzmanlık alanı kendi randevu aracında, kendi kayıt sisteminde ve kendi faturalandırma tablosunda kalır — hiçbiri birbiriyle konuşmaz.</li>
+          <li>Bir bakım planı genellikle hekimin aklındaki notlar olarak başlar, düzgünce yazıya dökülmesi ise, dökülürse, daha sonradır — ve her hekim biraz farklı belgeler.</li>
+          <li>Grup çapında raporlama, her ay her klinik ve her uzmanlık alanının rakamlarını elle birleştirmek anlamına gelir.</li>
+          <li>Hastalar, gerçekten okuyup tartışıp onaylayabilecekleri yazılı bir plan için bazen günlerce bekler.</li>
+          <li>Yeni bir lokasyon veya yeni bir uzmanlık alanı eklemek, yazılımı yeniden satın almak ve yeniden öğrenmek demektir.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section full-bleed">
+      <div class="sec-marker"><span class="sec-num">02</span><span class="sec-eyebrow">Yapay zeka asistanı</span></div>
+      <div class="sec-body">
+        <h2>Vaka tarifinden onaylı bir plana — her uzmanlık alanında</h2>
+        <p class="sec-intro">Aynı Yapay Zeka Bakım Planı Asistanı beş uzmanlık alanının tümünde çalışır, her birinin bakımı gerçekte nasıl planladığına uyacak şekilde biçimlenir.</p>
+        <div class="ai-flow">
+          <div class="ai-step"><span class="num-circle">01</span><div><h3>Vakayı tarif edin</h3><p>Yazın ya da söyleyin — asistan kaydı yazıya döker ve klinik girdi olarak okur. Form yok, veri girişi yok.</p></div></div>
+          <div class="ai-step"><span class="num-circle">02</span><div><h3>Yapay zeka planı hazırlar</h3><p>O uzmanlık alanına uygun biçimde, yapılandırılmış bir plan anında oluşturulur — diş hekimliği için işlem işlem, kadın hastalıkları için doğum öncesi kilometre taşları, diğerleri için kronik bakım, rehabilitasyon ya da seans takvimi.</p></div></div>
+          <div class="ai-step"><span class="num-circle">03</span><div><h3>Hekim inceler ve onaylar</h3><p>Her seans, işlem ve fiyat tamamen düzenlenebilir kalır. Tedavi eden hekim onaylamadan hiçbir şey randevuya dönüşmez.</p></div></div>
+          <div class="ai-step"><span class="num-circle">04</span><div><h3>Gerçek randevulara dönüşür</h3><p>Onaylandıktan sonra her seans otomatik olarak gerçek bir randevu olarak ayırtılır ve ücreti doğrudan hastanın hesabına işlenir.</p></div></div>
+        </div>
+        <div class="trust-callout"><p>"Yapay zeka hazırlar, hekim karar verir." Hangi uzmanlık alanında olursa olsun, tedavi eden hekimin onayı olmadan hiçbir şey hasta dosyasına ya da takvime ulaşmaz.</p></div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">03</span><span class="sec-eyebrow">Platform</span></div>
+      <div class="sec-body">
+        <h2>Beş ayrı araç değil, eksiksiz tek bir sistem</h2>
+        <p class="sec-intro">Her uzmanlık alanı aynı temel platformu paylaşır:</p>
+        <div class="feature-grid">
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Akıllı randevu planlama</h3><p>Doktorlar, lokasyonlar ve uzmanlık alanları arasında çakışmasız randevu, gerçek zamanlı müsaitlik ızgarasıyla.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Her uzmanlığa göre klinik kayıtlar</h3><p>Diş hekimliği için odontogram, diğerleri için kilometre taşı bakım planları — her ziyaret ve cihazda senkronize kalır.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Finansal netlik</h3><p>Yapay zekanın onayladığı her planın ücreti dahil, ücretler, ödemeler ve bakiyeler her hasta ve her uzmanlık alanı için otomatik takip edilir.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Çoklu klinik, çoklu uzmanlık</h3><p>Grubun işlettiği her şube ve her uzmanlık alanı için tek giriş, her biri kendi aboneliği, limitleri ve personeliyle.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Güvenli mobil erişim</h3><p>Her cihazda OTP ile doğrulanmış giriş, token tabanlı oturumlar, asla paylaşılan şifre yok.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Muhasebe ve bordro</h3><p>Her klinik genelinde tek bir şirket kasa defteri, her doktorun komisyonunu otomatik ekleyen bordro.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Laboratuvar ve test takibi</h3><p>Diş laboratuvarı vakaları gönderimden teslime kadar, ya da diğer dört uzmanlık alanı için laboratuvar ve test sonuçları — defterlerinize otomatik yansır.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Açık API ve entegrasyonlar</h3><p>Ayarlar'dan API token oluşturun ve hangi uzmanlık alanında olursa olsun harici cihazları doğrudan hasta dosyasına bağlayın.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">04</span><span class="sec-eyebrow">Uzmanlık alanları</span></div>
+      <div class="sec-body">
+        <h2>Beş uzmanlık alanı, tek platform</h2>
+        <p class="sec-intro">Her ürün aynı platform üzerinde çalışır, o uzmanlık alanının bakımı gerçekte nasıl planlayıp sunduğuna uygun biçimde.</p>
+        <div class="specialty-grid">
+          <div class="specialty-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tagline" style="color:#1f4e8c">DİŞ HEKİMLİĞİ</p><p>Odontogram tabanlı kayıt tutma ve işlem işlem yapay zeka tedavi planları.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tagline" style="color:#a6295e">KADIN HASTALIKLARI VE DOĞUM</p><p>Tüm hamilelik sürecini takip eden kilometre taşı tabanlı doğum öncesi bakım planları.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#1f7a5c"></div><p class="name">Medivaria</p><p class="tagline" style="color:#1f7a5c">DAHİLİYE</p><p>Bir referans ziyaretten sonra otomatik olarak planlanan kronik bakım takip planları.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tagline" style="color:#b56a1f">ORTOPEDİ</p><p>Bir işlem tarihi etrafında kurulan rehabilitasyon ve takip ziyareti planları.</p></div>
+          <div class="specialty-card wide"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">ESTETİK TIP</p><p>Çok seanslı estetik programlar için seans tabanlı tedavi planları.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">05</span><span class="sec-eyebrow">Ne değişir</span></div>
+      <div class="sec-body">
+        <h2>İlk ay nasıl görünür</h2>
+        <div class="outcome-grid">
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Yarın geri arama değil, saniyeler içinde plan</h3><p>"Size yazılı bir plan göndereceğiz" ile biten görüşme, hangi uzmanlık alanında olursa olsun artık onaylı bir planla bitiyor.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Tüm grup için tek panel</h3><p>Sahipler ve yöneticiler her klinik ve her uzmanlık alanının rakamlarını beş ayrı tabloda değil, tek yerde görür.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Onaydan sonra hiçbir şey atlanmaz</h3><p>Bir planı onaylamak aynı adımda her seansı ayırtır ve ücretini kaydeder — elle yapılacak hiçbir şey kalmaz.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Hastalarla daha fazla, klavyede daha az zaman</h3><p>Hekimlerin geri kazandığı zaman, plan yazmaya ya da defter tutmaya değil hastalara ayrılır.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">06</span><span class="sec-eyebrow">Güvenlik</span></div>
+      <div class="sec-body">
+        <h2>Grup ölçeğinde klinik veriler için tasarlandı</h2>
+        <ul class="trust-list">
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>Asistana gönderilen vaka tarifleri yalnızca incelediğiniz planı oluşturmak için kullanılır — asla harici modelleri eğitmek için kullanılmaz.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1.06A6 6 0 0116 10a1 1 0 11-2 0 4 4 0 00-4-4V7a1 1 0 11-2 0V6a1 1 0 011-1V3a1 1 0 01-.03-1z"/><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-6a6 6 0 100 12 6 6 0 000-12z" clip-rule="evenodd"/></svg><span>Her oturum için token tabanlı kimlik doğrulama, her mobil girişte tek kullanımlık şifre (OTP) doğrulaması.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm11.707-2.293a1 1 0 00-1.414-1.414L9 9.586 7.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span>Her kliniğin verisi diğer tüm kliniklerden tamamen izole edilir — her uzmanlık alanında gerçek çok kiracılı bir mimari.</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg><span>Rol tabanlı erişim — resepsiyonist, hekim ve sistem yöneticisi, ait oldukları uzmanlık alanında yalnızca rolünün ihtiyaç duyduğunu görür.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">07</span><span class="sec-eyebrow">Yatırım</span></div>
+      <div class="sec-body">
+        <h2>Grupla birlikte ölçeklenen fiyatlandırma</h2>
+        <div class="pricing-grid">
+          <div class="price-card"><span class="tier-name">Temel</span><span class="tier-price">$59<small>/ay</small></span><p>Yapay zeka olmadan tüm araç seti. Uzmanlık alanı başına 3 doktora kadar — planlama, kayıtlar, faturalama, muhasebe, laboratuvar takibi, raporlar ve API erişimi.</p></div>
+          <div class="price-card featured"><span class="tier-flag">Önerilen</span><span class="tier-name">Büyüme</span><span class="tier-price">$199<small>/ay</small></span><p>Temel'deki her şeye ek olarak yapay zeka. 10 doktora kadar, Yapay Zeka Bakım Planı Asistanı, öncelikli destek.</p></div>
+          <div class="price-card"><span class="tier-name">Kurumsal</span><span class="tier-price">Özel</span><p>Büyük ölçekte birden fazla uzmanlık alanı işleten gruplar için. Sınırsız doktor, özel katılım, özel entegrasyonlar, toplu fiyatlandırma.</p></div>
+        </div>
+        <p class="pricing-note">Her uzmanlık alanı, kendi fiyatıyla bağımsız bir abonelik olarak çalışır — grubunuzun ihtiyaç duyduklarını etkinleştirin, istediğiniz zaman bir tane daha ekleyin. Her plan, kendi programınız, doktorlarınız ve hizmetlerinizle denenebilir, kredi kartı gerekmez.</p>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <div class="sec-marker"><span class="sec-num">08</span><span class="sec-eyebrow">Sonraki adımlar</span></div>
+      <div class="sec-body">
+        <h2>Herhangi bir uzmanlık alanından gerçek bir vaka getirin. Asistanın canlı hazırladığını görün.</h2>
+        <p class="sec-intro">30 dakikalık bir tanıtım toplantısı ayırtın — uzmanlık alanlarınızdan herhangi birinden gerçek bir vaka tarifi getirin, asistanın hazırladığı planı gösterelim, ardından kendi programınız ve doktorlarınızla bir deneme grubu kuralım.</p>
+        <div class="cta-row"><span class="cta-email">hello@doctovaria.com</span></div>
+
+        <div class="signature-grid">
+          <div class="signature-block">
+            <p class="sig-role">Hazırlayan</p>
+            <input class="sig-line" type="text" value="Doctovaria">
+            <input class="sig-line" type="text" placeholder="Tarih">
+            <p class="sig-caption">İsim ve tarih</p>
+          </div>
+          <div class="signature-block">
+            <p class="sig-role">İnceleyen</p>
+            <input class="sig-line" type="text" placeholder="İsim">
+            <input class="sig-line" type="text" placeholder="Tarih / imza">
+            <p class="sig-caption">Grup veya hastane temsilcisi</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="doc-footer">
+      <span>Doctovaria — beş tıbbi uzmanlık alanı için klinik işletim sistemi.</span>
+      <span>© 2026 Doctovaria. Gizli teklif.</span>
+    </footer>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var buttons = document.querySelectorAll('.lang-switch button');
+    var blocks = document.querySelectorAll('.doc-lang');
+
+    function setLang(lang) {
+      blocks.forEach(function (el) {
+        el.style.display = el.dataset.docLang === lang ? '' : 'none';
+      });
+      buttons.forEach(function (b) {
+        b.classList.toggle('active', b.dataset.lang === lang);
+      });
+    }
+
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.dataset.lang); });
+    });
+  })();
+</script>
+</body>
+</html>

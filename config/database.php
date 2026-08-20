@@ -62,6 +62,11 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            // Only needed for `php artisan backup:run` when `mysqldump` isn't
+            // on the OS PATH (common on Windows dev machines with XAMPP/Laragon).
+            'dump' => array_filter([
+                'dumpBinaryPath' => env('DB_MYSQLDUMP_PATH'),
+            ]),
         ],
 
         'mariadb' => [

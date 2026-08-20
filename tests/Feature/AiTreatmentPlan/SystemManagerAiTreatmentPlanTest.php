@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
 use Carbon\Carbon;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -20,6 +21,8 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->seed(SpecialtySeeder::class);
 
         config([
             'services.openai.api_key' => 'test-key',
@@ -122,8 +125,8 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
         $client = $this->makeClient();
         $this->fakeOpenAiResponse();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
             'doctor_id' => $doctor->id,
         ])->assertOk();
 
@@ -131,7 +134,7 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
             'company_id' => $manager->company_id,
             'user_id' => $manager->id,
             'client_id' => $client->id,
-            'action' => 'ai_treatment_plan_preview',
+            'action' => 'ai_treatment_plan_generate',
         ]);
     }
 
@@ -143,8 +146,8 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
         $client = $this->makeClient('CL-4002');
         $this->fakeOpenAiResponse();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
         ])->assertStatus(422)
             ->assertJsonValidationErrors('doctor_id');
 
@@ -160,8 +163,8 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
         $client = $this->makeClient('CL-4003');
         $this->fakeOpenAiResponse();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
             'doctor_id' => $otherCompanyDoctor->id,
         ])->assertStatus(422)
             ->assertJsonValidationErrors('doctor_id');
@@ -176,8 +179,8 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
         Sanctum::actingAs($receptionist);
         $client = $this->makeClient('CL-4004');
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
             'doctor_id' => $doctor->id,
         ])->assertStatus(422)
             ->assertJsonValidationErrors('doctor');

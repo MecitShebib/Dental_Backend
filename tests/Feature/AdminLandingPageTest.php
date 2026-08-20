@@ -22,35 +22,42 @@ class AdminLandingPageTest extends TestCase
         ]);
     }
 
-    public function test_edit_page_exposes_all_three_locales(): void
+    public function test_edit_page_exposes_hub_and_every_specialty_in_all_three_locales(): void
     {
         $response = $this->actingAs($this->adminUser())->get('/admin/landing-page');
 
         $response->assertOk();
-        $response->assertViewHas('content', function ($content) {
-            return array_keys($content) === ['en', 'ar', 'tr'];
+        $response->assertViewHas('hub', function ($hub) {
+            return array_keys($hub) === ['en', 'ar', 'tr'];
+        });
+        $response->assertViewHas('specialtiesContent', function ($content) {
+            return array_keys($content) === LandingPageContent::SPECIALTIES
+                && array_keys($content['dental']) === ['en', 'ar', 'tr'];
         });
     }
 
-    public function test_update_persists_nested_per_locale_content_including_contact_and_quote(): void
+    public function test_update_persists_nested_hub_and_specialty_content_including_contact_and_quote(): void
     {
         $admin = $this->adminUser();
 
-        $payload = LandingPageContent::currentAll();
-        $payload['ar']['hero']['headline'] = 'عنوان رئيسي معدّل';
-        $payload['tr']['contact']['headline'] = 'Güncellenmiş başlık';
-        $payload['en']['quote']['submit_label'] = 'Get my quote';
-        $payload['en']['pricing'][1]['highlighted'] = '1';
+        $payload = [
+            'hub' => LandingPageContent::hubAll(),
+            ...LandingPageContent::allSpecialtiesAll(),
+        ];
+        $payload['hub']['ar']['hero']['headline'] = 'عنوان رئيسي معدّل';
+        $payload['dental']['tr']['contact']['headline'] = 'Güncellenmiş başlık';
+        $payload['gynecology']['en']['quote']['submit_label'] = 'Get my quote';
+        $payload['orthopedics']['en']['pricing'][1]['highlighted'] = '1';
 
         $response = $this->actingAs($admin)->put('/admin/landing-page', ['content' => $payload]);
 
         $response->assertRedirect(route('admin.landing-page.edit'));
         $response->assertSessionHas('status');
 
-        $this->assertSame('عنوان رئيسي معدّل', LandingPageContent::current('ar')['hero']['headline']);
-        $this->assertSame('Güncellenmiş başlık', LandingPageContent::current('tr')['contact']['headline']);
-        $this->assertSame('Get my quote', LandingPageContent::current('en')['quote']['submit_label']);
-        $this->assertTrue(LandingPageContent::current('en')['pricing'][1]['highlighted']);
+        $this->assertSame('عنوان رئيسي معدّل', LandingPageContent::hub('ar')['hero']['headline']);
+        $this->assertSame('Güncellenmiş başlık', LandingPageContent::specialty('dental', 'tr')['contact']['headline']);
+        $this->assertSame('Get my quote', LandingPageContent::specialty('gynecology', 'en')['quote']['submit_label']);
+        $this->assertTrue(LandingPageContent::specialty('orthopedics', 'en')['pricing'][1]['highlighted']);
     }
 
     public function test_guest_cannot_access_landing_page_editor(): void

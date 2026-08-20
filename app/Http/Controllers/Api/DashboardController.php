@@ -21,6 +21,7 @@ class DashboardController extends Controller
         ]);
 
         $stats = $this->dashboardStats->stats(
+            actingUser: $request->user(),
             dateFrom: $request->date_from,
             dateTo: $request->date_to,
             doctorId: $request->doctor_id,

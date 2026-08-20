@@ -12,6 +12,7 @@ class TreatmentProductResource extends JsonResource
         return [
             'id' => $this->id,
             'company_id' => $this->company_id,
+            'specialty_id' => $this->specialty_id,
             'scope' => $this->scope,
             'code' => $this->code,
             'name' => $this->name_en ?? $this->name_ar ?? $this->name_tr,

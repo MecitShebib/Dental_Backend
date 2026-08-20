@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LabCase\StoreLabCaseRequest;
 use App\Http\Requests\LabCase\UpdateLabCaseRequest;
@@ -10,16 +11,24 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\LabCase;
 use App\Models\User;
-use App\Services\LabCaseCostSyncService;
+use App\Services\LabCaseCariSyncService;
+use App\Services\LabPaymentCostSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class LabCaseController extends Controller
 {
-    public function __construct(protected LabCaseCostSyncService $costSync) {}
+    use AuthorizesOwnDoctorRecords;
 
-    public function index(Client $client)
+    public function __construct(
+        protected LabPaymentCostSyncService $costSync,
+        protected LabCaseCariSyncService $cariSync,
+    ) {}
+
+    public function index(Request $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $labCases = $client->labCases()
             ->with(['doctor', 'labPartner', 'appointment'])
             ->latest('sent_date')
@@ -35,11 +44,14 @@ class LabCaseController extends Controller
      */
     public function all(Request $request)
     {
+        $actingUser = $request->user();
+        $doctorId = $actingUser->is_doctor ? $actingUser->id : $request->query('doctor_id');
+
         $labCases = LabCase::query()
-            ->whereHas('client', fn ($q) => $q->where('company_id', $request->user()->company_id))
+            ->whereHas('client', fn ($q) => $q->where('company_id', $actingUser->company_id))
             ->with(['client', 'doctor', 'labPartner', 'appointment'])
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
-            ->when($request->query('doctor_id'), fn ($q, $doctorId) => $q->where('doctor_id', $doctorId))
+            ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
             ->latest('sent_date')
             ->paginate($request->has('per_page') ? (int) $request->query('per_page') : null);
 
@@ -51,6 +63,7 @@ class LabCaseController extends Controller
     public function store(StoreLabCaseRequest $request, Client $client)
     {
         $data = $request->validated();
+        $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
         $doctor = $this->resolveDoctor($data['doctor_id']);
         $appointment = $this->resolveAppointment($client, $data['appointment_id'] ?? null);
 
@@ -62,7 +75,7 @@ class LabCaseController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
-        $this->costSync->sync($labCase, $request->user()->id);
+        $this->cariSync->sync($labCase, $request->user()->id);
 
         return $this->success(
             LabCaseResource::make($labCase->load(['doctor', 'labPartner', 'appointment'])),
@@ -73,9 +86,12 @@ class LabCaseController extends Controller
 
     public function update(UpdateLabCaseRequest $request, LabCase $labCase)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $labCase->doctor_id);
+
         $data = $request->validated();
 
         if (array_key_exists('doctor_id', $data)) {
+            $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
             $data['doctor_id'] = $this->resolveDoctor($data['doctor_id'])->id;
         }
 
@@ -88,7 +104,7 @@ class LabCaseController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
-        $this->costSync->sync($labCase, $request->user()->id);
+        $this->cariSync->sync($labCase, $request->user()->id);
 
         return $this->success(
             LabCaseResource::make($labCase->load(['doctor', 'labPartner', 'appointment'])),
@@ -98,7 +114,16 @@ class LabCaseController extends Controller
 
     public function destroy(Request $request, LabCase $labCase)
     {
-        $this->costSync->removeExpense($labCase);
+        $this->assertActingDoctorOwnsDoctorId($request, $labCase->doctor_id);
+
+        // Deleting the case cascades its lab_payments rows at the DB level,
+        // but not their linked Expense/FundTransaction rows -- unwind those
+        // explicitly first, same as removing each payment individually.
+        foreach ($labCase->labPayments()->get() as $labPayment) {
+            $this->costSync->remove($labPayment);
+        }
+        $this->cariSync->remove($labCase);
+
         $labCase->delete();
 
         return $this->success(null, 'Lab case deleted successfully.');

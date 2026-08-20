@@ -98,6 +98,43 @@ class ExpenseTest extends TestCase
         $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', 0);
     }
 
+    public function test_an_expense_linked_to_a_cari_party_posts_a_debit_to_its_ledger(): void
+    {
+        $manager = $this->makeManager();
+        Sanctum::actingAs($manager);
+
+        $partyId = $this->postJson('/api/cari/parties', [
+            'type' => 'supplier',
+            'name' => 'Acme Dental Supplies',
+        ])->assertCreated()->json('data.id');
+
+        $expenseId = $this->postJson('/api/expenses', [
+            'category' => 'dental_supplies',
+            'amount' => 250,
+            'expense_date' => '2026-08-01',
+            'description' => 'Composite resin restock',
+            'cari_partyable_type' => 'cari_party',
+            'cari_partyable_id' => $partyId,
+            'cari_currency' => 'TRY',
+        ])->assertCreated()->json('data.id');
+
+        $summary = collect($this->getJson("/api/cari/parties/{$partyId}/summary")->assertOk()->json('data'))
+            ->keyBy('currency');
+        $this->assertEquals(250.0, $summary['TRY']['debit']);
+
+        // Re-saving without a party un-links it (delete-then-repost).
+        $this->post("/api/expenses/{$expenseId}", ['amount' => 250])->assertOk();
+
+        $summary = collect($this->getJson("/api/cari/parties/{$partyId}/summary")->assertOk()->json('data'))
+            ->keyBy('currency');
+        $this->assertEquals(0.0, $summary['TRY']['debit']);
+
+        // Deleting the expense also removes it if the link were still present.
+        $this->deleteJson("/api/expenses/{$expenseId}")->assertOk();
+        $this->getJson('/api/cari/transactions?partyable_type=cari_party&partyable_id='.$partyId)
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_a_regular_user_cannot_record_an_expense(): void
     {
         $user = User::factory()->create();

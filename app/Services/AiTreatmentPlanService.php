@@ -20,6 +20,7 @@ class AiTreatmentPlanService
         protected AppointmentConflictService $conflicts,
         protected AiTokenUsageService $aiTokenUsage,
         protected TreatmentChargeService $treatmentCharges,
+        protected ClientSpecialtyEnrollmentService $enrollment,
     ) {}
 
     public function buildJsonSchema(): array
@@ -231,19 +232,22 @@ class AiTreatmentPlanService
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
-    public function preview(mixed $doctor, mixed $actingUser, Client $client, string $description): array
+    /**
+     * Same as the old single-shot preview(), but takes an already-assembled
+     * OpenAI messages array (system prompt + patient context + conversation
+     * history, see AiConversationService::buildOpenAiMessages()) instead of a
+     * lone description string -- so a plan can be grounded in a whole doctor/AI
+     * conversation, patient info, and dental images, not just one message.
+     */
+    public function generatePlanFromMessages(mixed $doctor, mixed $actingUser, Client $client, array $messages): array
     {
-        $response = $this->openAi->chatCompletionJson(
-            $this->buildSystemPrompt(),
-            $description,
-            $this->buildJsonSchema()
-        );
+        $response = $this->openAi->chatCompletionJson($messages, $this->buildJsonSchema());
 
         $this->aiTokenUsage->recordUsage(
             $actingUser->company,
             $actingUser,
             $client,
-            'ai_treatment_plan_preview',
+            'ai_treatment_plan_generate',
             (string) config('services.openai.chat_model', 'gpt-4o-mini'),
             (int) $response['usage']['prompt_tokens'],
             (int) $response['usage']['completion_tokens'],
@@ -270,6 +274,7 @@ class AiTreatmentPlanService
         return [
             'diagnosis_summary' => $result['diagnosis_summary'],
             'sessions' => $sessions,
+            'usage' => $response['usage'],
         ];
     }
 
@@ -295,6 +300,8 @@ class AiTreatmentPlanService
         }
 
         return DB::transaction(function () use ($client, $doctor, $sessions, $odontogramStatuses, $userId) {
+            $this->enrollment->ensureEnrolled($client, $doctor);
+
             return collect($sessions)->map(function (array $session, int $index) use ($client, $doctor, $odontogramStatuses, $userId) {
                 $appointment = Appointment::create([
                     'client_id' => $client->id,
@@ -346,12 +353,16 @@ class AiTreatmentPlanService
         }
     }
 
-    protected function buildSystemPrompt(): string
+    public function buildSystemPrompt(): string
     {
         return <<<'PROMPT'
             You are a dental treatment planning assistant used inside a clinic's patient
-            record system. A doctor will describe a patient's dental condition in free
-            text, possibly naming one or more tooth numbers (FDI notation, 11-85) and
+            record system. You will receive the patient's basic info, possibly one or
+            more dental/X-ray images, and possibly a prior conversation between you and
+            the treating doctor about this patient's case -- ending in a message from
+            the doctor (their diagnosis, or a request to build the plan, or both). Use
+            all of this context together, not just the final message alone. The doctor's
+            free text may name one or more tooth numbers (FDI notation, 11-85) and
             symptoms.
 
             Produce a treatment plan made of one or more future sessions (visits), each

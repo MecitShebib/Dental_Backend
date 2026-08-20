@@ -13,12 +13,14 @@ class Subscription extends Model
 
     protected $fillable = [
         'company_id',
+        'specialty_id',
         'plan_name',
         'status',
         'starts_at',
         'ends_at',
         'max_users',
         'active_users',
+        'max_branches',
         'max_ai_tokens',
         'ai_tokens_used',
         'price',
@@ -33,6 +35,7 @@ class Subscription extends Model
             'ends_at' => 'date',
             'max_users' => 'integer',
             'active_users' => 'integer',
+            'max_branches' => 'integer',
             'max_ai_tokens' => 'integer',
             'ai_tokens_used' => 'integer',
             'price' => 'decimal:2',
@@ -42,6 +45,11 @@ class Subscription extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 
     public function isCurrentlyActive(): bool

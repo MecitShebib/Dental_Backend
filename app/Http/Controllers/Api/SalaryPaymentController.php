@@ -11,6 +11,7 @@ use App\Models\FundTransaction;
 use App\Models\SalaryPayment;
 use App\Models\User;
 use App\Services\FundTransactionService;
+use App\Services\SalaryPaymentCariSyncService;
 use App\Services\TreatmentChargeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class SalaryPaymentController extends Controller
     public function __construct(
         protected FundTransactionService $fundTransactions,
         protected TreatmentChargeService $treatmentCharges,
+        protected SalaryPaymentCariSyncService $cariSync,
     ) {}
 
     public function index(Request $request)
@@ -137,6 +139,8 @@ class SalaryPaymentController extends Controller
             return $payment;
         });
 
+        $this->cariSync->sync($payment, $request->user()->id);
+
         return $this->success(SalaryPaymentResource::make($payment->load(['employee', 'settledAdvances'])), 'Salary payment recorded successfully.', 201);
     }
 
@@ -163,6 +167,8 @@ class SalaryPaymentController extends Controller
             );
         }
 
+        $this->cariSync->sync($salaryPayment, $request->user()->id);
+
         return $this->success(SalaryPaymentResource::make($salaryPayment->load(['employee', 'settledAdvances'])), 'Salary payment updated successfully.');
     }
 
@@ -178,6 +184,7 @@ class SalaryPaymentController extends Controller
         DB::transaction(function () use ($salaryPayment) {
             $salaryPayment->settledAdvances()->update(['settled_by_salary_payment_id' => null]);
             $this->fundTransactions->deleteForSource(FundTransaction::SOURCE_SALARY_PAYMENT, $salaryPayment->id);
+            $this->cariSync->remove($salaryPayment);
             $salaryPayment->delete();
         });
 

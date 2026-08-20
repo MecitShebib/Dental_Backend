@@ -25,6 +25,7 @@ class ConfirmAiTreatmentPlanRequest extends FormRequest
             'sessions.*.charge_items' => ['nullable', 'array'],
             'sessions.*.charge_items.*.description' => ['nullable', 'string', 'max:255'],
             'sessions.*.charge_items.*.amount' => ['required', 'numeric'],
+            'sessions.*.charge_items.*.treatment_catalog_id' => ['nullable', 'integer', Rule::exists('treatment_catalog', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
         ];
     }
 }

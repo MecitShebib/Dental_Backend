@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Gynecology;
 
 use App\Enums\AppointmentType;
+use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Appointment\IndexAppointmentRequest;
 use App\Http\Requests\Appointment\StoreAppointmentRequest;
@@ -16,6 +17,7 @@ use App\Services\AppointmentConflictService;
 use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\Clinical\AppointmentQueryService;
 use App\Services\TreatmentChargeService;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -24,6 +26,8 @@ use Illuminate\Validation\ValidationException;
  */
 class AppointmentController extends Controller
 {
+    use AuthorizesOwnDoctorRecords;
+
     public function __construct(
         protected AppointmentConflictService $conflicts,
         protected TreatmentChargeService $treatmentCharges,
@@ -33,7 +37,7 @@ class AppointmentController extends Controller
 
     public function index(IndexAppointmentRequest $request)
     {
-        $appointments = $this->appointmentQuery->list([
+        $appointments = $this->appointmentQuery->list($request->user(), [
             ...$request->validated(),
             'specialty' => Specialty::GYNECOLOGY,
         ]);
@@ -47,6 +51,7 @@ class AppointmentController extends Controller
         $chargeItems = $data['charge_items'] ?? [];
         unset($data['charge_items']);
 
+        $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
         $doctor = User::findOrFail($data['doctor_id']);
         $this->assertClientRules($data);
         $this->conflicts->assertWithinSchedule($doctor, $data['date'], $data['start_time'], (int) $data['duration_minutes']);
@@ -69,13 +74,17 @@ class AppointmentController extends Controller
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])), 'Appointment created successfully.', 201);
     }
 
-    public function show(Appointment $appointment)
+    public function show(Request $request, Appointment $appointment)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $appointment->doctor_id);
+
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])));
     }
 
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $appointment->doctor_id);
+
         $validated = $request->validated();
         $chargeItemsProvided = array_key_exists('charge_items', $validated);
         $chargeItems = $validated['charge_items'] ?? [];
@@ -86,6 +95,7 @@ class AppointmentController extends Controller
             ...$validated,
         ];
 
+        $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
         $doctor = User::findOrFail($data['doctor_id']);
         $this->assertClientRules($data);
         $this->conflicts->assertWithinSchedule($doctor, $data['date'], $data['start_time'], (int) $data['duration_minutes']);
@@ -105,8 +115,10 @@ class AppointmentController extends Controller
         return $this->success(AppointmentResource::make($appointment->load(['client', 'doctor'])), 'Appointment updated successfully.');
     }
 
-    public function destroy(Appointment $appointment)
+    public function destroy(Request $request, Appointment $appointment)
     {
+        $this->assertActingDoctorOwnsDoctorId($request, $appointment->doctor_id);
+
         $this->treatmentCharges->deleteAllForAppointment($appointment->id, $appointment->client?->company_id);
         $appointment->delete();
 

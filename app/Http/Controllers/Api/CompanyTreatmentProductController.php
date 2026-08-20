@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Company\BulkAdjustTreatmentProductPricesRequest;
 use App\Http\Requests\Company\StoreTreatmentProductRequest;
 use App\Http\Requests\Company\UpdateTreatmentProductRequest;
 use App\Http\Resources\TreatmentProductResource;
@@ -10,6 +11,7 @@ use App\Models\Company;
 use App\Models\TreatmentCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CompanyTreatmentProductController extends Controller
@@ -108,6 +110,18 @@ class CompanyTreatmentProductController extends Controller
             ]);
         }
 
+        // Odontogram-scope rows are the fixed, always-seeded price list behind
+        // every procedure/condition the odontogram-v2 widget can select (see
+        // TreatmentCatalogSeeder::odontogramItems(), kept 1:1 with
+        // OdontogramV2Vocabulary) -- a clinic may only ever change their price,
+        // never delete them, since that would silently zero-price and
+        // untranslate that condition everywhere it's charged.
+        if ($product->scope === TreatmentCatalog::SCOPE_ODONTOGRAM) {
+            throw ValidationException::withMessages([
+                'product' => ['Odontogram procedure prices are fixed and cannot be deleted -- only their price can be changed.'],
+            ]);
+        }
+
         try {
             $product->delete();
         } catch (QueryException $e) {
@@ -120,6 +134,39 @@ class CompanyTreatmentProductController extends Controller
         }
 
         return $this->success(null, 'Treatment product deleted successfully.');
+    }
+
+    /**
+     * Adjust every priced item in the company's catalog (both scopes) at
+     * once by a percentage or fixed amount, e.g. "+10% across the board" --
+     * mirrors a feature competing dental-clinic software offers that we
+     * previously only supported one item at a time.
+     */
+    public function bulkPriceAdjustment(BulkAdjustTreatmentProductPricesRequest $request, Company $company)
+    {
+        $this->assertBelongsToRequester($request, $company);
+
+        $data = $request->validated();
+
+        DB::transaction(function () use ($company, $data) {
+            $company->treatmentCatalog()->get()->each(function (TreatmentCatalog $product) use ($data) {
+                $current = (float) $product->default_price;
+
+                $new = $data['type'] === 'percentage'
+                    ? $current * (1 + $data['value'] / 100)
+                    : $current + $data['value'];
+
+                $product->update(['default_price' => max(0, round($new, 2))]);
+            });
+        });
+
+        $products = $company->treatmentCatalog()
+            ->orderBy('scope')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return $this->success(TreatmentProductResource::collection($products), 'Prices adjusted successfully.');
     }
 
     protected function assertBelongsToRequester(Request $request, Company $company): void

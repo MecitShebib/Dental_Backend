@@ -24,6 +24,7 @@ class TreatmentCatalog extends Model
 
     protected $fillable = [
         'company_id',
+        'specialty_id',
         'scope',
         'code',
         'name_ar',
@@ -50,5 +51,15 @@ class TreatmentCatalog extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
+    }
+
+    public function inventoryLinks(): HasMany
+    {
+        return $this->hasMany(TreatmentCatalogInventoryLink::class);
     }
 }

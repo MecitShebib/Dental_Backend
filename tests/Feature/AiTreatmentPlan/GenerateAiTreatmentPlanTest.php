@@ -6,19 +6,21 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Subscription;
 use App\Models\User;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-class PreviewAiTreatmentPlanTest extends TestCase
+class GenerateAiTreatmentPlanTest extends TestCase
 {
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->seed(SpecialtySeeder::class);
 
         config([
             'services.openai.api_key' => 'test-key',
@@ -106,24 +108,41 @@ class PreviewAiTreatmentPlanTest extends TestCase
         ]);
     }
 
-    public function test_it_returns_a_draft_plan_without_persisting_anything(): void
+    public function test_it_returns_a_draft_plan_without_persisting_appointments(): void
     {
         $doctor = $this->doctorWithFullWeekSchedule();
         Sanctum::actingAs($doctor);
         $client = $this->makeClient();
         $this->fakeOpenAiResponse();
 
-        $response = $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $response = $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
         ])->assertOk();
 
         $response->assertJsonPath('data.diagnosis_summary', 'Pulp necrosis on tooth 13.')
             ->assertJsonCount(1, 'data.sessions')
             ->assertJsonPath('data.sessions.0.duration_minutes', 30)
             ->assertJsonPath('data.sessions.0.odontogram_v2_status.teeth.13.endo', 'endo-filling-incomplete')
+            ->assertJsonPath('data.user_message.content', 'Tooth 13 has pulp necrosis.')
             ->assertJsonMissingPath('data.usage');
 
         $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseCount('ai_conversation_messages', 2);
+    }
+
+    public function test_it_defaults_the_trigger_message_when_no_text_is_given(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient();
+        $this->fakeOpenAiResponse();
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversation_messages', [
+            'role' => 'user',
+            'content' => 'Please build a treatment plan based on our conversation so far.',
+        ]);
     }
 
     public function test_it_caps_sessions_at_eight_even_if_the_model_returns_more(): void
@@ -140,8 +159,8 @@ class PreviewAiTreatmentPlanTest extends TestCase
         ]);
         $this->fakeOpenAiResponse($extraSessions);
 
-        $response = $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Multiple issues.',
+        $response = $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Multiple issues.',
         ])->assertOk();
 
         $response->assertJsonCount(8, 'data.sessions');
@@ -153,63 +172,21 @@ class PreviewAiTreatmentPlanTest extends TestCase
         Sanctum::actingAs($user);
         $client = $this->makeClient();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
         ])->assertStatus(422)
             ->assertJsonValidationErrors('doctor');
     }
 
-    public function test_it_requires_a_description_or_audio(): void
-    {
-        $doctor = $this->doctorWithFullWeekSchedule();
-        Sanctum::actingAs($doctor);
-        $client = $this->makeClient();
-
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('description');
-    }
-
-    public function test_it_transcribes_audio_when_no_description_is_provided(): void
-    {
-        $doctor = $this->doctorWithFullWeekSchedule();
-        Sanctum::actingAs($doctor);
-        $client = $this->makeClient();
-
-        Http::fake([
-            'https://api.openai.com/v1/audio/transcriptions' => Http::response(['text' => 'Tooth 13 has pulp necrosis.'], 200),
-            'https://api.openai.com/v1/chat/completions' => Http::response([
-                'choices' => [
-                    ['message' => ['content' => json_encode([
-                        'diagnosis_summary' => 'Pulp necrosis on tooth 13.',
-                        'sessions' => [],
-                    ])]],
-                ],
-                'usage' => ['prompt_tokens' => 50, 'completion_tokens' => 30, 'total_tokens' => 80],
-            ], 200),
-        ]);
-
-        $audio = UploadedFile::fake()->create('note.mp3', 10, 'audio/mpeg');
-
-        $this->post("/api/clients/{$client->id}/ai-treatment-plan", [
-            'audio' => $audio,
-        ], ['Accept' => 'application/json'])->assertOk();
-
-        Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.openai.com/v1/chat/completions'
-                && $request['messages'][1]['content'] === 'Tooth 13 has pulp necrosis.';
-        });
-    }
-
-    public function test_it_records_ai_token_usage_after_a_successful_preview(): void
+    public function test_it_records_ai_token_usage_after_a_successful_generation(): void
     {
         $doctor = $this->doctorWithFullWeekSchedule();
         Sanctum::actingAs($doctor);
         $client = $this->makeClient();
         $this->fakeOpenAiResponse();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
         ])->assertOk();
 
         $subscription = $doctor->company->currentSubscription()->first();
@@ -220,7 +197,7 @@ class PreviewAiTreatmentPlanTest extends TestCase
             'subscription_id' => $subscription->id,
             'user_id' => $doctor->id,
             'client_id' => $client->id,
-            'action' => 'ai_treatment_plan_preview',
+            'action' => 'ai_treatment_plan_generate',
             'model' => 'gpt-4o-mini',
             'prompt_tokens' => 120,
             'completion_tokens' => 80,
@@ -240,8 +217,8 @@ class PreviewAiTreatmentPlanTest extends TestCase
         $client = $this->makeClient();
         $this->fakeOpenAiResponse();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
         ])->assertStatus(422)
             ->assertJsonValidationErrors('sessions');
 
@@ -253,7 +230,7 @@ class PreviewAiTreatmentPlanTest extends TestCase
             'subscription_id' => $subscription->id,
             'user_id' => $doctor->id,
             'client_id' => $client->id,
-            'action' => 'ai_treatment_plan_preview',
+            'action' => 'ai_treatment_plan_generate',
             'model' => 'gpt-4o-mini',
             'prompt_tokens' => 120,
             'completion_tokens' => 80,
@@ -261,7 +238,7 @@ class PreviewAiTreatmentPlanTest extends TestCase
         ]);
     }
 
-    public function test_it_blocks_preview_when_the_company_has_reached_its_ai_token_limit(): void
+    public function test_it_blocks_generation_when_the_company_has_reached_its_ai_token_limit(): void
     {
         $doctor = User::factory()->create(['is_doctor' => true]);
         $this->activeSubscription($doctor->company, maxAiTokens: 100, aiTokensUsed: 100);
@@ -269,8 +246,8 @@ class PreviewAiTreatmentPlanTest extends TestCase
         $client = $this->makeClient();
         Http::fake();
 
-        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan", [
-            'description' => 'Tooth 13 has pulp necrosis.',
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Tooth 13 has pulp necrosis.',
         ])->assertStatus(422)
             ->assertJsonValidationErrors('ai_tokens');
 

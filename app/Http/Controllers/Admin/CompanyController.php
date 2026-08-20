@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreCompanyRequest;
 use App\Http\Requests\Admin\UpdateCompanyRequest;
 use App\Models\Company;
 use App\Models\Role;
+use App\Models\Specialty;
 use Database\Seeders\TreatmentCatalogSeeder;
 use Illuminate\Http\Request;
 
@@ -45,14 +46,18 @@ class CompanyController extends Controller
         return view('admin.companies.show', [
             'company' => $company,
             'users' => $company->users()->with('roles')->orderBy('name')->get(),
-            'subscriptions' => $company->subscriptions()->latest()->get(),
+            'subscriptions' => $company->subscriptions()->with('specialty')->latest()->get(),
             'roles' => Role::orderBy('name')->get(),
+            'specialties' => Specialty::orderBy('sort_order')->get(),
         ]);
     }
 
     public function store(StoreCompanyRequest $request)
     {
-        $company = Company::create($request->validated());
+        $company = Company::create([
+            ...$request->validated(),
+            'booking_slug' => Company::generateBookingSlug($request->validated('name')),
+        ]);
 
         (new TreatmentCatalogSeeder)->seedCompany($company);
 

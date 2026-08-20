@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -9,40 +10,17 @@ use Illuminate\Validation\ValidationException;
 
 class OpenAiClient
 {
-    public function chatCompletionJson(string $systemPrompt, string $userPrompt, array $jsonSchema): array
+    /**
+     * $messages is already in the API's own shape: [{role, content}], where
+     * `content` may be a plain string or an array of content blocks
+     * (text/image_url) for a multi-modal turn.
+     */
+    public function chatCompletionJson(array $messages, array $jsonSchema): array
     {
-        $apiKey = (string) config('services.openai.api_key');
-
-        if ($apiKey === '') {
-            throw ValidationException::withMessages([
-                'description' => ['OpenAI API key is not configured.'],
-            ]);
-        }
-
-        $response = Http::withToken($apiKey)
-            ->timeout(60)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => (string) config('services.openai.chat_model', 'gpt-4o-mini'),
-                'messages' => [
-                    ['role' => 'system', 'content' => $systemPrompt],
-                    ['role' => 'user', 'content' => $userPrompt],
-                ],
-                'response_format' => [
-                    'type' => 'json_schema',
-                    'json_schema' => $jsonSchema,
-                ],
-            ]);
-
-        if (! $response->successful()) {
-            Log::error('OpenAI chat completion request failed.', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            throw ValidationException::withMessages([
-                'description' => ['The AI service could not generate a treatment plan. Please try again.'],
-            ]);
-        }
+        $response = $this->request($messages, [
+            'type' => 'json_schema',
+            'json_schema' => $jsonSchema,
+        ]);
 
         $content = $response->json('choices.0.message.content');
         $decoded = json_decode((string) $content, true);
@@ -55,11 +33,7 @@ class OpenAiClient
 
         return [
             'content' => $decoded,
-            'usage' => [
-                'prompt_tokens' => (int) $response->json('usage.prompt_tokens', 0),
-                'completion_tokens' => (int) $response->json('usage.completion_tokens', 0),
-                'total_tokens' => (int) $response->json('usage.total_tokens', 0),
-            ],
+            'usage' => $this->usageFrom($response),
         ];
     }
 
@@ -92,5 +66,51 @@ class OpenAiClient
         }
 
         return (string) $response->json('text');
+    }
+
+    protected function request(array $messages, ?array $responseFormat = null): Response
+    {
+        $apiKey = (string) config('services.openai.api_key');
+
+        if ($apiKey === '') {
+            throw ValidationException::withMessages([
+                'description' => ['OpenAI API key is not configured.'],
+            ]);
+        }
+
+        $payload = [
+            'model' => (string) config('services.openai.chat_model', 'gpt-4o-mini'),
+            'messages' => $messages,
+        ];
+
+        if ($responseFormat) {
+            $payload['response_format'] = $responseFormat;
+        }
+
+        $response = Http::withToken($apiKey)
+            ->timeout(60)
+            ->post('https://api.openai.com/v1/chat/completions', $payload);
+
+        if (! $response->successful()) {
+            Log::error('OpenAI chat completion request failed.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'description' => ['The AI service could not respond. Please try again.'],
+            ]);
+        }
+
+        return $response;
+    }
+
+    protected function usageFrom(Response $response): array
+    {
+        return [
+            'prompt_tokens' => (int) $response->json('usage.prompt_tokens', 0),
+            'completion_tokens' => (int) $response->json('usage.completion_tokens', 0),
+            'total_tokens' => (int) $response->json('usage.total_tokens', 0),
+        ];
     }
 }

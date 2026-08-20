@@ -22,7 +22,12 @@ class InvoiceService
             // lockForUpdate() serializes concurrent payment creations for the
             // same company so two requests can never compute the same "next"
             // number -- invoice numbers must never collide or be reused.
-            $lastNumber = Invoice::query()
+            // withTrashed() is required: the unique index on (company_id,
+            // invoice_number) is a plain DB constraint that doesn't exclude
+            // soft-deleted rows, so a deleted invoice still permanently
+            // occupies its number -- excluding trashed rows here would let
+            // max() "forget" that number and immediately collide with it.
+            $lastNumber = Invoice::withTrashed()
                 ->where('company_id', $companyId)
                 ->lockForUpdate()
                 ->max('invoice_number');

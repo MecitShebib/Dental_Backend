@@ -16,12 +16,11 @@ class AppointmentActionStateService
 
         $now = now();
         $start = $this->startDateTime($appointment);
-        $end = $start->copy()->addMinutes($appointment->duration_minutes);
 
-        if ($now->greaterThanOrEqualTo($end)) {
-            return 'locked';
-        }
-
+        // No upper time bound on purpose: a scheduled appointment stays
+        // check-in-able indefinitely once its window opens, even days later
+        // if nobody marked attendance/no-show at the time -- the front desk
+        // must still be able to correct a forgotten check-in retroactively.
         if ($now->greaterThanOrEqualTo($start->copy()->subHour())) {
             return 'checkin';
         }

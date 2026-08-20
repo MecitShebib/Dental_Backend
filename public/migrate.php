@@ -1,6 +1,7 @@
 <?php
 
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoDataSeeder;
 use Illuminate\Contracts\Console\Kernel;
 
 error_reporting(E_ALL);
@@ -46,6 +47,16 @@ migrateStep('Running database seeders (roles/permissions, treatment catalog, dem
     // and matches exactly what setup.php ran on the very first deploy.
     (new DatabaseSeeder)->run();
     echo 'Seeders finished.';
+});
+
+migrateStep('Running demo data seeder (one clinical record set per specialty)...', function () use ($app) {
+    // Temporary, explicit opt-in step -- there is no server console access on
+    // this host, so this is the only way to run DemoDataSeeder here. Needs
+    // container resolution (not `new DemoDataSeeder`) since its constructor
+    // takes several injected services. Idempotent -- safe if this step runs
+    // again on a future deploy before someone removes it.
+    $app->make(DemoDataSeeder::class)->run();
+    echo 'Demo data seeded.';
 });
 
 migrateStep('Clearing and rebuilding cache...', function () use ($kernel) {

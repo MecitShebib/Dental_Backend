@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Public REST API reference for Dentavaria — endpoints, request fields, response shapes, and how to authenticate.">
     <title>API Documentation — Dentavaria</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <script>
         (function () {
             var stored = localStorage.getItem('dentavaria-theme');

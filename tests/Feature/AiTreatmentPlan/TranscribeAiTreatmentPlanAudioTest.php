@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Subscription;
 use App\Models\User;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -19,6 +20,8 @@ class TranscribeAiTreatmentPlanAudioTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->seed(SpecialtySeeder::class);
 
         config(['services.openai.api_key' => 'test-key']);
     }

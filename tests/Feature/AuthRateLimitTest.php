@@ -21,19 +21,19 @@ class AuthRateLimitTest extends TestCase
         parent::setUp();
 
         config([
-            'services.turkeysms.enabled' => true,
-            'services.turkeysms.api_key' => 'test-api-key',
-            'services.turkeysms.base_url' => 'https://turkeysms.com.tr',
-            'services.turkeysms.title' => 'ELECMINDS',
-            'services.turkeysms.otp_digits' => 6,
+            'services.infobip.enabled' => true,
+            'services.infobip.api_key' => 'test-api-key',
+            'services.infobip.base_url' => 'https://api.infobip.com',
+            'services.infobip.sender' => 'Dentavaria',
+            'services.otp.digits' => 6,
         ]);
 
         Http::fake([
-            'https://turkeysms.com.tr/api/v3/gonder/add-content*' => Http::response([
-                'result' => true,
-                'sms_id' => '1000007721',
-                'result_code' => 'TS-1024',
-                'result_message' => 'The message was sent successfully',
+            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
+                'messages' => [[
+                    'messageId' => '1000007721',
+                    'status' => ['groupId' => 1, 'groupName' => 'PENDING'],
+                ]],
             ], 200),
         ]);
     }

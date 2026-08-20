@@ -243,6 +243,70 @@ class SalaryPaymentTest extends TestCase
         $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', 0);
     }
 
+    public function test_a_salary_payment_posts_a_matched_debit_and_credit_to_the_employees_cari_ledger(): void
+    {
+        $manager = $this->makeManager();
+        $doctor = User::factory()->create([
+            'company_id' => $manager->company_id,
+            'is_doctor' => true,
+            'monthly_salary' => 2000,
+            'commission_percentage' => 10,
+        ]);
+        Sanctum::actingAs($manager);
+
+        $this->makeVisitWithCharge($manager->company_id, $doctor->id, '2026-08-15', 1000);
+
+        $paymentId = $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $doctor->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()->json('data.id');
+
+        // Earned 2100 (2000 base + 100 commission), all of it paid out (no advances).
+        $this->getJson("/api/cari/transactions/summary?partyable_type=user&partyable_id={$doctor->id}")
+            ->assertJsonPath('data.0.currency', 'TRY')
+            ->assertJsonPath('data.0.debit', 2100)
+            ->assertJsonPath('data.0.credit', 2100)
+            ->assertJsonPath('data.0.status', 'settled');
+
+        $this->getJson("/api/cari/transactions?partyable_type=user&partyable_id={$doctor->id}")
+            ->assertJsonCount(2, 'data');
+
+        $this->deleteJson("/api/payroll/salary-payments/{$paymentId}")->assertOk();
+
+        $this->getJson("/api/cari/transactions?partyable_type=user&partyable_id={$doctor->id}")
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_a_salary_payment_with_advances_leaves_a_visible_cari_balance_only_when_unsettled(): void
+    {
+        $manager = $this->makeManager();
+        $employee = User::factory()->create(['company_id' => $manager->company_id, 'monthly_salary' => 500]);
+        Sanctum::actingAs($manager);
+
+        $this->postJson('/api/payroll/salary-advances', [
+            'user_id' => $employee->id,
+            'amount' => 700,
+            'advance_date' => '2026-08-05',
+        ])->assertCreated();
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated();
+
+        // Earned 500, but 700 was already advanced -- the employee still
+        // "owes" the clinic 200, so the ledger must not show settled.
+        $this->getJson("/api/cari/transactions/summary?partyable_type=user&partyable_id={$employee->id}")
+            ->assertJsonPath('data.0.debit', 500)
+            ->assertJsonPath('data.0.credit', 700)
+            ->assertJsonPath('data.0.balance', 200)
+            ->assertJsonPath('data.0.status', 'creditor');
+    }
+
     public function test_a_regular_user_cannot_delete_a_salary_payment(): void
     {
         $manager = $this->makeManager();
