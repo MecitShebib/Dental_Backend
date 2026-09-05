@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DicomStudy\StoreDicomStudyRequest;
+use App\Http\Requests\DicomStudy\UpdateDicomStudyRequest;
 use App\Http\Resources\DicomStudyResource;
 use App\Models\Client;
 use App\Models\DicomSeries;
@@ -115,6 +116,30 @@ class DicomStudyController extends Controller
                 \Illuminate\Support\Facades\File::deleteDirectory($extractDir);
             }
         }
+    }
+
+    public function update(UpdateDicomStudyRequest $request, DicomStudy $dicomStudy)
+    {
+        $data = $request->validated();
+
+        if (array_key_exists('client_id', $data)) {
+            $data['client_id'] = $this->resolveClientId($data['client_id']);
+        }
+
+        $dicomStudy->update($data);
+
+        return $this->success(DicomStudyResource::make($dicomStudy->fresh(['client', 'series'])), 'Study updated successfully.');
+    }
+
+    public function destroy(DicomStudy $dicomStudy)
+    {
+        foreach ($dicomStudy->series as $series) {
+            Storage::disk('local')->deleteDirectory($series->storage_path);
+        }
+
+        $dicomStudy->delete();
+
+        return $this->success(null, 'Study deleted successfully.');
     }
 
     /**
