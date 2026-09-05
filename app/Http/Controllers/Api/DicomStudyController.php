@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DicomStudy\StoreDicomStudyRequest;
+use App\Http\Resources\DicomStudyResource;
 use App\Models\Client;
 use App\Models\DicomSeries;
 use App\Models\DicomStudy;
 use App\Services\DicomTagReader;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
@@ -15,6 +17,23 @@ use ZipArchive;
 class DicomStudyController extends Controller
 {
     public function __construct(protected DicomTagReader $tagReader) {}
+
+    public function index(Request $request)
+    {
+        $studies = $request->user()->company->dicomStudies()
+            ->with(['client', 'series'])
+            ->when($request->query('client_id'), fn ($q, $clientId) => $q->where('client_id', $clientId))
+            ->when($request->boolean('unlinked'), fn ($q) => $q->whereNull('client_id'))
+            ->latest()
+            ->get();
+
+        return $this->success(DicomStudyResource::collection($studies));
+    }
+
+    public function show(DicomStudy $dicomStudy)
+    {
+        return $this->success(DicomStudyResource::make($dicomStudy->load(['client', 'series'])));
+    }
 
     public function store(StoreDicomStudyRequest $request)
     {
