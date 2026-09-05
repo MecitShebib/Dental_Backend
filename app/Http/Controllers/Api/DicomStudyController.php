@@ -18,85 +18,98 @@ class DicomStudyController extends Controller
 
     public function store(StoreDicomStudyRequest $request)
     {
-        $data = $request->validated();
-        $clientId = $this->resolveClientId($data['client_id'] ?? null);
+        $extractDir = null;
 
-        $dicomFilePaths = isset($data['archive'])
-            ? $this->extractZip($request->file('archive'))
-            : $this->saveLooseFiles($request->file('files'));
+        try {
+            $data = $request->validated();
+            $clientId = $this->resolveClientId($data['client_id'] ?? null);
 
-        $bySeriesUid = [];
-        foreach ($dicomFilePaths as $tempPath => $originalName) {
-            try {
-                $tags = $this->tagReader->read($tempPath);
-            } catch (\InvalidArgumentException) {
-                continue; // not a real DICOM file (e.g. a readme.txt inside a zip) -- skip it
+            if (isset($data['archive'])) {
+                $extractDir = storage_path('app/dicom-uploads/'.uniqid());
+                $dicomFilePaths = $this->extractZip($request->file('archive'), $extractDir);
+            } else {
+                $dicomFilePaths = $this->saveLooseFiles($request->file('files'));
             }
 
-            $seriesUid = $tags['series_uid'] ?? 'unknown-series';
-            $bySeriesUid[$seriesUid]['tags'] = $tags;
-            $bySeriesUid[$seriesUid]['files'][] = $tempPath;
-        }
+            $bySeriesUid = [];
+            foreach ($dicomFilePaths as $tempPath => $originalName) {
+                try {
+                    $tags = $this->tagReader->read($tempPath);
+                } catch (\InvalidArgumentException) {
+                    continue; // not a real DICOM file (e.g. a readme.txt inside a zip) -- skip it
+                }
 
-        if (empty($bySeriesUid)) {
-            throw ValidationException::withMessages([
-                'files' => ['No valid DICOM files were found in the upload.'],
-            ]);
-        }
-
-        $study = $request->user()->company->dicomStudies()->create([
-            'client_id' => $clientId,
-            'uploaded_by' => $request->user()->id,
-            'modality' => reset($bySeriesUid)['tags']['modality'] ?? null,
-            'study_date' => reset($bySeriesUid)['tags']['study_date'] ?? null,
-            'description' => reset($bySeriesUid)['tags']['study_description'] ?? null,
-            'slice_count' => array_sum(array_map(fn ($series) => count($series['files']), $bySeriesUid)),
-            'status' => 'ready',
-        ]);
-
-        foreach ($bySeriesUid as $seriesUid => $series) {
-            $storagePath = "dicom-studies/{$study->uuid}/{$seriesUid}";
-
-            foreach ($series['files'] as $index => $tempPath) {
-                // Private disk (KVKK): raw DICOM files carry the same class of
-                // sensitive health data as X-ray images and consent
-                // signatures, both of which already live on this disk rather
-                // than the public one -- see the 'local' disk comment in
-                // config/filesystems.php and the routes/api.php note above
-                // the xray-images.file/client-consents.signature/
-                // expenses.attachment signed-route group. A signed
-                // file-streaming route for series slices, mirroring
-                // XrayImageController::file(), is expected to land in a
-                // later task.
-                Storage::disk('local')->putFileAs($storagePath, $tempPath, "{$index}.dcm");
-                @unlink($tempPath);
+                $seriesUid = $tags['series_uid'] ?? 'unknown-series';
+                $bySeriesUid[$seriesUid]['tags'] = $tags;
+                $bySeriesUid[$seriesUid]['files'][] = $tempPath;
             }
 
-            $study->series()->create([
-                'series_uid' => $seriesUid,
-                'rows' => $series['tags']['rows'] ?? null,
-                'columns' => $series['tags']['columns'] ?? null,
-                'slice_count' => count($series['files']),
-                'pixel_spacing_x' => $series['tags']['pixel_spacing_x'] ?? null,
-                'pixel_spacing_y' => $series['tags']['pixel_spacing_y'] ?? null,
-                'slice_thickness' => $series['tags']['slice_thickness'] ?? null,
-                'orientation' => $series['tags']['orientation'] ?? null,
-                'storage_path' => $storagePath,
-            ]);
-        }
+            if (empty($bySeriesUid)) {
+                throw ValidationException::withMessages([
+                    'files' => ['No valid DICOM files were found in the upload.'],
+                ]);
+            }
 
-        return $this->success($study->load('series'), 'Study uploaded successfully.', 201);
+            $study = $request->user()->company->dicomStudies()->create([
+                'client_id' => $clientId,
+                'uploaded_by' => $request->user()->id,
+                'modality' => reset($bySeriesUid)['tags']['modality'] ?? null,
+                'study_date' => reset($bySeriesUid)['tags']['study_date'] ?? null,
+                'description' => reset($bySeriesUid)['tags']['study_description'] ?? null,
+                'slice_count' => array_sum(array_map(fn ($series) => count($series['files']), $bySeriesUid)),
+                'status' => 'ready',
+            ]);
+
+            foreach ($bySeriesUid as $seriesUid => $series) {
+                $storagePath = "dicom-studies/{$study->uuid}/{$seriesUid}";
+
+                foreach ($series['files'] as $index => $tempPath) {
+                    // Private disk (KVKK): raw DICOM files carry the same class of
+                    // sensitive health data as X-ray images and consent
+                    // signatures, both of which already live on this disk rather
+                    // than the public one -- see the 'local' disk comment in
+                    // config/filesystems.php and the routes/api.php note above
+                    // the xray-images.file/client-consents.signature/
+                    // expenses.attachment signed-route group. A signed
+                    // file-streaming route for series slices, mirroring
+                    // XrayImageController::file(), is expected to land in a
+                    // later task.
+                    Storage::disk('local')->putFileAs($storagePath, $tempPath, "{$index}.dcm");
+                }
+
+                $study->series()->create([
+                    'series_uid' => $seriesUid,
+                    'rows' => $series['tags']['rows'] ?? null,
+                    'columns' => $series['tags']['columns'] ?? null,
+                    'slice_count' => count($series['files']),
+                    'pixel_spacing_x' => $series['tags']['pixel_spacing_x'] ?? null,
+                    'pixel_spacing_y' => $series['tags']['pixel_spacing_y'] ?? null,
+                    'slice_thickness' => $series['tags']['slice_thickness'] ?? null,
+                    'orientation' => $series['tags']['orientation'] ?? null,
+                    'storage_path' => $storagePath,
+                ]);
+            }
+
+            return $this->success($study->load('series'), 'Study uploaded successfully.', 201);
+        } finally {
+            if ($extractDir !== null) {
+                \Illuminate\Support\Facades\File::deleteDirectory($extractDir);
+            }
+        }
     }
 
     /**
      * @return array<string, string> temp file path => original filename
      */
-    protected function extractZip($archiveFile): array
+    protected function extractZip($archiveFile, string $extractDir): array
     {
         $zip = new ZipArchive();
-        $zip->open($archiveFile->getRealPath());
+        if ($zip->open($archiveFile->getRealPath()) !== true) {
+            throw ValidationException::withMessages([
+                'archive' => ['Failed to read the zip file. Please verify it is not corrupted.'],
+            ]);
+        }
 
-        $extractDir = storage_path('app/dicom-uploads/'.uniqid());
         $zip->extractTo($extractDir);
         $zip->close();
 

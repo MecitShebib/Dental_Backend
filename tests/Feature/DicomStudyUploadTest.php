@@ -113,4 +113,40 @@ class DicomStudyUploadTest extends TestCase
         $response->assertCreated();
         $this->assertSame($client->id, DicomStudy::first()->client_id);
     }
+
+    public function test_uploading_a_corrupted_zip_returns_validation_error(): void
+    {
+        Sanctum::actingAs($this->activeDoctor());
+
+        $fakeZip = UploadedFile::fake()->createWithContent('corrupted.zip', 'this-is-not-a-real-zip-file');
+
+        $response = $this->postJson('/api/dicom-studies', ['archive' => $fakeZip]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('archive');
+    }
+
+    public function test_uploading_with_another_companys_client_id_is_rejected(): void
+    {
+        Sanctum::actingAs($this->activeDoctor());
+
+        // No ClientFactory exists in this codebase, so build the "other
+        // company" fixture explicitly -- same pattern XrayImageTest uses
+        // (Company::factory()->create() + Client::create()).
+        $otherCompany = \App\Models\Company::factory()->create();
+        $otherCompanyClient = \App\Models\Client::create([
+            'company_id' => $otherCompany->id,
+            'client_code' => 'CL-OTHER-1',
+            'name' => 'Other Company Patient',
+            'phone' => '+15550003333',
+            'gender' => 'female',
+            'status' => 'new',
+        ]);
+
+        $slice = UploadedFile::fake()->createWithContent('slice1.dcm', $this->buildDicomBytes('1.2.3.SERIES-D'));
+        $response = $this->postJson('/api/dicom-studies', ['files' => [$slice], 'client_id' => $otherCompanyClient->id]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('client_id');
+    }
 }
