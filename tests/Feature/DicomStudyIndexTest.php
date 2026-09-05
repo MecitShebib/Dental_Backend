@@ -83,4 +83,20 @@ class DicomStudyIndexTest extends TestCase
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
     }
+
+    public function test_show_returns_not_found_for_another_companys_study(): void
+    {
+        $otherCompany = Company::factory()->create();
+        $study = DicomStudy::create([
+            'company_id' => $otherCompany->id,
+            'uploaded_by' => User::factory()->create(['company_id' => $otherCompany->id])->id,
+            'status' => 'ready',
+        ]);
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        Sanctum::actingAs($doctor);
+
+        $response = $this->getJson("/api/dicom-studies/{$study->id}");
+
+        $response->assertNotFound();
+    }
 }
