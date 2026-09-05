@@ -83,6 +83,11 @@ class Company extends Model
         return $this->hasMany(XrayImage::class);
     }
 
+    public function dicomStudies(): HasMany
+    {
+        return $this->hasMany(DicomStudy::class);
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);

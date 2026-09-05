@@ -90,6 +90,11 @@ class Client extends Model
         return $this->hasMany(XrayImage::class);
     }
 
+    public function dicomStudies(): HasMany
+    {
+        return $this->hasMany(DicomStudy::class);
+    }
+
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
