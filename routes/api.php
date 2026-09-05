@@ -272,6 +272,8 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::put('xray-images/{xrayImage}', [XrayImageController::class, 'update']);
     Route::delete('xray-images/{xrayImage}', [XrayImageController::class, 'destroy']);
 
+    Route::get('dicom-studies', [DicomStudyController::class, 'index']);
+    Route::get('dicom-studies/{dicomStudy}', [DicomStudyController::class, 'show']);
     Route::post('dicom-studies', [DicomStudyController::class, 'store']);
 });
 
