@@ -90,4 +90,17 @@ class DicomTagReaderTest extends TestCase
         (new DicomTagReader())->read($path);
         unlink($path);
     }
+
+    public function test_rejects_a_file_truncated_mid_element_value(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'dicom_test_');
+        $bytes = $this->buildFixture();
+        // Cut off the last 20 bytes so the final element's declared length
+        // promises more value bytes than are actually present.
+        file_put_contents($path, substr($bytes, 0, -20));
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new DicomTagReader())->read($path);
+        unlink($path);
+    }
 }

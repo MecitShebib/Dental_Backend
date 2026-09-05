@@ -127,7 +127,11 @@ class DicomTagReader
 
         $value = fread($handle, $length);
 
-        return [$tag, $value === false ? '' : $value];
+        if ($value === false || strlen($value) !== $length) {
+            throw new \InvalidArgumentException('Truncated DICOM file: expected '.$length.' bytes for tag '.$tag.'.');
+        }
+
+        return [$tag, $value];
     }
 
     private function trimmed(?string $value): ?string
