@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\ConsentTemplateController;
 use App\Http\Controllers\Api\CosmeticCarePlanController;
 use App\Http\Controllers\Api\CrmSettingsController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DicomStudyController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
 use App\Http\Controllers\Api\DoctorScheduleController;
 use App\Http\Controllers\Api\EmployeeSalaryController;
@@ -270,6 +271,8 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('xray-images', [XrayImageController::class, 'store']);
     Route::put('xray-images/{xrayImage}', [XrayImageController::class, 'update']);
     Route::delete('xray-images/{xrayImage}', [XrayImageController::class, 'destroy']);
+
+    Route::post('dicom-studies', [DicomStudyController::class, 'store']);
 });
 
 require __DIR__.'/api/gynecology.php';
