@@ -137,7 +137,7 @@ class DicomStudyController extends Controller
             Storage::disk('local')->deleteDirectory($series->storage_path);
         }
 
-        $dicomStudy->delete();
+        $dicomStudy->forceDelete();
 
         return $this->success(null, 'Study deleted successfully.');
     }

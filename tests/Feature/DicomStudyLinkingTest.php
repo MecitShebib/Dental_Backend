@@ -83,4 +83,51 @@ class DicomStudyLinkingTest extends TestCase
         $response->assertOk();
         Storage::disk('local')->assertMissing("dicom-studies/{$study->uuid}/1.2.3/0.dcm");
     }
+
+    public function test_a_study_can_be_unlinked_from_a_client(): void
+    {
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        $client = Client::create([
+            'company_id' => $doctor->company_id,
+            'client_code' => 'CL-4003',
+            'name' => 'Initially Linked',
+            'phone' => '+15550006666',
+            'gender' => 'male',
+            'status' => 'new',
+        ]);
+        $study = DicomStudy::create([
+            'company_id' => $doctor->company_id,
+            'client_id' => $client->id,
+            'uploaded_by' => $doctor->id,
+            'status' => 'ready',
+        ]);
+        Sanctum::actingAs($doctor);
+
+        $response = $this->putJson("/api/dicom-studies/{$study->id}", ['client_id' => null]);
+
+        $response->assertOk();
+        $this->assertNull($study->fresh()->client_id);
+    }
+
+    public function test_deleting_a_study_also_removes_its_series_rows(): void
+    {
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        $study = DicomStudy::create([
+            'company_id' => $doctor->company_id,
+            'uploaded_by' => $doctor->id,
+            'status' => 'ready',
+        ]);
+        $series = $study->series()->create([
+            'series_uid' => '1.2.3',
+            'slice_count' => 1,
+            'storage_path' => "dicom-studies/{$study->uuid}/1.2.3",
+        ]);
+        Sanctum::actingAs($doctor);
+
+        $response = $this->deleteJson("/api/dicom-studies/{$study->id}");
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('dicom_series', ['id' => $series->id]);
+        $this->assertDatabaseMissing('dicom_studies', ['id' => $study->id]);
+    }
 }
