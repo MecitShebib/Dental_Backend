@@ -275,6 +275,8 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::get('dicom-studies', [DicomStudyController::class, 'index']);
     Route::get('dicom-studies/{dicomStudy}', [DicomStudyController::class, 'show']);
     Route::post('dicom-studies', [DicomStudyController::class, 'store']);
+    Route::put('dicom-studies/{dicomStudy}', [DicomStudyController::class, 'update']);
+    Route::delete('dicom-studies/{dicomStudy}', [DicomStudyController::class, 'destroy']);
 });
 
 require __DIR__.'/api/gynecology.php';
