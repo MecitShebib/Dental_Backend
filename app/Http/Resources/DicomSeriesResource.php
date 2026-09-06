@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
 
 class DicomSeriesResource extends JsonResource
 {
@@ -21,6 +22,17 @@ class DicomSeriesResource extends JsonResource
             'slice_thickness' => $this->slice_thickness,
             'orientation' => $this->orientation,
             'storage_path' => $this->storage_path,
+            // Signed rather than a plain Storage URL -- slice files live on
+            // the private disk (KVKK: no unauthenticated access to patient
+            // scans). One URL per slice, matching XrayImageResource's
+            // image_url pattern.
+            'image_urls' => collect(range(0, max(0, (int) $this->slice_count - 1)))
+                ->map(fn ($index) => URL::temporarySignedRoute(
+                    'dicom-series.file',
+                    now()->addMinutes(60),
+                    ['dicomSeries' => $this->id, 'index' => $index]
+                ))
+                ->all(),
         ];
     }
 }

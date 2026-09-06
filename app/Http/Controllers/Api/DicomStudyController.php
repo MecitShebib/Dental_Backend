@@ -143,6 +143,19 @@ class DicomStudyController extends Controller
     }
 
     /**
+     * Streams one slice file for the Cornerstone3D viewer. No auth:sanctum
+     * on this route (a wadouri: image loader's XHR can't carry a bearer
+     * token) -- access control is the `signed` middleware alone, matching
+     * XrayImageController::file(); the signed URL is only ever minted by
+     * DicomSeriesResource for an already-authenticated, tenant-scoped
+     * request.
+     */
+    public function seriesFile(DicomSeries $dicomSeries, int $index)
+    {
+        return Storage::disk('local')->response("{$dicomSeries->storage_path}/{$index}.dcm");
+    }
+
+    /**
      * @return array<string, string> temp file path => original filename
      */
     protected function extractZip($archiveFile, string $extractDir): array
