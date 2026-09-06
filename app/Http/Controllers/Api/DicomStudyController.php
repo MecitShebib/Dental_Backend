@@ -11,6 +11,7 @@ use App\Models\DicomSeries;
 use App\Models\DicomStudy;
 use App\Services\DicomTagReader;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
@@ -113,7 +114,7 @@ class DicomStudyController extends Controller
             return $this->success($study->load('series'), 'Study uploaded successfully.', 201);
         } finally {
             if ($extractDir !== null) {
-                \Illuminate\Support\Facades\File::deleteDirectory($extractDir);
+                File::deleteDirectory($extractDir);
             }
         }
     }
@@ -160,7 +161,7 @@ class DicomStudyController extends Controller
      */
     protected function extractZip($archiveFile, string $extractDir): array
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($archiveFile->getRealPath()) !== true) {
             throw ValidationException::withMessages([
                 'archive' => ['Failed to read the zip file. Please verify it is not corrupted.'],

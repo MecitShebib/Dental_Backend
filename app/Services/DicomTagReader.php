@@ -18,14 +18,23 @@ namespace App\Services;
 class DicomTagReader
 {
     private const TAG_SERIES_INSTANCE_UID = '0020000E';
+
     private const TAG_MODALITY = '00080060';
+
     private const TAG_STUDY_DATE = '00080020';
+
     private const TAG_STUDY_DESCRIPTION = '00081030';
+
     private const TAG_ROWS = '00280010';
+
     private const TAG_COLUMNS = '00280011';
+
     private const TAG_PIXEL_SPACING = '00280030';
+
     private const TAG_SLICE_THICKNESS = '00180050';
+
     private const TAG_IMAGE_ORIENTATION_PATIENT = '00200037';
+
     private const TAG_PIXEL_DATA = '7FE00010';
 
     private const LONG_LENGTH_VRS = ['OB', 'OW', 'OF', 'SQ', 'UT', 'UN'];
