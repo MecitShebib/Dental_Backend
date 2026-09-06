@@ -85,6 +85,11 @@ class Client extends Model
         return $this->hasMany(PatientLabResult::class);
     }
 
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class);
+    }
+
     public function xrayImages(): HasMany
     {
         return $this->hasMany(XrayImage::class);
