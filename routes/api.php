@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\MessageTemplateController;
 use App\Http\Controllers\Api\PatientLabResultController;
 use App\Http\Controllers\Api\PatientRecallController;
 use App\Http\Controllers\Api\PrenatalCarePlanController;
+use App\Http\Controllers\Api\PrescriptionController;
 use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\RehabCarePlanController;
 use App\Http\Controllers\Api\ReportController;
@@ -197,6 +198,11 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('clients/{client}/lab-results', [PatientLabResultController::class, 'store']);
     Route::put('lab-results/{labResult}', [PatientLabResultController::class, 'update']);
     Route::delete('lab-results/{labResult}', [PatientLabResultController::class, 'destroy']);
+
+    Route::get('clients/{client}/prescriptions', [PrescriptionController::class, 'index']);
+    Route::post('clients/{client}/prescriptions', [PrescriptionController::class, 'store']);
+    Route::put('prescriptions/{prescription}', [PrescriptionController::class, 'update']);
+    Route::delete('prescriptions/{prescription}', [PrescriptionController::class, 'destroy']);
 
     Route::get('cari/parties', [CariPartyController::class, 'index']);
     Route::post('cari/parties', [CariPartyController::class, 'store']);
