@@ -51,7 +51,7 @@ class DicomTagReaderTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'dicom_test_');
         file_put_contents($path, $this->buildFixture());
 
-        $tags = (new DicomTagReader())->read($path);
+        $tags = (new DicomTagReader)->read($path);
         unlink($path);
 
         $this->assertSame('1.2.3.4.5.6', $tags['series_uid']);
@@ -74,7 +74,7 @@ class DicomTagReaderTest extends TestCase
         // files don't crash the reader.
         file_put_contents($path, str_repeat("\0", 128).'DICM');
 
-        $tags = (new DicomTagReader())->read($path);
+        $tags = (new DicomTagReader)->read($path);
         unlink($path);
 
         $this->assertNull($tags['series_uid']);
@@ -87,7 +87,7 @@ class DicomTagReaderTest extends TestCase
         file_put_contents($path, str_repeat('x', 200));
 
         $this->expectException(\InvalidArgumentException::class);
-        (new DicomTagReader())->read($path);
+        (new DicomTagReader)->read($path);
         unlink($path);
     }
 
@@ -100,7 +100,64 @@ class DicomTagReaderTest extends TestCase
         file_put_contents($path, substr($bytes, 0, -20));
 
         $this->expectException(\InvalidArgumentException::class);
-        (new DicomTagReader())->read($path);
+        (new DicomTagReader)->read($path);
         unlink($path);
+    }
+
+    /**
+     * Reproduces a real crash found against an actual vendor CBCT export
+     * (an "Enhanced CT Image Storage" multi-frame file): a Nested Functional
+     * Groups Sequence with undefined length (0xFFFFFFFF), whose Item/Item
+     * Delimitation/Sequence Delimitation pseudo-elements have no VR field at
+     * all -- unlike every other DICOM element. Before the fix, the reader
+     * misread an Item marker's own bytes as a VR/length pair and corrupted
+     * every read after it. This proves the reader correctly walks past the
+     * whole sequence and keeps reading the tags that follow it.
+     */
+    public function test_skips_an_undefined_length_sequence_and_keeps_reading_tags_after_it(): void
+    {
+        $pad = fn (string $value) => strlen($value) % 2 === 0 ? $value : $value."\0";
+
+        $writeElement = function (string $tag, string $vr, string $value) use ($pad) {
+            $group = hexdec(substr($tag, 0, 4));
+            $element = hexdec(substr($tag, 4, 4));
+            $value = $pad($value);
+            $bytes = pack('vv', $group, $element).$vr;
+            $bytes .= in_array($vr, ['OB', 'OW'], true)
+                ? "\0\0".pack('V', strlen($value))
+                : pack('v', strlen($value));
+
+            return $bytes.$value;
+        };
+
+        // Item/Item-Delimitation/Sequence-Delimitation pseudo-elements: just
+        // group(2)+element(2)+length(4), no VR field.
+        $writeItemMarker = fn (string $tag, int $length) => pack('vv', hexdec(substr($tag, 0, 4)), hexdec(substr($tag, 4, 4))).pack('V', $length);
+
+        $elements = '';
+        $elements .= $writeElement('00020010', 'UI', '1.2.840.10008.1.2.1');
+        $elements .= $writeElement('0020000E', 'UI', '1.2.3.SEQTEST');
+
+        // An undefined-length SQ containing one undefined-length Item, which
+        // itself contains one ordinary element, closed by an Item
+        // Delimitation and then the Sequence Delimitation.
+        $elements .= pack('vv', 0x0020, 0x9221).'SQ'."\0\0".pack('V', 0xFFFFFFFF);
+        $elements .= $writeItemMarker('FFFEE000', 0xFFFFFFFF);
+        $elements .= $writeElement('00080064', 'CS', 'WSD');
+        $elements .= $writeItemMarker('FFFEE00D', 0);
+        $elements .= $writeItemMarker('FFFEE0DD', 0);
+
+        // Must still be read correctly after the sequence.
+        $elements .= $writeElement('00080060', 'CS', 'CT');
+        $elements .= $writeElement('7FE00010', 'OB', "\0\0\0\0");
+
+        $path = tempnam(sys_get_temp_dir(), 'dicom_test_');
+        file_put_contents($path, str_repeat("\0", 128).'DICM'.$elements);
+
+        $tags = (new DicomTagReader)->read($path);
+        unlink($path);
+
+        $this->assertSame('1.2.3.SEQTEST', $tags['series_uid']);
+        $this->assertSame('CT', $tags['modality']);
     }
 }

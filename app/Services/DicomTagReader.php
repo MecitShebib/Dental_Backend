@@ -14,6 +14,16 @@ namespace App\Services;
  * using Implicit VR Little Endian for its main dataset, extend readElement()
  * to branch on the Transfer Syntax UID read from tag 00020010 -- deliberately
  * not built until a real file proves it's needed (YAGNI).
+ *
+ * Real-world multi-frame exports (e.g. "Enhanced CT Image Storage") commonly
+ * carry undefined-length Sequence (SQ) elements -- the length field is
+ * 0xFFFFFFFF and the actual content is a stream of Item (FFFE,E000) /
+ * Item Delimitation (FFFE,E00D) / Sequence Delimitation (FFFE,E0DD)
+ * pseudo-elements, which uniquely have NO VR field of their own. Confirmed
+ * against a real vendor export during Milestone 1 testing -- without this,
+ * the reader misreads the Item marker's own bytes as a VR/length and
+ * corrupts every read after it, eventually trying to fread() a garbage
+ * multi-gigabyte length and crashing the request.
  */
 class DicomTagReader
 {
@@ -37,7 +47,25 @@ class DicomTagReader
 
     private const TAG_PIXEL_DATA = '7FE00010';
 
-    private const LONG_LENGTH_VRS = ['OB', 'OW', 'OF', 'SQ', 'UT', 'UN'];
+    /** Tags this reader actually returns -- every other element's value is
+     * skipped (seeked past) rather than read into memory, since a real
+     * export can carry many-megabyte private/icon/overlay elements before
+     * PixelData that this reader has no use for. */
+    private const WANTED_TAGS = [
+        self::TAG_SERIES_INSTANCE_UID,
+        self::TAG_MODALITY,
+        self::TAG_STUDY_DATE,
+        self::TAG_STUDY_DESCRIPTION,
+        self::TAG_ROWS,
+        self::TAG_COLUMNS,
+        self::TAG_PIXEL_SPACING,
+        self::TAG_SLICE_THICKNESS,
+        self::TAG_IMAGE_ORIENTATION_PATIENT,
+    ];
+
+    private const LONG_LENGTH_VRS = ['OB', 'OW', 'OF', 'OL', 'OD', 'OV', 'SQ', 'UC', 'UR', 'UT', 'UN'];
+
+    private const ITEM_GROUP = 0xFFFE;
 
     public function read(string $path): array
     {
@@ -72,7 +100,9 @@ class DicomTagReader
             }
 
             [$tag, $value] = $element;
-            $tags[$tag] = $value;
+            if ($value !== null) {
+                $tags[$tag] = $value;
+            }
 
             if ($tag === self::TAG_PIXEL_DATA) {
                 break;
@@ -97,6 +127,8 @@ class DicomTagReader
 
     /**
      * @param  resource  $handle
+     * @return array{0: string, 1: ?string}|null tag => value, value null
+     *                                           means "skipped, not needed"
      */
     private function readElement($handle): ?array
     {
@@ -109,6 +141,25 @@ class DicomTagReader
         $group = unpack('v', $groupBytes)[1];
         $element = unpack('v', $elementBytes)[1];
         $tag = strtoupper(sprintf('%04x%04x', $group, $element));
+
+        // Item / Item Delimitation / Sequence Delimitation pseudo-elements
+        // (group FFFE) are the one DICOM exception with no VR field at all
+        // -- just a plain 4-byte length. A defined length here is skippable
+        // raw bytes; undefined/zero length means "keep reading the next
+        // element as normal" (the loop naturally walks into -- and back out
+        // of -- nested sequence content this way, no recursion needed).
+        if ($group === self::ITEM_GROUP) {
+            $lengthBytes = fread($handle, 4);
+            if (strlen($lengthBytes) < 4) {
+                return null;
+            }
+            $length = unpack('V', $lengthBytes)[1];
+            if ($length !== 0 && $length !== 0xFFFFFFFF) {
+                fseek($handle, $length, SEEK_CUR);
+            }
+
+            return [$tag, null];
+        }
 
         $vr = fread($handle, 2);
         if (strlen($vr) < 2) {
@@ -130,8 +181,28 @@ class DicomTagReader
             $length = unpack('v', $lengthBytes)[1];
         }
 
-        if ($length === 0 || $length === 0xFFFFFFFF) {
+        if ($length === 0) {
             return [$tag, ''];
+        }
+
+        // Undefined-length SQ (or, rarely, undefined-length OB/OW pixel
+        // data using encapsulated fragments): its content is itself a
+        // stream of ordinary elements/Items, correctly walked by simply
+        // continuing the normal read loop -- it self-terminates at its own
+        // Sequence Delimitation Item, handled above.
+        if ($length === 0xFFFFFFFF) {
+            return [$tag, null];
+        }
+
+        // Only fully read (into memory) the handful of small metadata
+        // values this reader actually returns. Everything else -- private
+        // tags, icon images, and PixelData itself (which can be hundreds of
+        // megabytes) -- is skipped via fseek rather than fread, so a real
+        // multi-hundred-MB scan never gets read into a PHP string.
+        if (! in_array($tag, self::WANTED_TAGS, true)) {
+            fseek($handle, $length, SEEK_CUR);
+
+            return [$tag, null];
         }
 
         $value = fread($handle, $length);
