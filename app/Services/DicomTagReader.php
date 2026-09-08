@@ -47,6 +47,24 @@ class DicomTagReader
 
     private const TAG_PIXEL_DATA = '7FE00010';
 
+    private const TAG_TRANSFER_SYNTAX_UID = '00020010';
+
+    private const TAG_SOP_CLASS_UID = '00080016';
+
+    private const TAG_NUMBER_OF_FRAMES = '00280008';
+
+    private const TAG_SAMPLES_PER_PIXEL = '00280002';
+
+    private const TAG_PHOTOMETRIC_INTERPRETATION = '00280004';
+
+    private const TAG_BITS_ALLOCATED = '00280100';
+
+    private const TAG_BITS_STORED = '00280101';
+
+    private const TAG_HIGH_BIT = '00280102';
+
+    private const TAG_PIXEL_REPRESENTATION = '00280103';
+
     /** Tags this reader actually returns -- every other element's value is
      * skipped (seeked past) rather than read into memory, since a real
      * export can carry many-megabyte private/icon/overlay elements before
@@ -61,6 +79,15 @@ class DicomTagReader
         self::TAG_PIXEL_SPACING,
         self::TAG_SLICE_THICKNESS,
         self::TAG_IMAGE_ORIENTATION_PATIENT,
+        self::TAG_TRANSFER_SYNTAX_UID,
+        self::TAG_SOP_CLASS_UID,
+        self::TAG_NUMBER_OF_FRAMES,
+        self::TAG_SAMPLES_PER_PIXEL,
+        self::TAG_PHOTOMETRIC_INTERPRETATION,
+        self::TAG_BITS_ALLOCATED,
+        self::TAG_BITS_STORED,
+        self::TAG_HIGH_BIT,
+        self::TAG_PIXEL_REPRESENTATION,
     ];
 
     private const LONG_LENGTH_VRS = ['OB', 'OW', 'OF', 'OL', 'OD', 'OV', 'SQ', 'UC', 'UR', 'UT', 'UN'];
@@ -92,9 +119,10 @@ class DicomTagReader
         }
 
         $tags = [];
+        $pixelDataInfo = null;
 
         while (! feof($handle)) {
-            $element = $this->readElement($handle);
+            $element = $this->readElement($handle, $pixelDataInfo);
             if ($element === null) {
                 break;
             }
@@ -110,6 +138,7 @@ class DicomTagReader
         }
 
         $pixelSpacing = $this->splitBackslash($tags[self::TAG_PIXEL_SPACING] ?? null);
+        $numberOfFrames = isset($tags[self::TAG_NUMBER_OF_FRAMES]) ? (int) trim($tags[self::TAG_NUMBER_OF_FRAMES]) : 1;
 
         return [
             'series_uid' => $this->trimmed($tags[self::TAG_SERIES_INSTANCE_UID] ?? null),
@@ -122,15 +151,33 @@ class DicomTagReader
             'pixel_spacing_y' => isset($pixelSpacing[1]) ? (float) $pixelSpacing[1] : null,
             'slice_thickness' => isset($tags[self::TAG_SLICE_THICKNESS]) ? (float) trim($tags[self::TAG_SLICE_THICKNESS]) : null,
             'orientation' => $this->trimmed($tags[self::TAG_IMAGE_ORIENTATION_PATIENT] ?? null),
+            'transfer_syntax_uid' => $this->trimmed($tags[self::TAG_TRANSFER_SYNTAX_UID] ?? null),
+            'sop_class_uid' => $this->trimmed($tags[self::TAG_SOP_CLASS_UID] ?? null),
+            'frame_count' => max(1, $numberOfFrames),
+            'samples_per_pixel' => isset($tags[self::TAG_SAMPLES_PER_PIXEL]) ? unpack('v', $tags[self::TAG_SAMPLES_PER_PIXEL])[1] : 1,
+            'photometric_interpretation' => $this->trimmed($tags[self::TAG_PHOTOMETRIC_INTERPRETATION] ?? null) ?? 'MONOCHROME2',
+            'bits_allocated' => isset($tags[self::TAG_BITS_ALLOCATED]) ? unpack('v', $tags[self::TAG_BITS_ALLOCATED])[1] : 16,
+            'bits_stored' => isset($tags[self::TAG_BITS_STORED]) ? unpack('v', $tags[self::TAG_BITS_STORED])[1] : null,
+            'high_bit' => isset($tags[self::TAG_HIGH_BIT]) ? unpack('v', $tags[self::TAG_HIGH_BIT])[1] : null,
+            'pixel_representation' => isset($tags[self::TAG_PIXEL_REPRESENTATION]) ? unpack('v', $tags[self::TAG_PIXEL_REPRESENTATION])[1] : 0,
+            // Whether PixelData has a fixed byte length (native/uncompressed
+            // pixel data -- frame N sits at a computable fixed offset) or an
+            // undefined length (0xFFFFFFFF, always means encapsulated/
+            // compressed fragments -- no fixed per-frame offset without
+            // parsing the Basic Offset Table, which this reader doesn't do).
+            'pixel_data_offset' => $pixelDataInfo['offset'] ?? null,
+            'pixel_data_length' => $pixelDataInfo['length'] ?? null,
         ];
     }
 
     /**
      * @param  resource  $handle
+     * @param  array{offset: int, length: ?int}|null  $pixelDataInfo  set by
+     *                                                                reference when the PixelData tag is reached
      * @return array{0: string, 1: ?string}|null tag => value, value null
      *                                           means "skipped, not needed"
      */
-    private function readElement($handle): ?array
+    private function readElement($handle, ?array &$pixelDataInfo = null): ?array
     {
         $groupBytes = fread($handle, 2);
         $elementBytes = fread($handle, 2);
@@ -179,6 +226,18 @@ class DicomTagReader
                 return null;
             }
             $length = unpack('v', $lengthBytes)[1];
+        }
+
+        // Capture where PixelData's actual bytes start (and how long they
+        // are, when that's fixed) before anything below seeks past them --
+        // this is the only information seriesFrame() needs to compute a
+        // single frame's byte range later, without re-parsing the whole
+        // file at request time.
+        if ($tag === self::TAG_PIXEL_DATA) {
+            $pixelDataInfo = [
+                'offset' => ftell($handle),
+                'length' => $length === 0xFFFFFFFF ? null : $length,
+            ];
         }
 
         if ($length === 0) {

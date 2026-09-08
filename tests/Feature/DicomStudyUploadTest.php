@@ -44,6 +44,39 @@ class DicomStudyUploadTest extends TestCase
         return str_repeat("\0", 128).'DICM'.$elements;
     }
 
+    private function buildMultiFrameDicomBytes(string $seriesUid, int $frameCount, int $rows = 16, int $columns = 16): string
+    {
+        $pad = fn (string $value) => strlen($value) % 2 === 0 ? $value : $value."\0";
+        $writeElement = function (string $tag, string $vr, string $value) use ($pad) {
+            $group = hexdec(substr($tag, 0, 4));
+            $element = hexdec(substr($tag, 4, 4));
+            $value = $pad($value);
+            $bytes = pack('vv', $group, $element).$vr;
+            $bytes .= in_array($vr, ['OB', 'OW'], true)
+                ? "\0\0".pack('V', strlen($value))
+                : pack('v', strlen($value));
+
+            return $bytes.$value;
+        };
+
+        $elements = '';
+        $elements .= $writeElement('00020010', 'UI', '1.2.840.10008.1.2.1');
+        $elements .= $writeElement('0020000E', 'UI', $seriesUid);
+        $elements .= $writeElement('00080060', 'CS', 'CT');
+        $elements .= $writeElement('00280008', 'IS', (string) $frameCount);
+        $elements .= $writeElement('00280002', 'US', pack('v', 1));
+        $elements .= $writeElement('00280004', 'CS', 'MONOCHROME2');
+        $elements .= $writeElement('00280010', 'US', pack('v', $rows));
+        $elements .= $writeElement('00280011', 'US', pack('v', $columns));
+        $elements .= $writeElement('00280100', 'US', pack('v', 16));
+        $elements .= $writeElement('00280101', 'US', pack('v', 16));
+        $elements .= $writeElement('00280102', 'US', pack('v', 15));
+        $elements .= $writeElement('00280103', 'US', pack('v', 0));
+        $elements .= $writeElement('7FE00010', 'OW', str_repeat("\0\0", $rows * $columns * $frameCount));
+
+        return str_repeat("\0", 128).'DICM'.$elements;
+    }
+
     private function activeDoctor(): User
     {
         $doctor = User::factory()->create(['is_doctor' => true]);
@@ -124,6 +157,49 @@ class DicomStudyUploadTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('archive');
+    }
+
+    public function test_uploading_a_single_multiframe_file_marks_the_series_frame_extractable(): void
+    {
+        Sanctum::actingAs($this->activeDoctor());
+
+        $file = UploadedFile::fake()->createWithContent(
+            'scan.dcm',
+            $this->buildMultiFrameDicomBytes('1.2.3.MULTIFRAME', frameCount: 40)
+        );
+
+        $response = $this->post('/api/dicom-studies', ['files' => [$file]]);
+
+        $response->assertCreated();
+        // slice_count stays 1 (one uploaded file) -- frame_count is the new,
+        // separate field the viewer actually cares about for a multi-frame
+        // upload like a real CBCT export.
+        $this->assertDatabaseHas('dicom_series', [
+            'series_uid' => '1.2.3.MULTIFRAME',
+            'slice_count' => 1,
+            'frame_count' => 40,
+            'is_frame_extractable' => true,
+        ]);
+    }
+
+    public function test_uploading_two_loose_files_in_one_series_is_not_frame_extractable(): void
+    {
+        Sanctum::actingAs($this->activeDoctor());
+
+        // Two genuinely separate single-frame files in the same series --
+        // the per-file whole-file streaming path, not per-frame extraction,
+        // even though each file could theoretically claim NumberOfFrames=1.
+        $slice1 = UploadedFile::fake()->createWithContent('slice1.dcm', $this->buildDicomBytes('1.2.3.SERIES-E'));
+        $slice2 = UploadedFile::fake()->createWithContent('slice2.dcm', $this->buildDicomBytes('1.2.3.SERIES-E'));
+
+        $response = $this->post('/api/dicom-studies', ['files' => [$slice1, $slice2]]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('dicom_series', [
+            'series_uid' => '1.2.3.SERIES-E',
+            'slice_count' => 2,
+            'is_frame_extractable' => false,
+        ]);
     }
 
     public function test_uploading_with_another_companys_client_id_is_rejected(): void

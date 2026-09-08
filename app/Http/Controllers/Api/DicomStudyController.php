@@ -9,6 +9,7 @@ use App\Http\Resources\DicomStudyResource;
 use App\Models\Client;
 use App\Models\DicomSeries;
 use App\Models\DicomStudy;
+use App\Services\DicomFrameExtractor;
 use App\Services\DicomTagReader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -19,7 +20,10 @@ use ZipArchive;
 
 class DicomStudyController extends Controller
 {
-    public function __construct(protected DicomTagReader $tagReader) {}
+    public function __construct(
+        protected DicomTagReader $tagReader,
+        protected DicomFrameExtractor $frameExtractor,
+    ) {}
 
     public function index(Request $request)
     {
@@ -99,15 +103,39 @@ class DicomStudyController extends Controller
                     Storage::disk('local')->putFileAs($storagePath, $tempPath, "{$index}.dcm");
                 }
 
+                $tags = $series['tags'];
+
+                // A real CBCT/CT export is almost always uploaded as ONE
+                // file holding hundreds of frames, not one file per slice --
+                // only that single-file case can use fixed byte-offset math
+                // to serve one frame at a time (see DicomFrameExtractor);
+                // compressed/encapsulated PixelData (pixel_data_length ===
+                // null) has no fixed per-frame offset without parsing the
+                // Basic Offset Table, which this reader doesn't do.
+                $isFrameExtractable = count($series['files']) === 1
+                    && ($tags['frame_count'] ?? 1) > 1
+                    && ($tags['pixel_data_length'] ?? null) !== null;
+
                 $study->series()->create([
                     'series_uid' => $seriesUid,
-                    'rows' => $series['tags']['rows'] ?? null,
-                    'columns' => $series['tags']['columns'] ?? null,
+                    'rows' => $tags['rows'] ?? null,
+                    'columns' => $tags['columns'] ?? null,
                     'slice_count' => count($series['files']),
-                    'pixel_spacing_x' => $series['tags']['pixel_spacing_x'] ?? null,
-                    'pixel_spacing_y' => $series['tags']['pixel_spacing_y'] ?? null,
-                    'slice_thickness' => $series['tags']['slice_thickness'] ?? null,
-                    'orientation' => $series['tags']['orientation'] ?? null,
+                    'frame_count' => $tags['frame_count'] ?? 1,
+                    'bits_allocated' => $tags['bits_allocated'] ?? null,
+                    'bits_stored' => $tags['bits_stored'] ?? null,
+                    'high_bit' => $tags['high_bit'] ?? null,
+                    'pixel_representation' => $tags['pixel_representation'] ?? null,
+                    'samples_per_pixel' => $tags['samples_per_pixel'] ?? null,
+                    'photometric_interpretation' => $tags['photometric_interpretation'] ?? null,
+                    'sop_class_uid' => $tags['sop_class_uid'] ?? null,
+                    'transfer_syntax_uid' => $tags['transfer_syntax_uid'] ?? null,
+                    'pixel_data_offset' => $tags['pixel_data_offset'] ?? null,
+                    'is_frame_extractable' => $isFrameExtractable,
+                    'pixel_spacing_x' => $tags['pixel_spacing_x'] ?? null,
+                    'pixel_spacing_y' => $tags['pixel_spacing_y'] ?? null,
+                    'slice_thickness' => $tags['slice_thickness'] ?? null,
+                    'orientation' => $tags['orientation'] ?? null,
                     'storage_path' => $storagePath,
                 ]);
             }
@@ -205,6 +233,42 @@ class DicomStudyController extends Controller
             // LiteSpeed hosts) not to buffer this response either -- the
             // one piece of the puzzle the flush() calls above can't reach.
             'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    /**
+     * Streams ONE frame of a multi-frame series' file, built on the fly as
+     * its own small, standalone DICOM file (see DicomFrameExtractor) --
+     * instead of the viewer downloading the whole multi-hundred-MB export
+     * just to decode a single frame from it. Same signed-URL access control
+     * as seriesFile() above.
+     */
+    public function seriesFrame(DicomSeries $dicomSeries, int $frame)
+    {
+        if (! $dicomSeries->is_frame_extractable) {
+            abort(404, 'This scan does not support per-frame streaming.');
+        }
+
+        if ($frame < 0 || $frame >= $dicomSeries->frame_count) {
+            abort(404, 'This frame is out of range for this scan.');
+        }
+
+        try {
+            $bytes = $this->frameExtractor->extractFrame($dicomSeries, $frame);
+        } catch (\Throwable $e) {
+            Log::error('DICOM frame extraction failed', [
+                'dicom_series_id' => $dicomSeries->id,
+                'frame' => $frame,
+                'error' => $e->getMessage(),
+            ]);
+
+            abort(500, 'Failed to extract this frame.');
+        }
+
+        return response($bytes, 200, [
+            'Content-Type' => 'application/dicom',
+            'Content-Length' => (string) strlen($bytes),
+            'Content-Disposition' => 'inline; filename="frame-'.$frame.'.dcm"',
         ]);
     }
 

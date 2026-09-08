@@ -14,7 +14,7 @@ class DicomTagReaderTest extends TestCase
      * a real file where PixelData is the last/largest element it will ever
      * need to look past).
      */
-    private function buildFixture(array $overrides = []): string
+    private function buildFixture(array $overrides = [], string $extraElements = '', ?string $pixelData = null): string
     {
         $pad = fn (string $value) => strlen($value) % 2 === 0 ? $value : $value."\0";
 
@@ -41,7 +41,8 @@ class DicomTagReaderTest extends TestCase
         $elements .= $writeElement('00280030', 'DS', $overrides['pixel_spacing'] ?? '0.3\\0.3');
         $elements .= $writeElement('00180050', 'DS', $overrides['slice_thickness'] ?? '0.5');
         $elements .= $writeElement('00200037', 'DS', $overrides['orientation'] ?? '1\\0\\0\\0\\1\\0');
-        $elements .= $writeElement('7FE00010', 'OB', "\0\0\0\0"); // dummy pixel data, reader stops here
+        $elements .= $extraElements;
+        $elements .= $writeElement('7FE00010', 'OB', $pixelData ?? "\0\0\0\0"); // reader stops here
 
         return str_repeat("\0", 128).'DICM'.$elements;
     }
@@ -159,5 +160,107 @@ class DicomTagReaderTest extends TestCase
 
         $this->assertSame('1.2.3.SEQTEST', $tags['series_uid']);
         $this->assertSame('CT', $tags['modality']);
+    }
+
+    /**
+     * The geometry DicomFrameExtractor needs to compute a single frame's
+     * byte range without re-parsing the whole file: NumberOfFrames, the
+     * pixel layout (bits/samples/photometric), and where PixelData's
+     * VALUE actually starts (not the tag/VR/length header before it).
+     */
+    public function test_reads_multiframe_pixel_data_geometry_for_frame_extraction(): void
+    {
+        $pad = fn (string $value) => strlen($value) % 2 === 0 ? $value : $value."\0";
+        $writeElement = function (string $tag, string $vr, string $value) use ($pad) {
+            $group = hexdec(substr($tag, 0, 4));
+            $element = hexdec(substr($tag, 4, 4));
+            $value = $pad($value);
+            $bytes = pack('vv', $group, $element).$vr;
+            $bytes .= in_array($vr, ['OB', 'OW'], true)
+                ? "\0\0".pack('V', strlen($value))
+                : pack('v', strlen($value));
+
+            return $bytes.$value;
+        };
+
+        $extraElements = $writeElement('00280008', 'IS', '3') // NumberOfFrames
+            .$writeElement('00280002', 'US', pack('v', 1)) // SamplesPerPixel
+            .$writeElement('00280004', 'CS', 'MONOCHROME2')
+            .$writeElement('00280100', 'US', pack('v', 16)) // BitsAllocated
+            .$writeElement('00280101', 'US', pack('v', 12)) // BitsStored
+            .$writeElement('00280102', 'US', pack('v', 11)) // HighBit
+            .$writeElement('00280103', 'US', pack('v', 0)); // PixelRepresentation
+
+        $pixelData = str_repeat("\x01\x02", 16 * 16 * 3); // 3 frames of 16x16 16-bit pixels
+
+        $path = tempnam(sys_get_temp_dir(), 'dicom_test_');
+        $fixture = $this->buildFixture(['rows' => 16, 'columns' => 16], $extraElements, $pixelData);
+        file_put_contents($path, $fixture);
+
+        $tags = (new DicomTagReader)->read($path);
+
+        $this->assertSame(3, $tags['frame_count']);
+        $this->assertSame(1, $tags['samples_per_pixel']);
+        $this->assertSame('MONOCHROME2', $tags['photometric_interpretation']);
+        $this->assertSame(16, $tags['bits_allocated']);
+        $this->assertSame(12, $tags['bits_stored']);
+        $this->assertSame(11, $tags['high_bit']);
+        $this->assertSame(0, $tags['pixel_representation']);
+        $this->assertSame('1.2.840.10008.1.2.1', $tags['transfer_syntax_uid']);
+        $this->assertSame(strlen($pixelData), $tags['pixel_data_length']);
+        $this->assertNotNull($tags['pixel_data_offset']);
+
+        // The offset must point exactly at the pixel bytes -- re-reading
+        // from it must reproduce the original pixel data verbatim.
+        $handle = fopen($path, 'rb');
+        fseek($handle, $tags['pixel_data_offset']);
+        $readBack = fread($handle, $tags['pixel_data_length']);
+        fclose($handle);
+        unlink($path);
+
+        $this->assertSame($pixelData, $readBack);
+    }
+
+    /**
+     * Undefined-length PixelData (0xFFFFFFFF) always means encapsulated/
+     * compressed fragments in real DICOM -- there's no fixed per-frame byte
+     * offset to compute without parsing the Basic Offset Table, so
+     * pixel_data_length must come back null even when NumberOfFrames says
+     * there's more than one frame. DicomStudyController::store() uses this
+     * null to decide is_frame_extractable = false.
+     */
+    public function test_undefined_length_pixel_data_reports_null_length(): void
+    {
+        $pad = fn (string $value) => strlen($value) % 2 === 0 ? $value : $value."\0";
+        $writeElement = function (string $tag, string $vr, string $value) use ($pad) {
+            $group = hexdec(substr($tag, 0, 4));
+            $element = hexdec(substr($tag, 4, 4));
+            $value = $pad($value);
+            $bytes = pack('vv', $group, $element).$vr;
+            $bytes .= in_array($vr, ['OB', 'OW'], true)
+                ? "\0\0".pack('V', strlen($value))
+                : pack('v', strlen($value));
+
+            return $bytes.$value;
+        };
+
+        $elements = '';
+        $elements .= $writeElement('00020010', 'UI', '1.2.840.10008.1.2.4.90'); // JPEG2000 (compressed)
+        $elements .= $writeElement('0020000E', 'UI', '1.2.3.COMPRESSED');
+        $elements .= $writeElement('00280008', 'IS', '10');
+        // Encapsulated PixelData: OB, undefined length, followed by a Basic
+        // Offset Table item and fragment(s) -- this reader stops at the tag
+        // itself and never needs to walk the fragments.
+        $elements .= pack('vv', 0x7FE0, 0x0010).'OB'."\0\0".pack('V', 0xFFFFFFFF);
+        $elements .= pack('vv', 0xFFFE, 0xE000).pack('V', 0); // empty Basic Offset Table item
+
+        $path = tempnam(sys_get_temp_dir(), 'dicom_test_');
+        file_put_contents($path, str_repeat("\0", 128).'DICM'.$elements);
+
+        $tags = (new DicomTagReader)->read($path);
+        unlink($path);
+
+        $this->assertSame(10, $tags['frame_count']);
+        $this->assertNull($tags['pixel_data_length']);
     }
 }
