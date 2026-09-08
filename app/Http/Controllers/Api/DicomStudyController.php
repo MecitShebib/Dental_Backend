@@ -46,6 +46,17 @@ class DicomStudyController extends Controller
     {
         $extractDir = null;
 
+        // A real CBCT/CT export is routinely 100-500MB. Writing that much
+        // (read the temp upload, write the destination copy -- double I/O)
+        // on shared hosting disk can genuinely take longer than PHP's
+        // default 30s max_execution_time. public/.user.ini raises this to
+        // 300s, but has already proven unreliable on this host for another
+        // endpoint (the download side's memory_limit override was silently
+        // ignored) -- set_time_limit() is a runtime override that doesn't
+        // depend on .user.ini/php.ini actually being picked up, so this
+        // stays effective regardless.
+        set_time_limit(300);
+
         try {
             $data = $request->validated();
             $clientId = $this->resolveClientId($data['client_id'] ?? null);
@@ -100,7 +111,43 @@ class DicomStudyController extends Controller
                     // file-streaming route for series slices, mirroring
                     // XrayImageController::file(), is expected to land in a
                     // later task.
+                    $sourceSize = filesize($tempPath);
                     Storage::disk('local')->putFileAs($storagePath, $tempPath, "{$index}.dcm");
+
+                    // putFileAs() returns false on failure but nothing here
+                    // threw, so a copy that failed partway (or didn't start
+                    // at all) would otherwise leave a DicomSeries row
+                    // pointing at a file that was never really written --
+                    // exactly what happened in production (confirmed via
+                    // the log: uploads reported success, then every attempt
+                    // to open that scan later 500'd on a plain
+                    // "No such file or directory"). Comparing sizes instead
+                    // of a plain exists() check also catches a copy that
+                    // started but was cut short.
+                    $writtenSize = Storage::disk('local')->exists("{$storagePath}/{$index}.dcm")
+                        ? Storage::disk('local')->size("{$storagePath}/{$index}.dcm")
+                        : null;
+
+                    if ($writtenSize !== $sourceSize) {
+                        Storage::disk('local')->deleteDirectory("dicom-studies/{$study->uuid}");
+                        // forceDelete, not delete -- same reasoning as destroy()
+                        // below: this model is SoftDeletes, and a soft-deleted
+                        // row would leave its dicom_series rows behind (the FK
+                        // cascade only fires on a real delete).
+                        $study->forceDelete();
+
+                        Log::error('DICOM file failed to save completely during upload', [
+                            'study_uuid' => $study->uuid,
+                            'series_uid' => $seriesUid,
+                            'index' => $index,
+                            'source_size' => $sourceSize,
+                            'written_size' => $writtenSize,
+                        ]);
+
+                        throw ValidationException::withMessages([
+                            'files' => ['One or more files failed to upload completely. Please try again.'],
+                        ]);
+                    }
                 }
 
                 $tags = $series['tags'];
