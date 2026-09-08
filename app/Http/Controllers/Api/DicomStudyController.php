@@ -12,8 +12,11 @@ use App\Models\DicomStudy;
 use App\Services\DicomTagReader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 use ZipArchive;
 
 class DicomStudyController extends Controller
@@ -153,7 +156,41 @@ class DicomStudyController extends Controller
      */
     public function seriesFile(DicomSeries $dicomSeries, int $index)
     {
-        return Storage::disk('local')->response("{$dicomSeries->storage_path}/{$index}.dcm");
+        $path = "{$dicomSeries->storage_path}/{$index}.dcm";
+
+        // Storage::response() throws on a missing file (Flysystem's
+        // UnableToRetrieveMetadata, from its own eager mimeType()/size()
+        // lookups) rather than returning a clean 404 -- left uncaught,
+        // that surfaced to the frontend as an opaque "HTTP 500" with
+        // nothing in between to explain why. Checking existence first
+        // turns the common case (a slice that was never fully written, or
+        // an index past what was actually uploaded) into a real 404, and
+        // logging keeps a record of the (hopefully rarer) genuine failures
+        // for either case -- neither was visible anywhere before this.
+        if (! Storage::disk('local')->exists($path)) {
+            Log::warning('DICOM series file missing on disk', [
+                'dicom_series_id' => $dicomSeries->id,
+                'index' => $index,
+                'path' => $path,
+            ]);
+
+            abort(404, 'This scan slice could not be found.');
+        }
+
+        try {
+            return Storage::disk('local')->response($path);
+        } catch (HttpException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            Log::error('DICOM series file streaming failed', [
+                'dicom_series_id' => $dicomSeries->id,
+                'index' => $index,
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
+
+            abort(500, 'Failed to stream this scan slice.');
+        }
     }
 
     /**
