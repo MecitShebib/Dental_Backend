@@ -117,5 +117,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('call-webhook', function ($request) {
             return Limit::perMinute(60)->by($request->route('company', $request->ip()));
         });
+
+        // Opening one real CBCT scan can mean the viewer fetching a frame
+        // at a time for several hundred frames within a few seconds --
+        // legitimately far more requests than the general 'api' limiter's
+        // 120/min allows for what is, from the user's perspective, a single
+        // "open this scan" action. No auth:sanctum on this route (a
+        // wadouri: image loader's XHR can't carry a bearer token -- see
+        // DicomStudyController::seriesFrame()'s own doc comment), so this is
+        // keyed by IP like the other unauthenticated limiters above; capped
+        // well above any real scan's frame count rather than left unbounded.
+        RateLimiter::for('dicom-frame-stream', function ($request) {
+            return Limit::perMinute(3000)->by($request->ip());
+        });
     }
 }

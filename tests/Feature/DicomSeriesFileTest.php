@@ -181,6 +181,82 @@ class DicomSeriesFileTest extends TestCase
         $response->assertNotFound();
     }
 
+    /**
+     * A real CBCT scan means the viewer fetching a frame at a time for
+     * several hundred frames within a few seconds -- reproduces the "HTTP
+     * 429" a user hit opening a real 534-frame scan, caused by the general
+     * 'api' rate limiter's 120/min (applied to every route in this file by
+     * default) being far too tight for that. dicom-series.frame is split
+     * into its own route group in routes/api.php specifically to swap that
+     * for 'dicom-frame-stream' (3000/min) instead -- this fires well past
+     * the old 120 limit and asserts none of them 429.
+     */
+    public function test_many_rapid_frame_requests_are_not_rate_limited(): void
+    {
+        Storage::fake('local');
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        $study = DicomStudy::create(['company_id' => $doctor->company_id, 'uploaded_by' => $doctor->id, 'status' => 'ready']);
+
+        $pad = fn (string $value) => strlen($value) % 2 === 0 ? $value : $value."\0";
+        $writeElement = function (string $tag, string $vr, string $value) use ($pad) {
+            $group = hexdec(substr($tag, 0, 4));
+            $element = hexdec(substr($tag, 4, 4));
+            $value = $pad($value);
+            $bytes = pack('vv', $group, $element).$vr;
+            $bytes .= in_array($vr, ['OB', 'OW'], true)
+                ? "\0\0".pack('V', strlen($value))
+                : pack('v', strlen($value));
+
+            return $bytes.$value;
+        };
+        $elements = $writeElement('00020010', 'UI', '1.2.840.10008.1.2.1')
+            .$writeElement('0020000E', 'UI', '1.2.3')
+            .$writeElement('00280008', 'IS', '1')
+            .$writeElement('00280002', 'US', pack('v', 1))
+            .$writeElement('00280004', 'CS', 'MONOCHROME2')
+            .$writeElement('00280010', 'US', pack('v', 2))
+            .$writeElement('00280011', 'US', pack('v', 2))
+            .$writeElement('00280100', 'US', pack('v', 16))
+            .$writeElement('00280101', 'US', pack('v', 16))
+            .$writeElement('00280102', 'US', pack('v', 15))
+            .$writeElement('00280103', 'US', pack('v', 0))
+            .$writeElement('7FE00010', 'OW', str_repeat(pack('v', 0), 4));
+        $bytes = str_repeat("\0", 128).'DICM'.$elements;
+
+        $tags = (new \App\Services\DicomTagReader)->read(
+            tap(tempnam(sys_get_temp_dir(), 'dicom_'), fn ($p) => file_put_contents($p, $bytes))
+        );
+
+        $series = $study->series()->create([
+            'series_uid' => '1.2.3',
+            'slice_count' => 1,
+            'frame_count' => 1,
+            'rows' => 2,
+            'columns' => 2,
+            'bits_allocated' => 16,
+            'bits_stored' => 16,
+            'high_bit' => 15,
+            'pixel_representation' => 0,
+            'samples_per_pixel' => 1,
+            'photometric_interpretation' => 'MONOCHROME2',
+            'transfer_syntax_uid' => '1.2.840.10008.1.2.1',
+            'pixel_data_offset' => $tags['pixel_data_offset'],
+            'is_frame_extractable' => true,
+            'storage_path' => "dicom-studies/{$study->uuid}/1.2.3",
+        ]);
+        Storage::disk('local')->put("{$series->storage_path}/0.dcm", $bytes);
+
+        $url = URL::temporarySignedRoute('dicom-series.frame', now()->addMinutes(60), [
+            'dicomSeries' => $series->id,
+            'frame' => 0,
+        ]);
+
+        for ($i = 0; $i < 130; $i++) {
+            $response = $this->get($url);
+            $this->assertNotEquals(429, $response->getStatusCode(), "Request {$i} was rate-limited (429).");
+        }
+    }
+
     public function test_an_unsigned_url_is_rejected(): void
     {
         Storage::fake('local');

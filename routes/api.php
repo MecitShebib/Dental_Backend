@@ -285,6 +285,30 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::delete('dicom-studies/{dicomStudy}', [DicomStudyController::class, 'destroy']);
 });
 
+// Private-disk file streaming (X-rays, consent signatures, expense
+// attachments -- KVKK: no unauthenticated storage access). No auth:sanctum
+// here on purpose: a plain <img src> can't carry a bearer token, so these
+// rely solely on Laravel's `signed` middleware validating the URL's
+// signature/expiry, which is only ever minted by the authenticated,
+// tenant-scoped *Resource classes above. See XrayImageController::file().
+Route::middleware('signed')->group(function () {
+    Route::get('xray-images/{xrayImage}/file', [XrayImageController::class, 'file'])->name('xray-images.file');
+    Route::get('client-consents/{consent}/signature', [ClientConsentController::class, 'signature'])->name('client-consents.signature');
+    Route::get('expenses/{expense}/attachment', [ExpenseController::class, 'attachment'])->name('expenses.attachment');
+    Route::get('dicom-series/{dicomSeries}/files/{index}', [DicomStudyController::class, 'seriesFile'])->name('dicom-series.file');
+});
+
+// Split from the 'signed' group above: opening one real CBCT scan means the
+// viewer fetching a frame at a time for several hundred frames within a few
+// seconds -- the general 'api' limiter's 120/min (applied to this whole
+// file, see bootstrap/app.php's throttleApi()) turned that into a wall of
+// 429s partway through a single scan. 'dicom-frame-stream' (see
+// AppServiceProvider::configureRateLimiting()) replaces it with a cap sized
+// for that real usage instead.
+Route::middleware(['signed', 'throttle:dicom-frame-stream'])->withoutMiddleware('throttle:api')->group(function () {
+    Route::get('dicom-series/{dicomSeries}/frames/{frame}', [DicomStudyController::class, 'seriesFrame'])->name('dicom-series.frame');
+});
+
 require __DIR__.'/api/gynecology.php';
 require __DIR__.'/api/internal_medicine.php';
 require __DIR__.'/api/orthopedics.php';
