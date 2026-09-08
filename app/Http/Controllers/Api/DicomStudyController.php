@@ -15,8 +15,6 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
-use Throwable;
 use ZipArchive;
 
 class DicomStudyController extends Controller
@@ -156,18 +154,15 @@ class DicomStudyController extends Controller
      */
     public function seriesFile(DicomSeries $dicomSeries, int $index)
     {
+        $disk = Storage::disk('local');
         $path = "{$dicomSeries->storage_path}/{$index}.dcm";
 
-        // Storage::response() throws on a missing file (Flysystem's
-        // UnableToRetrieveMetadata, from its own eager mimeType()/size()
-        // lookups) rather than returning a clean 404 -- left uncaught,
-        // that surfaced to the frontend as an opaque "HTTP 500" with
-        // nothing in between to explain why. Checking existence first
-        // turns the common case (a slice that was never fully written, or
-        // an index past what was actually uploaded) into a real 404, and
-        // logging keeps a record of the (hopefully rarer) genuine failures
-        // for either case -- neither was visible anywhere before this.
-        if (! Storage::disk('local')->exists($path)) {
+        // Missing file -> a clean 404 instead of Storage::response()'s own
+        // uncaught exception from its eager mimeType()/size() lookups
+        // (Flysystem's UnableToRetrieveMetadata), which used to surface to
+        // the frontend as an opaque "HTTP 500" with nothing logged to
+        // explain why.
+        if (! $disk->exists($path)) {
             Log::warning('DICOM series file missing on disk', [
                 'dicom_series_id' => $dicomSeries->id,
                 'index' => $index,
@@ -177,20 +172,40 @@ class DicomStudyController extends Controller
             abort(404, 'This scan slice could not be found.');
         }
 
-        try {
-            return Storage::disk('local')->response($path);
-        } catch (HttpException $e) {
-            throw $e;
-        } catch (Throwable $e) {
-            Log::error('DICOM series file streaming failed', [
-                'dicom_series_id' => $dicomSeries->id,
-                'index' => $index,
-                'path' => $path,
-                'error' => $e->getMessage(),
-            ]);
-
-            abort(500, 'Failed to stream this scan slice.');
-        }
+        // A real CBCT/DICOM export is routinely 100-500MB. Storage::response()
+        // streams via fpassthru(), which is memory-safe on PHP's own side --
+        // but the production log showed "Allowed memory size of 134217728
+        // [128M] bytes exhausted (tried to allocate 305008640 bytes)", i.e.
+        // an allocation attempt for almost exactly this file's full size.
+        // That number only makes sense if something *outside* PHP's control
+        // here (this shared host's Apache/PHP-FPM output buffering, or
+        // gzip/deflate compression needing the whole body before it can
+        // compress) buffers fpassthru()'s output in full before it reaches
+        // the client, regardless of memory_limit -- raising memory_limit
+        // (already tried via public/.user.ini) doesn't reach that layer at
+        // all. Reading and echoing fixed-size chunks with an explicit
+        // flush() after each one forces that buffer back out continuously,
+        // so it never has the chance to grow anywhere near the file's full
+        // size no matter what's buffering it.
+        return response()->stream(function () use ($disk, $path) {
+            $stream = $disk->readStream($path);
+            while (! feof($stream)) {
+                echo fread($stream, 1024 * 1024);
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+            fclose($stream);
+        }, 200, [
+            'Content-Type' => $disk->mimeType($path) ?: 'application/dicom',
+            'Content-Length' => (string) $disk->size($path),
+            'Content-Disposition' => 'inline; filename="'.$index.'.dcm"',
+            // Tells an nginx layer in front of PHP-FPM (common on cPanel/
+            // LiteSpeed hosts) not to buffer this response either -- the
+            // one piece of the puzzle the flush() calls above can't reach.
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     /**
