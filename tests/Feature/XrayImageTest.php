@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\User;
+use App\Models\XrayImage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -32,7 +33,7 @@ class XrayImageTest extends TestCase
 
     public function test_a_user_can_upload_one_or_more_images_unlinked_by_default(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
@@ -46,15 +47,16 @@ class XrayImageTest extends TestCase
         $response->assertJsonCount(2, 'data');
         $response->assertJsonPath('data.0.client_id', null);
 
-        $path = str_replace(Storage::disk('public')->url(''), '', $response->json('data.0.image_url'));
-        Storage::disk('public')->assertExists($path);
+        $image = XrayImage::withoutGlobalScopes()->findOrFail($response->json('data.0.id'));
+        Storage::disk('local')->assertExists($image->image_path);
+        $this->get($response->json('data.0.image_url'))->assertOk();
 
         $this->getJson('/api/xray-images')->assertOk()->assertJsonCount(2, 'data');
     }
 
     public function test_uploaded_images_can_be_filtered_to_unlinked_only(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $user = User::factory()->create();
         $client = $this->makeClient($user->company_id);
         Sanctum::actingAs($user);
@@ -70,7 +72,7 @@ class XrayImageTest extends TestCase
 
     public function test_an_image_can_be_linked_to_a_client_and_later_unlinked(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $user = User::factory()->create();
         $client = $this->makeClient($user->company_id);
         Sanctum::actingAs($user);
@@ -90,7 +92,7 @@ class XrayImageTest extends TestCase
 
     public function test_an_image_cannot_be_linked_to_another_companys_client(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $user = User::factory()->create();
         $otherClient = $this->makeClient(Company::factory()->create()->id);
         Sanctum::actingAs($user);
@@ -104,22 +106,22 @@ class XrayImageTest extends TestCase
 
     public function test_deleting_an_image_removes_the_stored_file(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
         $response = $this->post('/api/xray-images', ['images' => [UploadedFile::fake()->image('x.jpg')]])->assertCreated();
         $id = $response->json('data.0.id');
-        $path = str_replace(Storage::disk('public')->url(''), '', $response->json('data.0.image_url'));
+        $path = XrayImage::withoutGlobalScopes()->findOrFail($id)->image_path;
 
         $this->deleteJson("/api/xray-images/{$id}")->assertOk();
-        Storage::disk('public')->assertMissing($path);
+        Storage::disk('local')->assertMissing($path);
         $this->getJson('/api/xray-images')->assertJsonCount(0, 'data');
     }
 
     public function test_images_are_scoped_to_the_companys_own_data(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $ownCompany = Company::factory()->create();
         $otherCompany = Company::factory()->create();
         $otherUser = User::factory()->create(['company_id' => $otherCompany->id]);

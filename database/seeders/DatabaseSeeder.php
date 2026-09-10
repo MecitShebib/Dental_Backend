@@ -79,6 +79,20 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Not part of the $values array above on purpose: that whole payload
+        // gets re-applied via fill()+save() on every single run of this
+        // seeder (migrate.php runs it on every deploy). Company::
+        // generateBookingSlug() checks for a collision against every
+        // existing booking_slug in the table, including this row's own
+        // current value -- put through updateOrCreateSafely unconditionally,
+        // it would find itself "taken" and needlessly bump the slug's
+        // numeric suffix on every deploy. Only ever generate once, the first
+        // time this seeded company has none.
+        if (! $company->booking_slug) {
+            $company->booking_slug = Company::generateBookingSlug($company->name);
+            $company->save();
+        }
+
         // Explicit call for *this* company, in addition to (not instead of)
         // TreatmentCatalogSeeder::run() below -- that call backfills catalog
         // updates (new/changed items) to every *already-existing* company on

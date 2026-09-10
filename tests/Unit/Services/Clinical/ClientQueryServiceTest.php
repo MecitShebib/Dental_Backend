@@ -33,6 +33,7 @@ class ClientQueryServiceTest extends TestCase
             'internal_medicine' => [Specialty::INTERNAL_MEDICINE],
             'orthopedics' => [Specialty::ORTHOPEDICS],
             'cosmetic' => [Specialty::COSMETIC],
+            'nutrition' => [Specialty::NUTRITION],
         ];
     }
 

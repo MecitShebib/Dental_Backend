@@ -23,7 +23,7 @@ class ConsentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('public');
+        Storage::fake('local');
     }
 
     protected function makeManager(Company $company): User
@@ -95,6 +95,7 @@ class ConsentTest extends TestCase
         $response->assertJsonPath('data.body', 'I, Test Patient, consent to treatment at Verify Clinic.');
         $signatureUrl = $response->json('data.signature_url');
         $this->assertNotEmpty($signatureUrl);
+        $this->get($signatureUrl)->assertOk();
 
         // Editing the template afterwards must not change the already-signed record.
         $template->update(['body' => 'A completely different body.']);

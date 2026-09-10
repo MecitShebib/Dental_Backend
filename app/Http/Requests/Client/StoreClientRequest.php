@@ -5,6 +5,7 @@ namespace App\Http\Requests\Client;
 use App\Enums\ClientGender;
 use App\Enums\ClientLanguage;
 use App\Enums\ClientStatus;
+use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,7 +23,7 @@ class StoreClientRequest extends FormRequest
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:50'],
+            'phone' => ['required', 'string', 'max:50', new ValidPhone],
             'preferred_language' => ['nullable', Rule::enum(ClientLanguage::class)],
             'gender' => ['required', Rule::enum(ClientGender::class)],
             'age' => ['nullable', 'integer', 'min:0'],

@@ -27,16 +27,28 @@ class DatabaseSeederTest extends TestCase
     {
         $this->seed();
 
-        $this->assertSame(5, Specialty::query()->count());
+        $this->assertSame(6, Specialty::query()->count());
         $this->assertNotNull(Specialty::query()->where('key', Specialty::DENTAL)->value('uuid'));
 
         $company = Company::query()->where('code', 'DENTAL-HQ')->firstOrFail();
         $this->assertTrue(User::query()->where('email', 'doctor@clinic.com')->exists());
+        $this->assertNotNull($company->booking_slug);
 
         $dentalId = Specialty::query()->where('key', Specialty::DENTAL)->value('id');
         $this->assertTrue(
             Subscription::query()->where('company_id', $company->id)->where('specialty_id', $dentalId)->exists()
         );
         $this->assertTrue($company->activeSpecialties()->contains($dentalId));
+    }
+
+    public function test_re_running_the_seeder_does_not_change_an_already_assigned_booking_slug(): void
+    {
+        $this->seed();
+        $originalSlug = Company::query()->where('code', 'DENTAL-HQ')->value('booking_slug');
+
+        $this->seed();
+        $this->seed();
+
+        $this->assertSame($originalSlug, Company::query()->where('code', 'DENTAL-HQ')->value('booking_slug'));
     }
 }

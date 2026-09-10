@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ClientGender;
 use App\Enums\ClientLanguage;
 use App\Enums\ClientStatus;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
+    use Auditable, BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',
@@ -34,6 +35,7 @@ class Client extends Model
         'address',
         'medical_notes',
         'status',
+        'anonymized_at',
         'last_visit_at',
         'created_by',
         'updated_by',
@@ -47,6 +49,7 @@ class Client extends Model
             'preferred_language' => ClientLanguage::class,
             'date_of_birth' => 'date',
             'last_visit_at' => 'datetime',
+            'anonymized_at' => 'datetime',
         ];
     }
 

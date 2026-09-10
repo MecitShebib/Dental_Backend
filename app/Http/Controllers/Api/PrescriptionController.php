@@ -44,6 +44,14 @@ class PrescriptionController extends Controller
 
     public function store(StorePrescriptionRequest $request, Client $client)
     {
+        // Same doctor-owns-this-patient gate index() already enforces --
+        // missing here meant any doctor in the company could write a
+        // prescription onto a colleague's patient by client id, since
+        // resolveTreatingDoctor() only pins doctor_id to the acting doctor
+        // (preventing impersonation) without ever checking whether $client
+        // is actually theirs.
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $data = $request->validated();
         $doctor = $this->resolveTreatingDoctor($request->user(), $data['doctor_id'] ?? null);
         $specialtyId = $this->resolveSpecialtyId($doctor);

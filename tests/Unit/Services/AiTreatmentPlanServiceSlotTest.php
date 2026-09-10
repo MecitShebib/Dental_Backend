@@ -59,6 +59,49 @@ class AiTreatmentPlanServiceSlotTest extends TestCase
         $this->assertSame('09:00', $slot['start_time']);
     }
 
+    protected function doctorWithFullWeekSchedule(): User
+    {
+        $doctor = User::factory()->create(['is_doctor' => true]);
+        $schedule = $doctor->doctorSchedule()->create([
+            'start_time' => '09:00:00',
+            'end_time' => '17:00:00',
+            'slot_minutes' => 30,
+        ]);
+
+        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as $day) {
+            $schedule->workingDays()->create(['weekday' => $day]);
+        }
+
+        return $doctor;
+    }
+
+    public function test_resolve_session_slot_skips_a_time_that_has_already_passed_today(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+
+        // The schedule grid itself has no notion of "now" -- 09:00 is
+        // technically free all day, but it's 11:15 right now, so the plan
+        // must not schedule a session earlier than the current moment.
+        $this->travelTo(Carbon::today()->setTime(11, 15));
+
+        $slot = app(AiTreatmentPlanService::class)->resolveSessionSlot($doctor, Carbon::today(), 30);
+
+        $this->assertSame(Carbon::today()->toDateString(), $slot['date']);
+        $this->assertSame('11:30', $slot['start_time']);
+    }
+
+    public function test_resolve_session_slot_rolls_to_tomorrow_when_todays_schedule_has_already_ended(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+
+        $this->travelTo(Carbon::today()->setTime(18, 0));
+
+        $slot = app(AiTreatmentPlanService::class)->resolveSessionSlot($doctor, Carbon::today(), 30);
+
+        $this->assertSame(Carbon::tomorrow()->toDateString(), $slot['date']);
+        $this->assertSame('09:00', $slot['start_time']);
+    }
+
     public function test_resolve_session_slot_throws_when_nothing_found_within_the_search_window(): void
     {
         $doctor = User::factory()->create(['is_doctor' => true]);

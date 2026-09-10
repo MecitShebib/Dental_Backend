@@ -6,11 +6,12 @@ use App\Specialties\Cosmetic\CosmeticModule;
 use App\Specialties\Dental\DentalModule;
 use App\Specialties\Gynecology\GynecologyModule;
 use App\Specialties\InternalMedicine\InternalMedicineModule;
+use App\Specialties\Nutrition\NutritionModule;
 use App\Specialties\Orthopedics\OrthopedicsModule;
 use Illuminate\Support\Collection;
 
 /**
- * Looks up the SpecialtyModule for a Specialty::key. All five constructor
+ * Looks up the SpecialtyModule for a Specialty::key. All six constructor
  * args are concrete classes (not the SpecialtyModule interface), so the
  * container resolves this with no service-provider binding needed.
  */
@@ -25,6 +26,7 @@ class SpecialtyModuleRegistry
         InternalMedicineModule $internalMedicine,
         OrthopedicsModule $orthopedics,
         CosmeticModule $cosmetic,
+        NutritionModule $nutrition,
     ) {
         $this->modules = [
             $dental->key() => $dental,
@@ -32,6 +34,7 @@ class SpecialtyModuleRegistry
             $internalMedicine->key() => $internalMedicine,
             $orthopedics->key() => $orthopedics,
             $cosmetic->key() => $cosmetic,
+            $nutrition->key() => $nutrition,
         ];
     }
 

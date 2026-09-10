@@ -3,11 +3,14 @@
 namespace App\Http\Requests\Subscription;
 
 use App\Enums\SubscriptionStatus;
+use App\Http\Requests\Concerns\ScopesErrorsToModal;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreSubscriptionRequest extends FormRequest
 {
+    use ScopesErrorsToModal;
+
     public function authorize(): bool
     {
         return true;

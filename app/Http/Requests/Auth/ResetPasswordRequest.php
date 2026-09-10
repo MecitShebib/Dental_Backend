@@ -17,7 +17,7 @@ class ResetPasswordRequest extends FormRequest
         return [
             'mobile' => ['required', 'string'],
             'otp_reference' => ['required', 'string'],
-            'new_password' => ['required', 'confirmed', Password::min(6)],
+            'new_password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
         ];
     }
 }

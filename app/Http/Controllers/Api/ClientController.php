@@ -9,6 +9,7 @@ use App\Http\Requests\Client\StoreClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Resources\ClientListResource;
 use App\Http\Resources\ClientResource;
+use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Specialty;
 use App\Services\ClientSpecialtyEnrollmentService;
@@ -68,6 +69,8 @@ class ClientController extends Controller
     public function show(Request $request, Client $client)
     {
         $this->assertActingDoctorOwnsClient($request, $client);
+
+        AuditLog::record('viewed', $client, $request->user());
 
         $client->load([
             ...$this->clientQuery->nextAppointmentEagerLoad(),

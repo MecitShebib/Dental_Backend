@@ -54,7 +54,7 @@ class SubscriptionController extends Controller
         if ($request->integer('max_users') < $activeUsers) {
             throw ValidationException::withMessages([
                 'max_users' => ['Max users cannot be less than the company active users count.'],
-            ]);
+            ])->errorBag($request->input('_modal_id') ?: 'default');
         }
 
         $specialtyIds = $request->validated('specialty_ids');
@@ -91,13 +91,13 @@ class SubscriptionController extends Controller
         if ($request->integer('max_users') < $activeUsers) {
             throw ValidationException::withMessages([
                 'max_users' => ['Max users cannot be less than the company active users count.'],
-            ]);
+            ])->errorBag($request->input('_modal_id') ?: 'default');
         }
 
         if ($request->integer('max_branches') < $company->branches()->count()) {
             throw ValidationException::withMessages([
                 'max_branches' => ['Max branches cannot be less than the company\'s current branch count.'],
-            ]);
+            ])->errorBag($request->input('_modal_id') ?: 'default');
         }
 
         // Same "select several specialties at once" the create form
@@ -172,16 +172,32 @@ class SubscriptionController extends Controller
 
             throw ValidationException::withMessages([
                 'specialty_ids' => ["This company already has an active subscription for {$specialtyName}."],
-            ]);
+            ])->errorBag($request->input('_modal_id') ?: 'default');
         }
     }
 
     public function destroy(Subscription $subscription)
     {
-        $company = $subscription->company;
+        // withTrashed(): see the identical note in Admin\UserController --
+        // $subscription->company would resolve to null if the company is
+        // already soft-deleted, and the redirect needs a real one.
+        $company = Company::withTrashed()->find($subscription->company_id);
         $subscription->delete();
 
         return redirect()->route('admin.companies.show', $company)->with('status', 'Subscription deleted successfully.');
+    }
+
+    /**
+     * Independent of Admin\CompanyController::restore() (which restores
+     * every subscription a company-delete cascaded into) -- this is for
+     * restoring one specific subscription on its own.
+     */
+    public function restore(Subscription $subscription)
+    {
+        $company = Company::withTrashed()->find($subscription->company_id);
+        $subscription->restore();
+
+        return redirect()->route('admin.companies.show', $company)->with('status', 'Subscription restored successfully.');
     }
 
     public function toggleStatus(Subscription $subscription)

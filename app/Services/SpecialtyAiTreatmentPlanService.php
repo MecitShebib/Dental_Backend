@@ -90,15 +90,28 @@ class SpecialtyAiTreatmentPlanService
     public function resolveSessionSlot(mixed $doctor, Carbon $fromDate, int $durationMinutes, int $searchDays = 14): array
     {
         $cursor = $fromDate->copy();
+        $now = now();
 
         for ($attempt = 0; $attempt < $searchDays; $attempt++) {
             try {
                 $times = $this->availability->availableStartTimes($doctor, $cursor->toDateString(), $durationMinutes);
+                $startTimes = $times['start_times'];
 
-                if (! empty($times['start_times'])) {
+                // The schedule grid doesn't know what time it is "now" -- on
+                // the very first candidate day, a slot earlier than the
+                // current time is still technically "free" but can't
+                // actually be booked, so don't let the AI pick it.
+                if ($cursor->isSameDay($now)) {
+                    $startTimes = array_values(array_filter(
+                        $startTimes,
+                        fn (string $time) => Carbon::parse($cursor->toDateString().' '.$time)->greaterThan($now),
+                    ));
+                }
+
+                if (! empty($startTimes)) {
                     return [
                         'date' => $cursor->toDateString(),
-                        'start_time' => $times['start_times'][0],
+                        'start_time' => $startTimes[0],
                     ];
                 }
             } catch (ValidationException) {

@@ -23,18 +23,18 @@ class AppointmentReminderTest extends TestCase
         parent::setUp();
 
         config([
-            'services.infobip.enabled' => true,
-            'services.infobip.api_key' => 'test-api-key',
-            'services.infobip.base_url' => 'https://api.infobip.com',
-            'services.infobip.sender' => 'Dentavaria',
+            'services.iletimerkezi.enabled' => true,
+            'services.iletimerkezi.api_key' => 'test-api-key',
+            'services.iletimerkezi.api_hash' => 'test-api-hash',
+            'services.iletimerkezi.sender' => 'Dentavaria',
         ]);
 
         Http::fake([
-            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
-                'messages' => [[
-                    'messageId' => '1000007721',
-                    'status' => ['groupId' => 1, 'groupName' => 'PENDING'],
-                ]],
+            'https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response([
+                'response' => [
+                    'status' => ['code' => 200, 'message' => 'OK'],
+                    'order' => ['id' => '1000007721'],
+                ],
             ], 200),
         ]);
     }
@@ -81,7 +81,7 @@ class AppointmentReminderTest extends TestCase
         Artisan::call('appointments:send-reminders');
 
         Http::assertSent(function ($request) {
-            return str_contains((string) $request['messages'][0]['text'], 'تذكير');
+            return str_contains((string) $request['request']['order']['message']['text'], 'تذكير');
         });
 
         Mail::assertSent(AppointmentReminderMail::class, fn ($mail) => $mail->hasTo($client->email));
@@ -199,7 +199,7 @@ class AppointmentReminderTest extends TestCase
 
         Artisan::call('appointments:send-reminders');
 
-        Http::assertSent(fn ($request) => str_contains((string) $request['messages'][0]['text'], 'Reminder:'));
-        Http::assertSent(fn ($request) => str_contains((string) $request['messages'][0]['text'], 'Hatırlatma:'));
+        Http::assertSent(fn ($request) => str_contains((string) $request['request']['order']['message']['text'], 'Reminder:'));
+        Http::assertSent(fn ($request) => str_contains((string) $request['request']['order']['message']['text'], 'Hatırlatma:'));
     }
 }

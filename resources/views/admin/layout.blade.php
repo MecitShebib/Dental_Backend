@@ -19,9 +19,9 @@
             --text: #0f172a;
             --text-muted: #475569;
             --text-faint: #64748b;
-            --accent: #10b981;
-            --accent-2: #0d9488;
-            --accent-soft: rgba(16, 185, 129, 0.14);
+            --accent: #2563eb;
+            --accent-2: #1d4ed8;
+            --accent-soft: rgba(37, 99, 235, 0.14);
             --danger: #dc2626;
             --danger-soft: rgba(220, 38, 38, 0.10);
         }
@@ -30,8 +30,8 @@
             margin: 0;
             font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
             background:
-                radial-gradient(circle at 12% -10%, rgba(16, 185, 129, 0.12), transparent 42%),
-                radial-gradient(circle at 88% 8%, rgba(13, 148, 136, 0.10), transparent 38%),
+                radial-gradient(circle at 12% -10%, rgba(37, 99, 235, 0.12), transparent 42%),
+                radial-gradient(circle at 88% 8%, rgba(29, 78, 216, 0.10), transparent 38%),
                 var(--bg);
             color: var(--text);
         }
@@ -82,7 +82,7 @@
             background: var(--surface-2);
         }
         .nav a.active {
-            color: #04140f;
+            color: #ffffff;
             background: linear-gradient(135deg, var(--accent), var(--accent-2));
             border-color: transparent;
         }
@@ -166,12 +166,12 @@
         }
         .btn {
             background: linear-gradient(135deg, var(--accent), var(--accent-2));
-            color: #04140f;
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.22);
+            color: #ffffff;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
         }
         .btn:hover { filter: brightness(1.08); }
-        .btn-soft { background: var(--accent-soft); color: #047857; border-color: rgba(16, 185, 129, 0.3); }
-        .btn-soft:hover { background: rgba(16, 185, 129, 0.22); }
+        .btn-soft { background: var(--accent-soft); color: #1d4ed8; border-color: rgba(37, 99, 235, 0.3); }
+        .btn-soft:hover { background: rgba(37, 99, 235, 0.22); }
         .btn-muted { background: var(--surface-2); color: var(--text); border-color: var(--border); }
         .btn-muted:hover { background: var(--surface-3); }
         .btn-link { background: var(--surface-3); color: var(--text); }
@@ -190,8 +190,10 @@
             color: var(--text-muted);
             text-transform: capitalize;
         }
-        .flash { padding: .9rem 1.1rem; margin-bottom: 1.25rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; color: #047857; }
+        .status-danger { background: var(--danger-soft); color: #b91c1c; border-color: rgba(220, 38, 38, 0.28); margin-inline-start: .35rem; }
+        .flash { padding: .9rem 1.1rem; margin-bottom: 1.25rem; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 14px; color: #1d4ed8; }
         .errors { padding: .9rem 1.1rem; margin-bottom: 1.25rem; background: var(--danger-soft); border: 1px solid rgba(220, 38, 38, 0.28); border-radius: 14px; color: #b91c1c; }
+        .field-error { display: block; margin: -.45rem 0 .65rem; font-size: .78rem; color: #dc2626; }
         .muted { color: var(--text-muted); }
         dialog.modal {
             width: min(720px, calc(100% - 2rem));
@@ -254,7 +256,15 @@
             @if (session('status'))
                 <div class="flash">{{ session('status') }}</div>
             @endif
-            @if ($errors->any())
+            {{-- A form inside a modal (see the "reopen the failed modal"
+                 script below) shows its own errors inline, next to each
+                 field, once that modal reopens -- this top-of-page box is
+                 only a fallback for the few forms that aren't in a modal
+                 (the toolbar's search/filter form, for instance). Without
+                 gating on _modal_id, every modal validation error would
+                 render twice: once here, once inline in the reopened
+                 modal. --}}
+            @if ($errors->any() && ! old('_modal_id'))
                 <div class="errors">
                     @foreach ($errors->all() as $error)
                         <div>{{ $error }}</div>
@@ -281,5 +291,35 @@
         });
     </script>
     @stack('modals')
+    <script>
+        // A create/update form that fails validation redirects back here (a
+        // plain full-page POST, no fetch/AJAX involved) -- which by default
+        // re-renders the page with the dialog closed again and the form
+        // blank, since neither survives a real navigation on their own. Each
+        // such form carries a hidden _modal_id field (see the "Create
+        // Company"/"Update Company"/etc. forms) naming its own dialog;
+        // Laravel's own old() already flashes it through the failed
+        // redirect for free, same as it does every other field. Reopening
+        // it here, plus the per-field error directive and old() inside the
+        // form itself (repopulating exactly what was typed and showing the
+        // message next to the field that failed), keeps the whole thing
+        // feeling like the popup never closed instead of dumping errors at
+        // the top of a reset page.
+        //
+        // This has to run after the modals stack above, not in the same
+        // <script> block higher up the page -- every dialog this needs to
+        // find by id lives inside that stack, which Blade/the browser
+        // parses into the DOM only once it's actually reached in source
+        // order. A script running earlier (even on DOMContentLoaded, since
+        // that still fires after the whole document -- including this
+        // block -- has parsed) would just get null back from
+        // getElementById() and silently do nothing, which is exactly why
+        // this looked like "the popup closes/never reopens on error".
+        var reopenModalId = @json(old('_modal_id'));
+        if (reopenModalId) {
+            var reopenDialog = document.getElementById(reopenModalId);
+            if (reopenDialog) reopenDialog.showModal();
+        }
+    </script>
 </body>
 </html>

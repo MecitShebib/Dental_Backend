@@ -7,9 +7,9 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * The five specialties the Doctovaria platform is designed around. All five
+ * The six specialties the Doctovaria platform is designed around. All six
  * now have a real (if v1/narrow) backend+frontend -- see each
- * App\Specialties\*\*Module::isBuilt() -- so all five are seeded active
+ * App\Specialties\*\*Module::isBuilt() -- so all six are seeded active
  * (company-subscribable). is_active is a separate, admin-toggleable
  * "available for subscription" flag from isBuilt() ("does real
  * functionality exist"); it just happens both are true for every specialty
@@ -69,6 +69,16 @@ class SpecialtySeeder extends Seeder
                 'icon' => 'cosmetic',
                 'is_active' => true,
                 'sort_order' => 5,
+            ],
+            [
+                'key' => Specialty::NUTRITION,
+                'brand_name' => 'Dietavaria',
+                'name_ar' => 'التغذية العلاجية',
+                'name_en' => 'Dietetics & Nutrition',
+                'name_tr' => 'Diyetisyenlik / Beslenme',
+                'icon' => 'nutrition',
+                'is_active' => true,
+                'sort_order' => 6,
             ],
         ];
 

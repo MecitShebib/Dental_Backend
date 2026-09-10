@@ -13,10 +13,20 @@ class ConsentTemplate extends Model
 {
     use BelongsToCompany, HasFactory, HasUuid;
 
+    /** Pre-existing treatment consent (signature pad for a procedure). */
+    public const KIND_CLINICAL = 'clinical';
+
+    /** KVKK m.10 Aydınlatma Metni -- informational, patient acknowledges. */
+    public const KIND_KVKK_DISCLOSURE = 'kvkk_disclosure';
+
+    /** KVKK m.6/2 Açık Rıza Beyanı -- required before AI/cross-border features. */
+    public const KIND_KVKK_EXPLICIT_CONSENT = 'kvkk_explicit_consent';
+
     protected $fillable = [
         'uuid',
         'company_id',
         'title',
+        'kind',
         'body',
         'sections',
         'language',

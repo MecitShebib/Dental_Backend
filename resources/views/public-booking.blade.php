@@ -12,6 +12,9 @@
             'book_another' => 'Book another appointment', 'loading' => 'Loading...', 'error_generic' => 'Something went wrong. Please try again.',
             'no_doctors' => 'Online booking is not available for this clinic right now.',
             'required' => 'This field is required.',
+            'send_code' => 'Send verification code', 'otp_title' => 'Verify your phone',
+            'otp_sent_to' => 'We sent a code to', 'otp_label' => 'Verification code',
+            'change_phone' => 'Change phone number',
         ],
         'ar' => [
             'title' => 'احجز موعدًا', 'step1' => 'اختر الطبيب', 'step2' => 'اختر التاريخ والوقت',
@@ -22,6 +25,9 @@
             'book_another' => 'حجز موعد آخر', 'loading' => 'جارٍ التحميل...', 'error_generic' => 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
             'no_doctors' => 'الحجز الإلكتروني غير متاح لهذه العيادة حاليًا.',
             'required' => 'هذا الحقل مطلوب.',
+            'send_code' => 'إرسال رمز التحقق', 'otp_title' => 'تحقق من رقم هاتفك',
+            'otp_sent_to' => 'أرسلنا رمزًا إلى', 'otp_label' => 'رمز التحقق',
+            'change_phone' => 'تغيير رقم الهاتف',
         ],
         'tr' => [
             'title' => 'Randevu alın', 'step1' => 'Doktor seçin', 'step2' => 'Tarih ve saat seçin',
@@ -32,6 +38,9 @@
             'book_another' => 'Başka bir randevu al', 'loading' => 'Yükleniyor...', 'error_generic' => 'Bir şeyler ters gitti. Lütfen tekrar deneyin.',
             'no_doctors' => 'Bu klinik için online randevu şu anda kullanılamıyor.',
             'required' => 'Bu alan zorunludur.',
+            'send_code' => 'Doğrulama kodu gönder', 'otp_title' => 'Telefonunuzu doğrulayın',
+            'otp_sent_to' => 'Şu numaraya bir kod gönderdik:', 'otp_label' => 'Doğrulama kodu',
+            'change_phone' => 'Telefon numarasını değiştir',
         ],
     ][$locale];
 @endphp
@@ -61,7 +70,7 @@
         label { display: block; font-size: 13px; color: #5b6b63; margin-bottom: 6px; }
         .btn { width: 100%; padding: 13px; border-radius: 10px; border: none; background: #0f9d6c; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
         .btn:disabled { opacity: .5; cursor: not-allowed; }
-        .btn-link { background: none; color: #5b6b63; text-decoration: underline; padding: 8px 0; font-size: 13px; }
+        .btn-link { width: 100%; background: none; border: none; color: #5b6b63; text-decoration: underline; padding: 8px 0; font-size: 13px; cursor: pointer; }
         .muted { color: #5b6b63; font-size: 13px; }
         .error { color: #c0392b; font-size: 13px; margin-top: 4px; }
         .hidden { display: none !important; }
@@ -85,7 +94,11 @@
             var apiBase = '/api/public/companies/' + encodeURIComponent(slug);
             var app = document.getElementById('app');
 
-            var state = { doctors: [], doctorId: null, date: null, time: null };
+            var state = {
+                doctors: [], doctorId: null, date: null, time: null,
+                clientName: '', clientPhone: '', clientEmail: '', website: '',
+                otpReference: null, maskedMobile: null,
+            };
 
             function el(tag, attrs, children) {
                 var node = document.createElement(tag);
@@ -103,7 +116,9 @@
                 app.innerHTML = '';
                 app.appendChild(renderDoctorStep());
                 if (state.doctorId) app.appendChild(renderDateTimeStep());
-                if (state.doctorId && state.time) app.appendChild(renderDetailsStep());
+                if (state.doctorId && state.time) {
+                    app.appendChild(state.otpReference ? renderOtpStep() : renderDetailsStep());
+                }
             }
 
             function renderDoctorStep() {
@@ -126,6 +141,8 @@
                         state.doctorId = doctor.id;
                         state.date = null;
                         state.time = null;
+                        state.otpReference = null;
+                        state.maskedMobile = null;
                         render();
                     });
                     list.appendChild(pill);
@@ -144,6 +161,8 @@
                 dateInput.addEventListener('change', function () {
                     state.date = dateInput.value;
                     state.time = null;
+                    state.otpReference = null;
+                    state.maskedMobile = null;
                     loadAvailability();
                 });
                 card.appendChild(label);
@@ -177,6 +196,8 @@
                     });
                     pill.addEventListener('click', function () {
                         state.time = time;
+                        state.otpReference = null;
+                        state.maskedMobile = null;
                         render();
                     });
                     container.appendChild(pill);
@@ -190,19 +211,23 @@
                 var form = el('form');
                 var nameLabel = el('label', { text: t.name });
                 var nameInput = el('input', { type: 'text', id: 'client_name', required: 'required' });
+                nameInput.value = state.clientName;
                 var phoneLabel = el('label', { text: t.phone });
                 var phoneInput = el('input', { type: 'tel', id: 'client_phone', required: 'required' });
+                phoneInput.value = state.clientPhone;
                 var emailLabel = el('label', { text: t.email });
                 var emailInput = el('input', { type: 'email', id: 'client_email' });
+                emailInput.value = state.clientEmail;
 
                 var honeypot = el('div', { class: 'hp-field' });
                 var honeypotLabel = el('label', { text: 'Website', for: 'website' });
                 var honeypotInput = el('input', { type: 'text', id: 'website', name: 'website', tabindex: '-1', autocomplete: 'off' });
+                honeypotInput.value = state.website;
                 honeypot.appendChild(honeypotLabel);
                 honeypot.appendChild(honeypotInput);
 
                 var errorBox = el('p', { class: 'error hidden', id: 'form-error' });
-                var submit = el('button', { type: 'submit', class: 'btn', text: t.confirm });
+                var submit = el('button', { type: 'submit', class: 'btn', text: t.send_code });
 
                 form.appendChild(nameLabel);
                 form.appendChild(nameInput);
@@ -219,6 +244,72 @@
                     submit.disabled = true;
                     errorBox.classList.add('hidden');
 
+                    fetch(apiBase + '/book/request-otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                        body: JSON.stringify({ client_phone: phoneInput.value }),
+                    })
+                        .then(function (response) {
+                            if (!response.ok) {
+                                return response.json().then(function (body) { throw body; });
+                            }
+                            return response.json();
+                        })
+                        .then(function (body) {
+                            state.clientName = nameInput.value;
+                            state.clientPhone = phoneInput.value;
+                            state.clientEmail = emailInput.value;
+                            state.website = honeypotInput.value;
+                            state.otpReference = body.data.otp_reference;
+                            state.maskedMobile = body.data.masked_mobile;
+                            render();
+                        })
+                        .catch(function (body) {
+                            submit.disabled = false;
+                            var message = (body && body.errors && Object.values(body.errors)[0] && Object.values(body.errors)[0][0])
+                                || (body && body.message)
+                                || t.error_generic;
+                            errorBox.textContent = message;
+                            errorBox.classList.remove('hidden');
+                        });
+                });
+
+                card.appendChild(form);
+                return card;
+            }
+
+            function renderOtpStep() {
+                var card = el('div', { class: 'card' });
+                card.appendChild(el('p', { class: 'step-title', text: t.otp_title }));
+                card.appendChild(el('p', { class: 'muted', text: t.otp_sent_to + ' ' + state.maskedMobile }));
+
+                var form = el('form');
+                var otpLabel = el('label', { text: t.otp_label });
+                var otpInput = el('input', {
+                    type: 'text', id: 'otp', inputmode: 'numeric', autocomplete: 'one-time-code', required: 'required',
+                });
+
+                var errorBox = el('p', { class: 'error hidden', id: 'otp-error' });
+                var submit = el('button', { type: 'submit', class: 'btn', text: t.confirm });
+                var changePhone = el('button', { type: 'button', class: 'btn-link', text: t.change_phone });
+
+                changePhone.addEventListener('click', function () {
+                    state.otpReference = null;
+                    state.maskedMobile = null;
+                    render();
+                });
+
+                form.appendChild(otpLabel);
+                form.appendChild(otpInput);
+                form.appendChild(errorBox);
+                form.appendChild(submit);
+                form.appendChild(changePhone);
+
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    submit.disabled = true;
+                    errorBox.classList.add('hidden');
+
                     fetch(apiBase + '/book', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -226,10 +317,12 @@
                             doctor_id: state.doctorId,
                             date: state.date,
                             start_time: state.time,
-                            client_name: nameInput.value,
-                            client_phone: phoneInput.value,
-                            client_email: emailInput.value || null,
-                            website: honeypotInput.value,
+                            client_name: state.clientName,
+                            client_phone: state.clientPhone,
+                            client_email: state.clientEmail || null,
+                            otp: otpInput.value,
+                            otp_reference: state.otpReference,
+                            website: state.website,
                         }),
                     })
                         .then(function (response) {
@@ -262,7 +355,11 @@
                 wrap.appendChild(el('p', { class: 'muted', text: t.success_body }));
                 var again = el('button', { type: 'button', class: 'btn', text: t.book_another });
                 again.addEventListener('click', function () {
-                    state = { doctors: state.doctors, doctorId: null, date: null, time: null };
+                    state = {
+                        doctors: state.doctors, doctorId: null, date: null, time: null,
+                        clientName: '', clientPhone: '', clientEmail: '', website: '',
+                        otpReference: null, maskedMobile: null,
+                    };
                     render();
                 });
                 wrap.appendChild(again);

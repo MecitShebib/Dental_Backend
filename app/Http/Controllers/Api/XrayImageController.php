@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\XrayImage\StoreXrayImageRequest;
 use App\Http\Requests\XrayImage\UpdateXrayImageRequest;
 use App\Http\Resources\XrayImageResource;
+use App\Jobs\AnalyzeXrayImageJob;
 use App\Models\Client;
 use App\Models\XrayImage;
 use Illuminate\Http\Request;
@@ -40,13 +41,30 @@ class XrayImageController extends Controller
         $clientId = $this->resolveClientId($data['client_id'] ?? null);
 
         $images = collect($request->file('images'))->map(function ($file) use ($request, $data, $clientId) {
-            return $request->user()->company->xrayImages()->create([
+            $image = $request->user()->company->xrayImages()->create([
                 'client_id' => $clientId,
-                'image_path' => $file->store('xray-images', 'public'),
+                'image_path' => $file->store('xray-images', 'local'),
                 'original_filename' => $file->getClientOriginalName(),
                 'notes' => $data['notes'] ?? null,
                 'uploaded_by' => $request->user()->id,
             ]);
+
+            // Linked at upload time (rather than via the picker modal's later
+            // "Save" action, see update() below) -- kick off the AI reading
+            // right away instead of leaving it stuck unanalyzed forever.
+            // dispatchSync(), not dispatch(): this host has no queue worker
+            // process, so anything sent through ::dispatch() sits in the
+            // `jobs` table untouched forever (confirmed via production
+            // diagnostics -- pending AnalyzeXrayImageJob rows with 0 attempts).
+            // Gated behind the same flag as the 3D Odontogram tab (see
+            // config/features.php) -- this analysis exists only to feed that
+            // tab, so there is no point spending AI tokens on it while the
+            // tab itself is hidden.
+            if ($clientId && config('features.three_d_odontogram')) {
+                AnalyzeXrayImageJob::dispatchSync($image);
+            }
+
+            return $image;
         });
 
         return $this->success(XrayImageResource::collection($images), 'Image(s) uploaded successfully.', 201);
@@ -60,17 +78,62 @@ class XrayImageController extends Controller
             $data['client_id'] = $this->resolveClientId($data['client_id']);
         }
 
+        // Only the first time an image is linked to any patient -- editing
+        // notes or re-linking an already-analyzed image shouldn't burn
+        // another AI call, the reading is about the image content, not
+        // which patient it's currently filed under.
+        $shouldAnalyze = is_null($xrayImage->ai_analyzed_at);
+
         $xrayImage->update($data);
+
+        if ($xrayImage->client_id && $shouldAnalyze && config('features.three_d_odontogram')) {
+            AnalyzeXrayImageJob::dispatchSync($xrayImage);
+        }
 
         return $this->success(XrayImageResource::make($xrayImage->fresh('client')), 'Image updated successfully.');
     }
 
     public function destroy(XrayImage $xrayImage)
     {
-        Storage::disk('public')->delete($xrayImage->image_path);
+        Storage::disk('local')->delete($xrayImage->image_path);
         $xrayImage->delete();
 
         return $this->success(null, 'Image deleted successfully.');
+    }
+
+    /**
+     * Streams the raw image from the private disk. Reached only via a
+     * signed URL (see XrayImageResource::image_url and the `signed`
+     * middleware on the xray-images.file route) -- there is no bearer-token
+     * check here because the browser's plain <img> tag can't send one; the
+     * signature itself, minted only for a request that already passed
+     * auth:sanctum + tenant scoping, is what authorizes this.
+     */
+    public function file(XrayImage $xrayImage)
+    {
+        return Storage::disk('local')->response($xrayImage->image_path, $xrayImage->original_filename);
+    }
+
+    /**
+     * The most recently AI-analyzed X-ray on file for this client -- the
+     * "before" baseline the 3D odontogram tab renders (see
+     * PatientOdontogram3D.jsx on the frontend, which merges this with the
+     * client's own visit/appointment charts). Null fields mean no X-ray has
+     * been analyzed yet (either none linked, or the analysis job hasn't run
+     * or has failed) -- the frontend already handles that gracefully.
+     */
+    public function latestOdontogram(Client $client)
+    {
+        $xrayImage = $client->xrayImages()
+            ->whereNotNull('ai_odontogram_status')
+            ->latest('ai_analyzed_at')
+            ->first();
+
+        return $this->success([
+            'odontogram_v2_status' => $xrayImage?->ai_odontogram_status,
+            'analyzed_at' => $xrayImage?->ai_analyzed_at,
+            'xray_image_uuid' => $xrayImage?->uuid,
+        ]);
     }
 
     /**

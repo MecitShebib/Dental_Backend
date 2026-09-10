@@ -35,13 +35,15 @@ return [
         ],
     ],
 
-    'infobip' => [
-        'enabled' => env('INFOBIP_ENABLED', false),
-        // Infobip issues a personalized base URL per account (no shared
-        // default across customers, unlike Turkey SMS's fixed domain).
-        'base_url' => env('INFOBIP_BASE_URL'),
-        'api_key' => env('INFOBIP_API_KEY'),
-        'sender' => env('INFOBIP_SENDER', 'Dentavaria'),
+    'iletimerkezi' => [
+        'enabled' => env('ILETIMERKEZI_ENABLED', false),
+        // İleti Merkezi (Turkey-domiciled) rather than a foreign provider
+        // (previously Infobip, Croatia) -- this keeps OTP/reminder SMS a
+        // domestic KVKK m.8 transfer instead of a cross-border m.9 one.
+        // Fixed endpoint (see IletiMerkeziSmsService), no base_url needed.
+        'api_key' => env('ILETIMERKEZI_API_KEY'),
+        'api_hash' => env('ILETIMERKEZI_API_HASH'),
+        'sender' => env('ILETIMERKEZI_SENDER', 'Dentavaria'),
     ],
 
     // OTP-generation settings -- independent of which provider actually

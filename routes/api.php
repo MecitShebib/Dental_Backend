@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ClientAppointmentController;
 use App\Http\Controllers\Api\ClientCarePlanController;
 use App\Http\Controllers\Api\ClientConsentController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\ClientDataRequestController;
 use App\Http\Controllers\Api\ClientPaymentController;
 use App\Http\Controllers\Api\ClientTreatmentRecordController;
 use App\Http\Controllers\Api\ClientVisitController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\LabPartnerController;
 use App\Http\Controllers\Api\LabPaymentController;
 use App\Http\Controllers\Api\MessageTemplateController;
+use App\Http\Controllers\Api\NutritionCarePlanController;
 use App\Http\Controllers\Api\PatientLabResultController;
 use App\Http\Controllers\Api\PatientRecallController;
 use App\Http\Controllers\Api\PrenatalCarePlanController;
@@ -59,6 +61,10 @@ Route::prefix('public/companies/{company:booking_slug}')->group(function () {
     Route::middleware('throttle:public-booking-read')->group(function () {
         Route::get('doctors', [PublicBookingController::class, 'doctors']);
         Route::get('availability', [PublicBookingController::class, 'availability']);
+    });
+
+    Route::middleware('throttle:public-booking-otp-request')->group(function () {
+        Route::post('book/request-otp', [PublicBookingController::class, 'requestOtp']);
     });
 
     Route::middleware('throttle:public-booking-write')->group(function () {
@@ -125,15 +131,22 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::get('clients/{client}/appointments', [ClientAppointmentController::class, 'index']);
     Route::get('clients/{client}/consents', [ClientConsentController::class, 'index']);
     Route::post('clients/{client}/consents', [ClientConsentController::class, 'store']);
+    Route::get('clients/{client}/data-export', [ClientDataRequestController::class, 'export']);
+    Route::delete('clients/{client}/personal-data', [ClientDataRequestController::class, 'destroy']);
     Route::get('consent-templates', [ConsentTemplateController::class, 'index']);
     Route::post('consent-templates', [ConsentTemplateController::class, 'store']);
     Route::put('consent-templates/{template}', [ConsentTemplateController::class, 'update']);
     Route::delete('consent-templates/{template}', [ConsentTemplateController::class, 'destroy']);
     Route::get('clients/{client}/ai-conversation', [AiTreatmentPlanController::class, 'conversationHistory']);
-    Route::post('clients/{client}/ai-conversation/messages', [AiTreatmentPlanController::class, 'sendMessage']);
-    Route::post('clients/{client}/ai-treatment-plan/transcribe', [AiTreatmentPlanController::class, 'transcribe']);
-    Route::post('clients/{client}/ai-treatment-plan/generate', [AiTreatmentPlanController::class, 'generatePlan']);
-    Route::post('clients/{client}/ai-treatment-plan/confirm', [AiTreatmentPlanController::class, 'confirm']);
+    // Every one of these sends the patient's case description (and/or a
+    // voice recording) to OpenAI -- gated behind the KVKK Açık Rıza Beyanı.
+    // See RequiresKvkkConsent.
+    Route::middleware('kvkk.consent')->group(function () {
+        Route::post('clients/{client}/ai-conversation/messages', [AiTreatmentPlanController::class, 'sendMessage']);
+        Route::post('clients/{client}/ai-treatment-plan/transcribe', [AiTreatmentPlanController::class, 'transcribe']);
+        Route::post('clients/{client}/ai-treatment-plan/generate', [AiTreatmentPlanController::class, 'generatePlan']);
+        Route::post('clients/{client}/ai-treatment-plan/confirm', [AiTreatmentPlanController::class, 'confirm']);
+    });
     Route::post('clients/{client}/ai-treatment-plan/charge', [AiTreatmentPlanController::class, 'addCharge']);
 
     // Gynevaria prototype -- see PrenatalCarePlanService's docblock.
@@ -141,6 +154,8 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('clients/{client}/chronic-care-plan/confirm', [ChronicCarePlanController::class, 'confirm']);
     Route::post('clients/{client}/rehab-care-plan/confirm', [RehabCarePlanController::class, 'confirm']);
     Route::post('clients/{client}/cosmetic-care-plan/confirm', [CosmeticCarePlanController::class, 'confirm']);
+    // Dietavaria prototype -- see NutritionCarePlanService's docblock.
+    Route::post('clients/{client}/nutrition-care-plan/confirm', [NutritionCarePlanController::class, 'confirm']);
 
     Route::get('doctors/{doctor}/schedule', [DoctorScheduleController::class, 'show']);
     Route::put('doctors/{doctor}/schedule', [DoctorScheduleController::class, 'update']);
@@ -277,6 +292,7 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('xray-images', [XrayImageController::class, 'store']);
     Route::put('xray-images/{xrayImage}', [XrayImageController::class, 'update']);
     Route::delete('xray-images/{xrayImage}', [XrayImageController::class, 'destroy']);
+    Route::get('clients/{client}/xray-odontogram', [XrayImageController::class, 'latestOdontogram']);
 
     Route::get('dicom-studies', [DicomStudyController::class, 'index']);
     Route::get('dicom-studies/{dicomStudy}', [DicomStudyController::class, 'show']);
@@ -313,3 +329,4 @@ require __DIR__.'/api/gynecology.php';
 require __DIR__.'/api/internal_medicine.php';
 require __DIR__.'/api/orthopedics.php';
 require __DIR__.'/api/cosmetic.php';
+require __DIR__.'/api/nutrition.php';

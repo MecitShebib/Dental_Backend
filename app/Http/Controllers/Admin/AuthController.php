@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\SubscriptionAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -58,6 +59,17 @@ class AuthController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
+
+        // Single-session-per-account: logging in from another browser/device
+        // must sign the previous admin session out. Safe to run unconditionally
+        // -- if SESSION_DRIVER isn't 'database' this table is simply unused and
+        // the delete is a no-op.
+        if (config('session.driver') === 'database') {
+            DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->where('id', '!=', $request->session()->getId())
+                ->delete();
+        }
 
         return redirect()->route('admin.dashboard');
     }

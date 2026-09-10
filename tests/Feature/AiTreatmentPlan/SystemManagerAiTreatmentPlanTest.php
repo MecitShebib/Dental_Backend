@@ -93,13 +93,16 @@ class SystemManagerAiTreatmentPlanTest extends TestCase
 
     protected function makeClient(string $code = 'CL-4001'): Client
     {
-        return Client::create([
+        $client = Client::create([
             'client_code' => $code,
             'name' => 'Nour',
             'phone' => '+963900004001',
             'gender' => 'female',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
+
+        return $client;
     }
 
     protected function sessionPayload(string $date): array

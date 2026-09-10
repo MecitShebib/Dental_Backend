@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Specialty;
 use App\Models\User;
@@ -42,7 +43,7 @@ class UserControllerTest extends TestCase
         $response = $this->postJson('/api/users', [
             'name' => 'New Staffer',
             'email' => 'staffer@example.test',
-            'password' => 'password123',
+            'password' => 'Password123!',
             'branch_id' => $branch->id,
         ])->assertCreated();
 
@@ -82,7 +83,7 @@ class UserControllerTest extends TestCase
         $this->postJson('/api/users', [
             'name' => 'New Staffer',
             'email' => 'staffer2@example.test',
-            'password' => 'password123',
+            'password' => 'Password123!',
             'branch_id' => $otherBranch->id,
         ])->assertStatus(422)->assertJsonValidationErrors('branch_id');
     }
@@ -111,7 +112,7 @@ class UserControllerTest extends TestCase
         $response = $this->postJson('/api/users', [
             'name' => 'Dr. Gyn',
             'email' => 'dr.gyn@example.com',
-            'password' => 'secret123',
+            'password' => 'Password123!',
             'is_doctor' => true,
             'specialty_id' => $gynecology->id,
         ]);
@@ -132,7 +133,7 @@ class UserControllerTest extends TestCase
         $response = $this->postJson('/api/users', [
             'name' => 'Dr. No Specialty',
             'email' => 'dr.nospecialty@example.com',
-            'password' => 'secret123',
+            'password' => 'Password123!',
             'is_doctor' => true,
         ]);
 
@@ -157,6 +158,53 @@ class UserControllerTest extends TestCase
 
         $response->assertOk();
         $this->assertSame($gynecology->id, $doctor->fresh()->specialty_id);
+    }
+
+    public function test_a_sole_system_managers_permissions_cannot_be_stripped_via_self_edit(): void
+    {
+        $company = Company::factory()->create();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $admin = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
+        $role = Role::query()->firstOrCreate(['slug' => 'system_manager'], ['name' => 'System Manager']);
+        $admin->roles()->attach($role);
+        $admin->permissions()->sync(Permission::query()->pluck('id')->all());
+        Sanctum::actingAs($admin);
+
+        // Shape of the payload the React app's own self-edit form sends
+        // today (see UserEditPage.jsx/saveUserDraft): permission chips
+        // unchecked, role_ids not resent -- the sole admin should come out
+        // of this with every role and permission intact regardless.
+        $response = $this->putJson("/api/users/{$admin->id}", [
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'is_doctor' => true,
+            'specialty_id' => $dental->id,
+            'role_ids' => [],
+            'permission_ids' => [],
+        ]);
+
+        $response->assertOk();
+        $admin->refresh();
+        $this->assertTrue($admin->isSystemManager());
+        $this->assertSame(Permission::count(), $admin->permissions()->count());
+    }
+
+    public function test_a_second_system_managers_permissions_can_still_be_freely_edited(): void
+    {
+        $company = Company::factory()->create();
+        $firstManager = $this->makeManager($company);
+        $secondManager = $this->makeManager($company);
+        $secondManager->permissions()->sync(Permission::query()->pluck('id')->all());
+        Sanctum::actingAs($firstManager);
+
+        $response = $this->putJson("/api/users/{$secondManager->id}", [
+            'name' => $secondManager->name,
+            'email' => $secondManager->email,
+            'permission_ids' => [],
+        ]);
+
+        $response->assertOk();
+        $this->assertSame(0, $secondManager->fresh()->permissions()->count());
     }
 
     public function test_the_doctors_endpoint_includes_specialty_key(): void

@@ -107,4 +107,21 @@ class CallLogTest extends TestCase
         $this->deleteJson("/api/call-logs/{$log->id}")->assertOk();
         $this->assertDatabaseMissing('call_logs', ['id' => $log->id]);
     }
+
+    public function test_a_malformed_phone_number_is_rejected(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->create(['company_id' => $company->id]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/call-logs', [
+            'phone_number' => 'not-a-phone-number',
+            'direction' => 'inbound',
+            'status' => 'missed',
+            'occurred_at' => now()->toDateTimeString(),
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('phone_number');
+    }
 }

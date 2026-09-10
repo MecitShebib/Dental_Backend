@@ -75,7 +75,7 @@ class ConsentService
         }
 
         $path = 'consent-signatures/'.Str::uuid().'.'.$extension;
-        Storage::disk('public')->put($path, $binary);
+        Storage::disk('local')->put($path, $binary);
 
         return $path;
     }

@@ -82,7 +82,7 @@ class AiConversationTest extends TestCase
 
     protected function makeClient(Company $company): Client
     {
-        return Client::create([
+        $client = Client::create([
             'company_id' => $company->id,
             'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
             'name' => 'Sara',
@@ -90,6 +90,9 @@ class AiConversationTest extends TestCase
             'gender' => 'female',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
+
+        return $client;
     }
 
     public function test_it_generates_a_plan_using_the_procedure_vocabulary_not_teeth(): void

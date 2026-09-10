@@ -47,6 +47,12 @@ class PatientLabResultController extends Controller
 
     public function store(StorePatientLabResultRequest $request, Client $client)
     {
+        // Same gate index()/update()/destroy() already enforce -- missing
+        // here meant any doctor in the company could record a lab result
+        // onto a colleague's patient by client id (same class of bug fixed
+        // in PrescriptionController::store()).
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $data = $request->validated();
         $doctor = $this->resolveTreatingDoctor($request->user(), $data['doctor_id'] ?? null);
         $specialtyId = $this->resolveSpecialtyId($doctor);

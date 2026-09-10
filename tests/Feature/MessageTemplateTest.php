@@ -24,14 +24,14 @@ class MessageTemplateTest extends TestCase
         parent::setUp();
 
         config([
-            'services.infobip.enabled' => true,
-            'services.infobip.api_key' => 'test-api-key',
-            'services.infobip.base_url' => 'https://api.infobip.com',
+            'services.iletimerkezi.enabled' => true,
+            'services.iletimerkezi.api_key' => 'test-api-key',
+            'services.iletimerkezi.api_hash' => 'test-api-hash',
         ]);
 
         Http::fake([
-            'https://api.infobip.com/*' => Http::response([
-                'messages' => [['messageId' => 'test', 'status' => ['groupId' => 1, 'groupName' => 'PENDING']]],
+            'https://api.iletimerkezi.com/*' => Http::response([
+                'response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => 'test']],
             ], 200),
         ]);
     }
@@ -135,6 +135,6 @@ class MessageTemplateTest extends TestCase
 
         Artisan::call('appointments:send-reminders');
 
-        Http::assertSent(fn ($request) => str_contains((string) $request['messages'][0]['text'], 'CUSTOM WORDING for Test Patient with Dr. Ali Doctor.'));
+        Http::assertSent(fn ($request) => str_contains((string) $request['request']['order']['message']['text'], 'CUSTOM WORDING for Test Patient with Dr. Ali Doctor.'));
     }
 }

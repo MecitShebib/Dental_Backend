@@ -51,6 +51,12 @@ class SpecialtyAiProfiles
                 ['code' => 'botox_session', 'name_en' => 'Botox Session'],
                 ['code' => 'filler_session', 'name_en' => 'Filler Session'],
             ],
+            Specialty::NUTRITION => [
+                ['code' => 'nutrition_consultation', 'name_en' => 'Initial Nutrition Consultation'],
+                ['code' => 'followup_session', 'name_en' => 'Follow-up Session'],
+                ['code' => 'body_composition_analysis', 'name_en' => 'Body Composition Analysis'],
+                ['code' => 'meal_plan_revision', 'name_en' => 'Meal Plan Revision'],
+            ],
             default => [],
         };
     }
@@ -133,6 +139,7 @@ class SpecialtyAiProfiles
             Specialty::INTERNAL_MEDICINE => 'internal medicine / chronic disease management',
             Specialty::ORTHOPEDICS => 'orthopedic rehabilitation',
             Specialty::COSMETIC => 'cosmetic treatment',
+            Specialty::NUTRITION => 'nutrition and dietetics',
             default => 'medical',
         };
     }

@@ -8,25 +8,25 @@
     $ui = [
         'en' => [
             'meta_title' => 'Doctovaria — The clinical operating system for modern healthcare practices',
-            'meta_description' => 'Doctovaria is the clinical operating system for modern healthcare practices — dental, gynecology, internal medicine, orthopedics, and cosmetic. Pick your specialty to see its own workflow, features, and pricing.',
+            'meta_description' => 'Doctovaria is the clinical operating system for modern healthcare practices — dental, gynecology, internal medicine, orthopedics, cosmetic, and dietetics & nutrition. Pick your specialty to see its own workflow, features, and pricing.',
             'nav_login' => 'Log in', 'nav_cta' => 'Book a demo', 'nav_admin' => 'Go to admin panel', 'nav_dashboard' => 'Go to dashboard',
-            'nav_api_docs' => 'API Documentation',
+            'nav_api_docs' => 'API Documentation', 'nav_options' => 'Options',
             'view_product' => 'View',
             'footer_rights' => 'All rights reserved.',
         ],
         'ar' => [
             'meta_title' => 'Doctovaria — نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة',
-            'meta_description' => 'Doctovaria هو نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة — طب الأسنان وأمراض النساء والطب الباطني وجراحة العظام والطب التجميلي. اختر تخصصك لترى سير عمله ومزاياه وأسعاره الخاصة.',
+            'meta_description' => 'Doctovaria هو نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة — طب الأسنان وأمراض النساء والطب الباطني وجراحة العظام والطب التجميلي والتغذية العلاجية. اختر تخصصك لترى سير عمله ومزاياه وأسعاره الخاصة.',
             'nav_login' => 'تسجيل الدخول', 'nav_cta' => 'احجز عرضًا توضيحيًا', 'nav_admin' => 'الذهاب إلى لوحة التحكم', 'nav_dashboard' => 'الذهاب إلى لوحة القيادة',
-            'nav_api_docs' => 'وثائق API',
+            'nav_api_docs' => 'وثائق API', 'nav_options' => 'خيارات',
             'view_product' => 'عرض',
             'footer_rights' => 'جميع الحقوق محفوظة.',
         ],
         'tr' => [
             'meta_title' => 'Doctovaria — Modern sağlık pratiklerinin klinik işletim sistemi',
-            'meta_description' => "Doctovaria, modern sağlık pratiklerinin klinik işletim sistemidir — diş hekimliği, kadın hastalıkları, dahiliye, ortopedi ve estetik tıp. Kendi uzmanlık alanınızın iş akışını, özelliklerini ve fiyatlandırmasını görmek için seçin.",
+            'meta_description' => "Doctovaria, modern sağlık pratiklerinin klinik işletim sistemidir — diş hekimliği, kadın hastalıkları, dahiliye, ortopedi, estetik tıp ve diyetisyenlik. Kendi uzmanlık alanınızın iş akışını, özelliklerini ve fiyatlandırmasını görmek için seçin.",
             'nav_login' => 'Giriş yap', 'nav_cta' => 'Demo talep edin', 'nav_admin' => 'Yönetim paneline git', 'nav_dashboard' => 'Panele git',
-            'nav_api_docs' => 'API Dokümantasyonu',
+            'nav_api_docs' => 'API Dokümantasyonu', 'nav_options' => 'Seçenekler',
             'view_product' => 'Görüntüle',
             'footer_rights' => 'Tüm hakları saklıdır.',
         ],
@@ -49,10 +49,15 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <script>
         (function () {
+            // The <html> tag above hardcodes data-theme="light" as a safe
+            // pre-JS default -- this runs before first paint (no FOUC) to
+            // correct it to "dark" when that's what the visitor actually
+            // wants: an explicit stored choice, or (on a first-ever visit,
+            // nothing stored yet) the OS/browser's own dark-mode preference.
             var stored = localStorage.getItem('doctovaria-theme');
-            if (stored === 'light' || stored === 'dark') {
-                document.documentElement.setAttribute('data-theme', stored);
-            }
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
 
@@ -178,7 +183,7 @@
                 <img src="{{ $wordmarkSrc }}" alt="Doctovaria" class="block h-12 w-auto">
             </a>
 
-            <div class="flex items-center gap-3">
+            <div class="hidden items-center gap-3 md:flex">
                 <button type="button" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light/dark theme">
                     <svg class="icon-sun h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 15a5 5 0 100-10 5 5 0 000 10zM10 0a1 1 0 011 1v1a1 1 0 11-2 0V1a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM3.05 3.05a1 1 0 011.414 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zm11.78 11.78a1 1 0 011.415 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 01-1.414 0zM0 10a1 1 0 011-1h1a1 1 0 110 2H1a1 1 0 01-1-1zm17 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM3.05 16.95a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM14.83 5.17a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0z"/></svg>
                     <svg class="icon-moon h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
@@ -199,6 +204,40 @@
                     </a>
                 @endif
             </div>
+
+            <button type="button" id="mobile-menu-toggle" class="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white md:hidden" aria-expanded="false" aria-controls="mobile-menu-panel">
+                {{ $ui['nav_options'] }}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+
+        <div id="mobile-menu-panel" class="hidden border-t border-white/5 px-6 py-6 md:hidden">
+            <div class="flex items-center justify-between">
+                <button type="button" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light/dark theme">
+                    <svg class="icon-sun h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 15a5 5 0 100-10 5 5 0 000 10zM10 0a1 1 0 011 1v1a1 1 0 11-2 0V1a1 1 0 011-1zm0 17a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM3.05 3.05a1 1 0 011.414 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 010-1.414zm11.78 11.78a1 1 0 011.415 0l.707.707a1 1 0 11-1.414 1.414l-.707-.707a1 1 0 01-1.414 0zM0 10a1 1 0 011-1h1a1 1 0 110 2H1a1 1 0 01-1-1zm17 0a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM3.05 16.95a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM14.83 5.17a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0z"/></svg>
+                    <svg class="icon-moon h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+                </button>
+                <div class="flex items-center overflow-hidden rounded-full border border-white/10 text-xs font-semibold text-slate-400">
+                    @foreach ($languages as $code => $label)
+                        <a href="{{ route('home', $code) }}" class="px-2.5 py-1.5 transition {{ $locale === $code ? 'bg-white/10 text-white' : 'hover:text-white' }}">{{ $label }}</a>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="mt-5 flex flex-col gap-3">
+                @if ($isAdminLoggedIn)
+                    <a href="{{ route('admin.dashboard') }}" class="rounded-full bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 transition hover:bg-blue-50">
+                        {{ $ui['nav_admin'] }}
+                    </a>
+                @else
+                    <a href="{{ $frontendLoginUrl }}" data-auth-cta="guest" class="rounded-full border border-white/15 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:border-white/30">
+                        {{ $ui['nav_login'] }}
+                    </a>
+                    <a href="{{ rtrim(config('app.frontend_url'), '/') }}" data-auth-cta="app-user" class="hidden rounded-full bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 transition hover:bg-blue-50">
+                        {{ $ui['nav_dashboard'] }}
+                    </a>
+                @endif
+            </div>
         </div>
     </header>
 
@@ -206,11 +245,10 @@
         {{-- Hero --}}
         <section class="relative overflow-hidden px-6 pt-20 pb-16">
             <div class="mx-auto max-w-3xl text-center" data-reveal>
-                <div class="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-xs font-medium text-blue-300">
-                    <span class="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+                <p class="text-sm font-semibold uppercase tracking-widest text-blue-400">
                     {{ $content['hero']['eyebrow'] }}
-                </div>
-                <h1 class="mt-6 text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl">
+                </p>
+                <h1 class="mt-4 text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl">
                     {{ $content['hero']['headline'] }}
                 </h1>
                 <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-400">
@@ -235,6 +273,7 @@
                             'internal_medicine' => 'medivaria_logo.png',
                             'orthopedics' => 'orthovaria_logo.png',
                             'cosmetic' => 'estevaria_logo.png',
+                            'nutrition' => 'dietavaria_logo.png',
                             default => 'doctovaria_logo.png',
                         };
                     @endphp
@@ -258,7 +297,7 @@
         <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-slate-600 sm:flex-row">
             <p>&copy; {{ date('Y') }} {{ $content['footer']['copyright_name'] }}. {{ $ui['footer_rights'] }}</p>
             <div class="flex items-center gap-5">
-                <a href="{{ route('api-docs') }}" class="transition hover:text-slate-400">{{ $ui['nav_api_docs'] }}</a>
+                <a href="{{ route('api-docs', ['specialty' => 'dental']) }}" class="transition hover:text-slate-400">{{ $ui['nav_api_docs'] }}</a>
                 <a href="{{ route('privacy', $locale === 'en' ? 'en' : $locale) }}" class="transition hover:text-slate-400">{{ $locale === 'ar' ? 'سياسة الخصوصية' : ($locale === 'tr' ? 'Gizlilik politikası' : 'Privacy policy') }}</a>
                 <a href="{{ route('terms', $locale === 'en' ? 'en' : $locale) }}" class="transition hover:text-slate-400">{{ $locale === 'ar' ? 'شروط الخدمة' : ($locale === 'tr' ? 'Kullanım şartları' : 'Terms of service') }}</a>
             </div>
@@ -273,6 +312,23 @@
                 localStorage.setItem('doctovaria-theme', next);
             });
         });
+
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenuPanel = document.getElementById('mobile-menu-panel');
+        if (mobileMenuToggle && mobileMenuPanel) {
+            mobileMenuToggle.addEventListener('click', () => {
+                const willOpen = mobileMenuPanel.classList.contains('hidden');
+                mobileMenuPanel.classList.toggle('hidden');
+                mobileMenuToggle.setAttribute('aria-expanded', String(willOpen));
+            });
+
+            mobileMenuPanel.querySelectorAll('a, button:not([data-theme-toggle])').forEach((el) => {
+                el.addEventListener('click', () => {
+                    mobileMenuPanel.classList.add('hidden');
+                    mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                });
+            });
+        }
 
         const revealEls = document.querySelectorAll('[data-reveal]');
         const observer = new IntersectionObserver((entries) => {

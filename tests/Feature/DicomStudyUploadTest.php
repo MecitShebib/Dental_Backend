@@ -6,6 +6,7 @@ use App\Models\DicomStudy;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 use ZipArchive;
@@ -224,5 +225,42 @@ class DicomStudyUploadTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('client_id');
+    }
+
+    public function test_a_malicious_series_uid_cannot_escape_the_studys_storage_directory(): void
+    {
+        // Security regression test: DicomTagReader applies no character/
+        // format validation to the Series Instance UID tag -- it's read
+        // straight out of attacker-controlled file bytes. This used to be
+        // used verbatim as the storage directory name
+        // ("dicom-studies/{uuid}/{series_uid}"), and Flysystem's path
+        // normalizer only rejects ".." segments once they'd pop past an
+        // *empty* accumulator -- with two real segments already ahead of it,
+        // "../../xray-images" normalized straight through to "xray-images",
+        // the shared cross-tenant X-ray image store on this same disk.
+        // destroy() later calls deleteDirectory() on that stored path
+        // unmodified, so an attacker could upload a study with this tag,
+        // then delete it to wipe every company's X-ray images platform-wide.
+        Sanctum::actingAs($this->activeDoctor());
+
+        $maliciousSeriesUid = '../../xray-images';
+        $slice = UploadedFile::fake()->createWithContent('slice1.dcm', $this->buildDicomBytes($maliciousSeriesUid));
+
+        $response = $this->postJson('/api/dicom-studies', ['files' => [$slice]]);
+        $response->assertCreated();
+
+        $series = \App\Models\DicomSeries::query()->where('series_uid', $maliciousSeriesUid)->firstOrFail();
+
+        // The raw tag value is fine to keep in the series_uid *column* (a
+        // plain DB value, never touched by any Storage:: call) -- the actual
+        // requirement is that it never appears inside the storage *path*.
+        $this->assertStringNotContainsString('..', $series->storage_path);
+        $this->assertStringNotContainsString($maliciousSeriesUid, $series->storage_path);
+        $this->assertStringStartsWith("dicom-studies/{$series->study->uuid}/", $series->storage_path);
+
+        // And the file itself really did land inside that safe directory,
+        // not anywhere the traversal was aiming for.
+        $this->assertTrue(Storage::disk('local')->exists("{$series->storage_path}/0.dcm"));
+        $this->assertFalse(Storage::disk('local')->exists('xray-images/0.dcm'));
     }
 }

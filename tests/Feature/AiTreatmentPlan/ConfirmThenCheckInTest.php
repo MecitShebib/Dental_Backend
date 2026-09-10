@@ -34,6 +34,7 @@ class ConfirmThenCheckInTest extends TestCase
             'gender' => 'male',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
 
         $date = Carbon::now()->next(Carbon::MONDAY)->toDateString();
 

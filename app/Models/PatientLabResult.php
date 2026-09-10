@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompanyViaClient;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PatientLabResult extends Model
 {
-    use BelongsToCompanyViaClient, HasFactory, HasUuid, SoftDeletes;
+    use Auditable, BelongsToCompanyViaClient, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',

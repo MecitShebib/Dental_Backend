@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\CompanyUserLimitService;
 use Illuminate\Http\Request;
@@ -72,11 +74,48 @@ class UserController extends Controller
         }
 
         $user->update(collect($data)->except(['role_ids', 'permission_ids'])->all());
-        $user->roles()->sync($data['role_ids'] ?? $user->roles()->pluck('roles.id')->all());
-        $user->permissions()->sync($data['permission_ids'] ?? $user->permissions()->pluck('permissions.id')->all());
+
+        $roleIds = $data['role_ids'] ?? $user->roles()->pluck('roles.id')->all();
+        $permissionIds = $data['permission_ids'] ?? $user->permissions()->pluck('permissions.id')->all();
+
+        // A company's sole System Manager is its only way back into User
+        // Management -- letting that account's own edit strip its role or
+        // narrow its permissions (e.g. via the buggy client that used to
+        // resubmit an empty role_ids/permission_ids set on every save) would
+        // permanently lock the company out of admin access. Not just a UI
+        // nicety: enforced here so no client payload, buggy or malicious,
+        // can weaken it.
+        if ($this->isSoleCompanySystemManager($user)) {
+            $systemManagerRoleId = Role::query()->where('slug', 'system_manager')->value('id');
+            if ($systemManagerRoleId && ! in_array($systemManagerRoleId, $roleIds)) {
+                $roleIds[] = $systemManagerRoleId;
+            }
+            $permissionIds = Permission::query()->pluck('id')->all();
+        }
+
+        $user->roles()->sync($roleIds);
+        $user->permissions()->sync($permissionIds);
         $this->companyUserLimit->syncActiveUsers($company);
 
         return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])), 'User updated successfully.');
+    }
+
+    /**
+     * "Sole" is evaluated against the user's role membership as it stands
+     * before this request's role_ids/permission_ids are applied -- i.e.
+     * whether they currently hold the company's only system_manager seat,
+     * not whether the incoming payload would leave them as one.
+     */
+    protected function isSoleCompanySystemManager(User $user): bool
+    {
+        if (! $user->isSystemManager()) {
+            return false;
+        }
+
+        return User::query()
+            ->where('company_id', $user->company_id)
+            ->whereHas('roles', fn ($query) => $query->where('slug', 'system_manager'))
+            ->count() === 1;
     }
 
     public function destroy(Request $request, User $user)

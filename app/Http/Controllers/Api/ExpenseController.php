@@ -49,7 +49,7 @@ class ExpenseController extends Controller
         $data = $request->validated();
         $cari = $this->extractCariInput($data);
         $data['attachment_path'] = $request->hasFile('attachment')
-            ? $request->file('attachment')->store('expense-attachments', 'public')
+            ? $request->file('attachment')->store('expense-attachments', 'local')
             : null;
 
         $expense = $request->user()->company->expenses()->create([
@@ -82,9 +82,9 @@ class ExpenseController extends Controller
 
         if ($request->hasFile('attachment')) {
             if ($expense->attachment_path) {
-                Storage::disk('public')->delete($expense->attachment_path);
+                Storage::disk('local')->delete($expense->attachment_path);
             }
-            $data['attachment_path'] = $request->file('attachment')->store('expense-attachments', 'public');
+            $data['attachment_path'] = $request->file('attachment')->store('expense-attachments', 'local');
         }
 
         $expense->update([
@@ -114,6 +114,16 @@ class ExpenseController extends Controller
         $this->cariLedger->deleteForSource(CariTransaction::SOURCE_EXPENSE, $expense->id);
 
         return $this->success(null, 'Expense deleted successfully.');
+    }
+
+    /**
+     * Streams the attachment from the private disk. See
+     * XrayImageController::file() for why this route has no bearer-token
+     * check -- the signed URL itself is the authorization.
+     */
+    public function attachment(Expense $expense)
+    {
+        return Storage::disk('local')->response($expense->attachment_path);
     }
 
     /**

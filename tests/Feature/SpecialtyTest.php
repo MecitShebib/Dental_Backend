@@ -22,18 +22,18 @@ class SpecialtyTest extends TestCase
         $this->seed(SpecialtySeeder::class);
     }
 
-    public function test_the_seeder_creates_exactly_five_active_specialties(): void
+    public function test_the_seeder_creates_exactly_six_active_specialties(): void
     {
-        $this->assertSame(5, Specialty::query()->count());
+        $this->assertSame(6, Specialty::query()->count());
 
         $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
         $this->assertTrue($dental->is_active);
         $this->assertSame('Dentavaria', $dental->brand_name);
 
-        // All five are company-subscribable now that every specialty has a
+        // All six are company-subscribable now that every specialty has a
         // real (if v1) backend+frontend -- see each *Module::isBuilt().
         $others = Specialty::query()->where('key', '!=', Specialty::DENTAL)->get();
-        $this->assertCount(4, $others);
+        $this->assertCount(5, $others);
         $this->assertTrue($others->every(fn (Specialty $specialty) => $specialty->is_active));
     }
 
@@ -41,7 +41,7 @@ class SpecialtyTest extends TestCase
     {
         $this->seed(SpecialtySeeder::class);
 
-        $this->assertSame(5, Specialty::query()->count());
+        $this->assertSame(6, Specialty::query()->count());
     }
 
     public function test_a_company_can_hold_active_subscriptions_for_more_than_one_specialty(): void

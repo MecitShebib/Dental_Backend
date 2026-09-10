@@ -71,7 +71,7 @@ class AiConversationTest extends TestCase
 
     protected function makeClient(Company $company): Client
     {
-        return Client::create([
+        $client = Client::create([
             'company_id' => $company->id,
             'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
             'name' => 'Conversation Patient',
@@ -79,6 +79,9 @@ class AiConversationTest extends TestCase
             'gender' => 'male',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
+
+        return $client;
     }
 
     protected function makeXrayImage(Client $client, string $path): XrayImage

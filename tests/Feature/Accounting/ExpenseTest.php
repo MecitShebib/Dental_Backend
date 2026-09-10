@@ -3,6 +3,7 @@
 namespace Tests\Feature\Accounting;
 
 use App\Models\Company;
+use App\Models\Expense;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +48,7 @@ class ExpenseTest extends TestCase
 
     public function test_an_expense_can_be_recorded_with_an_attachment(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $manager = $this->makeManager();
         Sanctum::actingAs($manager);
 
@@ -60,8 +61,9 @@ class ExpenseTest extends TestCase
             'attachment' => $file,
         ])->assertCreated();
 
-        $path = str_replace(Storage::disk('public')->url(''), '', $response->json('data.attachment_url'));
-        Storage::disk('public')->assertExists($path);
+        $expense = Expense::query()->latest('id')->firstOrFail();
+        Storage::disk('local')->assertExists($expense->attachment_path);
+        $this->get($response->json('data.attachment_url'))->assertOk();
     }
 
     public function test_updating_an_expense_amount_adjusts_the_fund(): void

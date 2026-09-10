@@ -29,6 +29,7 @@ class DemoDataSeederTest extends TestCase
             Specialty::INTERNAL_MEDICINE => 'DEMO-IM-001',
             Specialty::ORTHOPEDICS => 'DEMO-ORTHO-001',
             Specialty::COSMETIC => 'DEMO-COS-001',
+            Specialty::NUTRITION => 'DEMO-NUT-001',
         ] as $specialtyKey => $clientCode) {
             $specialty = Specialty::query()->where('key', $specialtyKey)->firstOrFail();
             $client = Client::query()->where('client_code', $clientCode)->first();
@@ -62,10 +63,10 @@ class DemoDataSeederTest extends TestCase
         $this->assertDatabaseCount('branches', 1);
         $this->assertDatabaseCount('consent_templates', 1);
 
-        // Every specialty's own gynecology/internal_medicine/orthopedics/cosmetic
-        // treatment catalog must actually exist now (the real bug this task
-        // surfaced -- seedCatalog() was previously never called for any of them).
-        foreach (['prenatal_checkup', 'chronic_initial_assessment', 'ortho_assessment', 'cosmetic_consultation'] as $code) {
+        // Every specialty's own gynecology/internal_medicine/orthopedics/cosmetic/
+        // nutrition treatment catalog must actually exist now (the real bug this
+        // task surfaced -- seedCatalog() was previously never called for any of them).
+        foreach (['prenatal_checkup', 'chronic_initial_assessment', 'ortho_assessment', 'cosmetic_consultation', 'nutrition_consultation'] as $code) {
             $this->assertDatabaseHas('treatment_catalog', ['code' => $code]);
         }
     }
@@ -76,7 +77,7 @@ class DemoDataSeederTest extends TestCase
         $this->seed(DemoDataSeeder::class);
 
         $this->assertSame(1, Client::query()->where('client_code', 'DEMO-GYN-001')->count());
-        $this->assertSame(5, Client::query()->where('client_code', 'like', 'DEMO-%')->count());
+        $this->assertSame(6, Client::query()->where('client_code', 'like', 'DEMO-%')->count());
         $this->assertDatabaseCount('expenses', 1);
         $this->assertDatabaseCount('capital_transactions', 1);
         $this->assertDatabaseCount('salary_payments', 1);
@@ -84,7 +85,7 @@ class DemoDataSeederTest extends TestCase
         $this->assertDatabaseCount('cari_transactions', 1);
         $this->assertDatabaseCount('inventory_items', 1);
         $this->assertDatabaseCount('branches', 1);
-        $this->assertDatabaseCount('subscriptions', 5);
+        $this->assertDatabaseCount('subscriptions', 6);
 
         $gynClient = Client::query()->where('client_code', 'DEMO-GYN-001')->firstOrFail();
         $this->assertSame(1, Visit::query()->where('client_id', $gynClient->id)->count());

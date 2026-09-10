@@ -8,6 +8,7 @@
         'internal_medicine' => 'Medivaria',
         'orthopedics' => 'Orthovaria',
         'cosmetic' => 'Estevaria',
+        'nutrition' => 'Dietavaria',
     ];
 @endphp
 
@@ -57,7 +58,7 @@
             cursor: pointer;
         }
         .lang-tab.active {
-            color: #04140f;
+            color: #ffffff;
             background: linear-gradient(135deg, var(--accent), var(--accent-2));
             border-color: transparent;
         }

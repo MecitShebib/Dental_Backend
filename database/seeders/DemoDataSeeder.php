@@ -47,6 +47,7 @@ use App\Services\TreatmentChargeService;
 use App\Specialties\Cosmetic\CosmeticCarePlanService;
 use App\Specialties\Gynecology\PrenatalCarePlanService;
 use App\Specialties\InternalMedicine\ChronicCarePlanService;
+use App\Specialties\Nutrition\NutritionCarePlanService;
 use App\Specialties\Orthopedics\RehabCarePlanService;
 use App\Specialties\SpecialtyModuleRegistry;
 use Illuminate\Database\Seeder;
@@ -93,6 +94,7 @@ class DemoDataSeeder extends Seeder
         protected ChronicCarePlanService $chronicCarePlans,
         protected RehabCarePlanService $rehabCarePlans,
         protected CosmeticCarePlanService $cosmeticCarePlans,
+        protected NutritionCarePlanService $nutritionCarePlans,
     ) {}
 
     /**
@@ -174,6 +176,16 @@ class DemoDataSeeder extends Seeder
                 'client_gender' => 'female',
                 'catalog_codes' => ['cosmetic_consultation', 'botox_session'],
             ],
+            Specialty::NUTRITION => [
+                'doctor_email' => 'doctor.nutrition@clinic.com',
+                'doctor_name' => 'Dr. Nour Khatib',
+                'doctor_phone' => '+963900020005',
+                'client_code' => 'DEMO-NUT-001',
+                'client_name' => 'Lara Sabbagh',
+                'client_phone' => '+963900030006',
+                'client_gender' => 'female',
+                'catalog_codes' => ['nutrition_consultation', 'followup_session'],
+            ],
         ];
 
         // Doctors + schedules first (care-plan/appointment creation below
@@ -187,7 +199,7 @@ class DemoDataSeeder extends Seeder
 
         // Dental's own subscription + catalog already exist (DatabaseSeeder
         // -> TreatmentCatalogSeeder); the other 4 specialties need both.
-        foreach ([Specialty::GYNECOLOGY, Specialty::INTERNAL_MEDICINE, Specialty::ORTHOPEDICS, Specialty::COSMETIC] as $specialtyKey) {
+        foreach ([Specialty::GYNECOLOGY, Specialty::INTERNAL_MEDICINE, Specialty::ORTHOPEDICS, Specialty::COSMETIC, Specialty::NUTRITION] as $specialtyKey) {
             $specialty = Specialty::where('key', $specialtyKey)->firstOrFail();
             $this->ensureSubscription($company, $specialty);
             $this->specialtyModules->get($specialtyKey)?->seedCatalog($company);
@@ -453,6 +465,16 @@ class DemoDataSeeder extends Seeder
                 '11:00',
                 $userId,
             ),
+            Specialty::NUTRITION => $this->nutritionCarePlans->confirmPlan(
+                $client,
+                $doctor,
+                'followup_session',
+                4,
+                14,
+                now()->addDay()->toDateString(),
+                '11:00',
+                $userId,
+            ),
             Specialty::DENTAL => $this->carePlans->confirmPlan(
                 $client,
                 $doctor,
@@ -521,6 +543,7 @@ class DemoDataSeeder extends Seeder
             Specialty::INTERNAL_MEDICINE => ['HbA1c', '7.2', '%', '4.0-5.6', true],
             Specialty::ORTHOPEDICS => ['Knee X-Ray', 'Mild joint space narrowing', null, null, true],
             Specialty::COSMETIC => ['Skin Allergy Patch Test', 'Negative', null, null, false],
+            Specialty::NUTRITION => ['Body Composition Analysis', '18.5% body fat', '%', '14-24', false],
         };
 
         PatientLabResult::create([

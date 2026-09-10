@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureActiveClinicAccess;
 use App\Http\Middleware\EnsureAdminUser;
+use App\Http\Middleware\RequiresKvkkConsent;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureAdminUser::class,
             'active.clinic' => EnsureActiveClinicAccess::class,
+            'kvkk.consent' => RequiresKvkkConsent::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('admin.login'));

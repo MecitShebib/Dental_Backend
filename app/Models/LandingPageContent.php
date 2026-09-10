@@ -8,7 +8,7 @@ class LandingPageContent extends Model
 {
     public const LOCALES = ['en', 'ar', 'tr'];
 
-    public const SPECIALTIES = ['dental', 'gynecology', 'internal_medicine', 'orthopedics', 'cosmetic'];
+    public const SPECIALTIES = ['dental', 'gynecology', 'internal_medicine', 'orthopedics', 'cosmetic', 'nutrition'];
 
     /** URL slug (also the "product" brand identity) for each specialty key. */
     public const SPECIALTY_SLUGS = [
@@ -17,6 +17,7 @@ class LandingPageContent extends Model
         'internal_medicine' => 'medivaria',
         'orthopedics' => 'orthovaria',
         'cosmetic' => 'estevaria',
+        'nutrition' => 'dietavaria',
     ];
 
     /** Brand accent color per specialty -- matches Dental_FrontEnd's Sidebar.jsx SPECIALTY_ACCENTS/DENTAL_ACCENT exactly. */
@@ -26,6 +27,7 @@ class LandingPageContent extends Model
         'internal_medicine' => '#1f7a5c',
         'orthopedics' => '#b56a1f',
         'cosmetic' => '#7a4fb5',
+        'nutrition' => '#1f8ca6',
     ];
 
     protected $fillable = ['content'];
@@ -166,6 +168,11 @@ class LandingPageContent extends Model
                 'tr' => static::cosmeticTrDefaults(),
                 default => static::cosmeticEnDefaults(),
             },
+            'nutrition' => match ($locale) {
+                'ar' => static::nutritionArDefaults(),
+                'tr' => static::nutritionTrDefaults(),
+                default => static::nutritionEnDefaults(),
+            },
             default => [],
         };
     }
@@ -176,7 +183,7 @@ class LandingPageContent extends Model
     {
         return [
             'hero' => [
-                'eyebrow' => 'One platform, five clinical specialties',
+                'eyebrow' => 'One platform, six clinical specialties',
                 'headline' => 'The clinical operating system for modern healthcare practices.',
                 'subtext' => 'Doctovaria is built specifically for how each specialty actually works. Pick yours to see the clinical workflow, features, and pricing built around it.',
             ],
@@ -186,6 +193,7 @@ class LandingPageContent extends Model
                 ['key' => 'internal_medicine', 'name' => 'Medivaria', 'tagline' => 'Internal medicine', 'body' => 'Chronic care plans, recurring visit scheduling, and lab result tracking for long-term patient management.'],
                 ['key' => 'orthopedics', 'name' => 'Orthovaria', 'tagline' => 'Orthopedics', 'body' => 'Rehab care plans, procedure checklists, and milestone scheduling for orthopedic and physical therapy practices.'],
                 ['key' => 'cosmetic', 'name' => 'Estevaria', 'tagline' => 'Cosmetic medicine', 'body' => 'Session-based treatment plans and procedure tracking built for aesthetic and cosmetic practices.'],
+                ['key' => 'nutrition', 'name' => 'Dietavaria', 'tagline' => 'Dietetics & nutrition', 'body' => 'Follow-up program tracking, body composition monitoring, and care plans built for dietitian and nutrition practices.'],
             ],
             'footer' => [
                 'tagline' => 'The clinical operating system for modern healthcare practices.',
@@ -199,7 +207,7 @@ class LandingPageContent extends Model
     {
         return [
             'hero' => [
-                'eyebrow' => 'منصة واحدة، خمسة تخصصات سريرية',
+                'eyebrow' => 'منصة واحدة، ستة تخصصات سريرية',
                 'headline' => 'نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة.',
                 'subtext' => 'بُنيت Doctovaria خصيصًا لطريقة عمل كل تخصص فعليًا. اختر تخصصك لترى سير العمل السريري والمزايا والأسعار المصممة له تحديدًا.',
             ],
@@ -209,6 +217,7 @@ class LandingPageContent extends Model
                 ['key' => 'internal_medicine', 'name' => 'Medivaria', 'tagline' => 'الطب الباطني', 'body' => 'خطط رعاية الأمراض المزمنة، وجدولة زيارات متكررة، وتتبع نتائج المخبر لإدارة المرضى على المدى الطويل.'],
                 ['key' => 'orthopedics', 'name' => 'Orthovaria', 'tagline' => 'جراحة العظام', 'body' => 'خطط رعاية إعادة التأهيل، وقوائم إجراءات، وجدولة مبنية على مراحل لممارسات جراحة العظام والعلاج الطبيعي.'],
                 ['key' => 'cosmetic', 'name' => 'Estevaria', 'tagline' => 'الطب التجميلي', 'body' => 'خطط علاج مبنية على الجلسات وتتبع الإجراءات مصممة لممارسات الطب التجميلي والتجميل.'],
+                ['key' => 'nutrition', 'name' => 'Dietavaria', 'tagline' => 'التغذية والحمية', 'body' => 'تتبع برامج المتابعة ومراقبة تكوين الجسم وخطط رعاية مصممة لعيادات التغذية وأخصائيي الحمية.'],
             ],
             'footer' => [
                 'tagline' => 'نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة.',
@@ -222,7 +231,7 @@ class LandingPageContent extends Model
     {
         return [
             'hero' => [
-                'eyebrow' => 'Tek platform, beş klinik uzmanlık alanı',
+                'eyebrow' => 'Tek platform, altı klinik uzmanlık alanı',
                 'headline' => 'Modern sağlık pratiklerinin klinik işletim sistemi.',
                 'subtext' => "Doctovaria, her uzmanlık alanının gerçekte nasıl çalıştığına özel olarak inşa edilmiştir. Kendi uzmanlık alanınızı seçin ve onun için özel olarak kurulmuş klinik iş akışını, özellikleri ve fiyatlandırmayı görün.",
             ],
@@ -232,6 +241,7 @@ class LandingPageContent extends Model
                 ['key' => 'internal_medicine', 'name' => 'Medivaria', 'tagline' => 'Dahiliye', 'body' => 'Kronik bakım planları, tekrarlayan randevu planlaması ve uzun vadeli hasta yönetimi için laboratuvar sonucu takibi.'],
                 ['key' => 'orthopedics', 'name' => 'Orthovaria', 'tagline' => 'Ortopedi', 'body' => 'Rehabilitasyon bakım planları, prosedür kontrol listeleri ve ortopedi ile fizik tedavi pratikleri için kilometre taşı bazlı planlama.'],
                 ['key' => 'cosmetic', 'name' => 'Estevaria', 'tagline' => 'Estetik tıp', 'body' => 'Estetik ve kozmetik pratikler için kurulmuş seans bazlı tedavi planları ve prosedür takibi.'],
+                ['key' => 'nutrition', 'name' => 'Dietavaria', 'tagline' => 'Diyetisyenlik ve beslenme', 'body' => 'Diyetisyen ve beslenme pratikleri için kurulmuş takip programı takibi, vücut kompozisyonu izleme ve bakım planları.'],
             ],
             'footer' => [
                 'tagline' => 'Modern sağlık pratiklerinin klinik işletim sistemi.',
@@ -262,7 +272,7 @@ class LandingPageContent extends Model
                 ['title' => 'Financial clarity', 'body' => 'Charges, payments, and outstanding balances are tracked automatically for every patient, in real time.'],
                 ['title' => 'Accounting & payroll', 'body' => 'A full company fund ledger, expense and capital tracking, and payroll that automatically adds each doctor\'s revenue-share commission to their salary.'],
                 ['title' => 'Dental lab workflow', 'body' => 'Track every lab case from sent to delivered, manage your lab partner network, and see lab costs reflected in your books automatically.'],
-                ['title' => 'Open API & integrations', 'body' => 'Generate API tokens from Settings and connect outside equipment — like an X-ray imaging system — straight into a patient\'s chart.'],
+                ['title' => 'Open API & integrations', 'body' => 'Generate API tokens from Settings and connect outside equipment — an X-ray imaging system, a CBCT/CT scanner — straight into a patient\'s chart.'],
             ],
             'how_it_works' => [
                 ['title' => 'Set up your clinic', 'body' => 'Add doctors, working hours, and services in minutes — no implementation team required.'],
@@ -271,8 +281,8 @@ class LandingPageContent extends Model
                 ['title' => 'Track the outcome', 'body' => 'Payments, balances, and visit history stay in sync — no end-of-month reconciliation.'],
             ],
             'pricing' => [
-                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nVisual odontogram treatment charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nDental lab case tracking & payment ledger\nX-ray image gallery\nAuto-generated invoices\nBusiness reports (patient & lab balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
-                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted treatment planning for larger teams.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI treatment plan assistant (voice or text, doctor-reviewed)\nPriority support"],
+                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nVisual odontogram treatment charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nDental lab case tracking & payment ledger\nX-ray image gallery\nCBCT/DICOM scan viewer\nAuto-generated invoices\nBusiness reports (patient & lab balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
+                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted treatment planning for larger teams.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI treatment plan assistant (voice or text, doctor-reviewed)\n1,000,000 AI tokens/month\nPriority support"],
                 ['name' => 'Enterprise', 'description' => 'For groups with custom compliance and scale needs.', 'price_monthly' => 'Custom', 'price_yearly' => 'Custom', 'cta_label' => 'Talk to us', 'highlighted' => false, 'features' => "Unlimited doctors\nEverything in Growth\nDedicated onboarding\nCustom integrations\nSLA & compliance review\nVolume pricing"],
             ],
             'benefits' => [
@@ -350,7 +360,7 @@ class LandingPageContent extends Model
                 ['title' => 'وضوح مالي', 'body' => 'تُتابع الرسوم والمدفوعات والأرصدة المستحقة تلقائيًا لكل مريض، لحظيًا.'],
                 ['title' => 'المحاسبة والرواتب', 'body' => 'دفتر صندوق كامل للشركة، وتتبع للمصاريف ورأس المال، ورواتب تضيف تلقائيًا نسبة عمولة كل طبيب من دخله إلى راتبه.'],
                 ['title' => 'سير عمل المخبر', 'body' => 'تابع كل حالة مخبر من الإرسال حتى التسليم، وأدر شبكة مخابر الأسنان الشريكة، وشاهد تكاليف المخبر تنعكس تلقائيًا في حساباتك.'],
-                ['title' => 'واجهة برمجية مفتوحة وتكاملات', 'body' => 'أنشئ رموز API من الإعدادات وصِل أجهزة خارجية — مثل جهاز تصوير الأشعة — مباشرة بملف المريض.'],
+                ['title' => 'واجهة برمجية مفتوحة وتكاملات', 'body' => 'أنشئ رموز API من الإعدادات وصِل أجهزة خارجية — جهاز تصوير الأشعة، أو جهاز CBCT/CT — مباشرة بملف المريض.'],
             ],
             'how_it_works' => [
                 ['title' => 'أعدّ عيادتك', 'body' => 'أضف الأطباء وساعات العمل والخدمات خلال دقائق — دون الحاجة لفريق تنفيذ.'],
@@ -359,8 +369,8 @@ class LandingPageContent extends Model
                 ['title' => 'تابع النتيجة', 'body' => 'تبقى المدفوعات والأرصدة وسجل الزيارات متزامنة — دون تسوية في نهاية الشهر.'],
             ],
             'pricing' => [
-                ['name' => 'أساسيات', 'description' => 'للعيادات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nرسم تخطيطي بصري لحالة الأسنان (Odontogram)\nسجل تسعير العلاجات والفوترة\nإدارة بيانات العملاء مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع طلبيات المخبر وسجل مدفوعاته\nمعرض صور الأشعة\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة العملاء والمخابر)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
-                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى التخطيط العلاجي المدعوم بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة العلاج بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\nدعم ذو أولوية"],
+                ['name' => 'أساسيات', 'description' => 'للعيادات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nرسم تخطيطي بصري لحالة الأسنان (Odontogram)\nسجل تسعير العلاجات والفوترة\nإدارة بيانات العملاء مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع طلبيات المخبر وسجل مدفوعاته\nمعرض صور الأشعة\nعارض تصوير CBCT/DICOM\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة العملاء والمخابر)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
+                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى التخطيط العلاجي المدعوم بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة العلاج بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\n1,000,000 رمز ذكاء اصطناعي شهريًا\nدعم ذو أولوية"],
                 ['name' => 'مؤسسات', 'description' => 'للمجموعات ذات متطلبات الامتثال والحجم الخاصة.', 'price_monthly' => 'مخصص', 'price_yearly' => 'مخصص', 'cta_label' => 'تواصل معنا', 'highlighted' => false, 'features' => "أطباء بلا حدود\nكل ما في نمو\nتأهيل مخصص\nتكاملات مخصصة\nمراجعة اتفاقية مستوى الخدمة والامتثال\nتسعير بالجملة"],
             ],
             'benefits' => [
@@ -438,7 +448,7 @@ class LandingPageContent extends Model
                 ['title' => 'Finansal netlik', 'body' => 'Her hasta için ücretler, ödemeler ve bakiyeler gerçek zamanlı olarak otomatik takip edilir.'],
                 ['title' => 'Muhasebe ve bordro', 'body' => 'Tam bir şirket kasa defteri, gider ve sermaye takibi ve her doktorun ciro payı komisyonunu maaşına otomatik ekleyen bordro.'],
                 ['title' => 'Diş laboratuvarı iş akışı', 'body' => 'Her laboratuvar vakasını gönderimden teslimata kadar takip edin, laboratuvar ortağı ağınızı yönetin ve laboratuvar maliyetlerinin defterlerinize otomatik yansıdığını görün.'],
-                ['title' => 'Açık API ve entegrasyonlar', 'body' => 'Ayarlar\'dan API token oluşturun ve röntgen görüntüleme sistemi gibi harici cihazları doğrudan hasta dosyasına bağlayın.'],
+                ['title' => 'Açık API ve entegrasyonlar', 'body' => 'Ayarlar\'dan API token oluşturun ve röntgen görüntüleme sistemi veya CBCT/CT cihazı gibi harici cihazları doğrudan hasta dosyasına bağlayın.'],
             ],
             'how_it_works' => [
                 ['title' => 'Kliniğinizi kurun', 'body' => 'Doktorları, çalışma saatlerini ve hizmetleri dakikalar içinde ekleyin — kurulum ekibi gerekmez.'],
@@ -447,8 +457,8 @@ class LandingPageContent extends Model
                 ['title' => 'Sonucu takip edin', 'body' => 'Ödemeler, bakiyeler ve ziyaret geçmişi senkronize kalır — ay sonu mutabakatı gerekmez.'],
             ],
             'pricing' => [
-                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen klinikler için.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nGörsel diş şeması (odontogram) ile tedavi kaydı\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar vaka takibi ve ödeme defteri\nRöntgen görüntü galerisi\nOtomatik fatura oluşturma\nİş raporları (danışan ve laboratuvar bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
-                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli tedavi planlaması.", 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka tedavi planı asistanı (sesli veya yazılı, doktor onaylı)\nÖncelikli destek"],
+                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen klinikler için.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nGörsel diş şeması (odontogram) ile tedavi kaydı\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar vaka takibi ve ödeme defteri\nRöntgen görüntü galerisi\nCBCT/DICOM tarama görüntüleyici\nOtomatik fatura oluşturma\nİş raporları (danışan ve laboratuvar bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
+                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli tedavi planlaması.", 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka tedavi planı asistanı (sesli veya yazılı, doktor onaylı)\nAyda 1.000.000 yapay zeka tokenı\nÖncelikli destek"],
                 ['name' => 'Kurumsal', 'description' => 'Özel uyumluluk ve ölçek ihtiyaçları olan gruplar için.', 'price_monthly' => 'Özel', 'price_yearly' => 'Özel', 'cta_label' => 'Bize ulaşın', 'highlighted' => false, 'features' => "Sınırsız doktor\nBüyüme'deki her şey\nÖzel katılım (onboarding)\nÖzel entegrasyonlar\nSLA ve uyumluluk incelemesi\nToplu fiyatlandırma"],
             ],
             'benefits' => [
@@ -537,8 +547,8 @@ class LandingPageContent extends Model
                 ['title' => 'Track the outcome', 'body' => 'Payments, balances, and visit history stay in sync — no end-of-month reconciliation.'],
             ],
             'pricing' => [
-                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nPrenatal & milestone care plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (patient balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
-                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, doctor-reviewed)\nPriority support"],
+                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nPrenatal & milestone care plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (patient balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
+                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, doctor-reviewed)\n1,000,000 AI tokens/month\nPriority support"],
                 ['name' => 'Enterprise', 'description' => 'For groups with custom compliance and scale needs.', 'price_monthly' => 'Custom', 'price_yearly' => 'Custom', 'cta_label' => 'Talk to us', 'highlighted' => false, 'features' => "Unlimited doctors\nEverything in Growth\nDedicated onboarding\nCustom integrations\nSLA & compliance review\nVolume pricing"],
             ],
             'benefits' => [
@@ -625,8 +635,8 @@ class LandingPageContent extends Model
                 ['title' => 'تابع النتيجة', 'body' => 'تبقى المدفوعات والأرصدة وسجل الزيارات متزامنة — دون تسوية في نهاية الشهر.'],
             ],
             'pricing' => [
-                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط رعاية ما قبل الولادة والمراحل\nسجل تسعير العلاجات والفوترة\nإدارة بيانات المريضات مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة المريضات)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
-                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى مساعد خطة الرعاية بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\nدعم ذو أولوية"],
+                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط رعاية ما قبل الولادة والمراحل\nسجل تسعير العلاجات والفوترة\nإدارة بيانات المريضات مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة المريضات)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
+                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى مساعد خطة الرعاية بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\n1,000,000 رمز ذكاء اصطناعي شهريًا\nدعم ذو أولوية"],
                 ['name' => 'مؤسسات', 'description' => 'للمجموعات ذات متطلبات الامتثال والحجم الخاصة.', 'price_monthly' => 'مخصص', 'price_yearly' => 'مخصص', 'cta_label' => 'تواصل معنا', 'highlighted' => false, 'features' => "أطباء بلا حدود\nكل ما في نمو\nتأهيل مخصص\nتكاملات مخصصة\nمراجعة اتفاقية مستوى الخدمة والامتثال\nتسعير بالجملة"],
             ],
             'benefits' => [
@@ -713,8 +723,8 @@ class LandingPageContent extends Model
                 ['title' => 'Sonucu takip edin', 'body' => 'Ödemeler, bakiyeler ve ziyaret geçmişi senkronize kalır — ay sonu mutabakatı gerekmez.'],
             ],
             'pricing' => [
-                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nDoğum öncesi ve kilometre taşı bazlı bakım planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
-                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, doktor onaylı)\nÖncelikli destek"],
+                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nDoğum öncesi ve kilometre taşı bazlı bakım planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
+                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, doktor onaylı)\nAyda 1.000.000 yapay zeka tokenı\nÖncelikli destek"],
                 ['name' => 'Kurumsal', 'description' => 'Özel uyumluluk ve ölçek ihtiyaçları olan gruplar için.', 'price_monthly' => 'Özel', 'price_yearly' => 'Özel', 'cta_label' => 'Bize ulaşın', 'highlighted' => false, 'features' => "Sınırsız doktor\nBüyüme'deki her şey\nÖzel katılım (onboarding)\nÖzel entegrasyonlar\nSLA ve uyumluluk incelemesi\nToplu fiyatlandırma"],
             ],
             'benefits' => [
@@ -803,8 +813,8 @@ class LandingPageContent extends Model
                 ['title' => 'Track the outcome', 'body' => 'Payments, balances, and visit history stay in sync — no end-of-month reconciliation.'],
             ],
             'pricing' => [
-                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nChronic care plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (patient balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
-                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, doctor-reviewed)\nPriority support"],
+                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nChronic care plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (patient balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
+                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, doctor-reviewed)\n1,000,000 AI tokens/month\nPriority support"],
                 ['name' => 'Enterprise', 'description' => 'For groups with custom compliance and scale needs.', 'price_monthly' => 'Custom', 'price_yearly' => 'Custom', 'cta_label' => 'Talk to us', 'highlighted' => false, 'features' => "Unlimited doctors\nEverything in Growth\nDedicated onboarding\nCustom integrations\nSLA & compliance review\nVolume pricing"],
             ],
             'benefits' => [
@@ -891,8 +901,8 @@ class LandingPageContent extends Model
                 ['title' => 'تابع النتيجة', 'body' => 'تبقى المدفوعات والأرصدة وسجل الزيارات متزامنة — دون تسوية في نهاية الشهر.'],
             ],
             'pricing' => [
-                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط الرعاية المزمنة\nسجل تسعير العلاجات والفوترة\nإدارة بيانات المرضى مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة المرضى)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
-                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى مساعد خطة الرعاية بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\nدعم ذو أولوية"],
+                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط الرعاية المزمنة\nسجل تسعير العلاجات والفوترة\nإدارة بيانات المرضى مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة المرضى)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
+                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى مساعد خطة الرعاية بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\n1,000,000 رمز ذكاء اصطناعي شهريًا\nدعم ذو أولوية"],
                 ['name' => 'مؤسسات', 'description' => 'للمجموعات ذات متطلبات الامتثال والحجم الخاصة.', 'price_monthly' => 'مخصص', 'price_yearly' => 'مخصص', 'cta_label' => 'تواصل معنا', 'highlighted' => false, 'features' => "أطباء بلا حدود\nكل ما في نمو\nتأهيل مخصص\nتكاملات مخصصة\nمراجعة اتفاقية مستوى الخدمة والامتثال\nتسعير بالجملة"],
             ],
             'benefits' => [
@@ -979,8 +989,8 @@ class LandingPageContent extends Model
                 ['title' => 'Sonucu takip edin', 'body' => 'Ödemeler, bakiyeler ve ziyaret geçmişi senkronize kalır — ay sonu mutabakatı gerekmez.'],
             ],
             'pricing' => [
-                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nKronik bakım planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
-                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, doktor onaylı)\nÖncelikli destek"],
+                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nKronik bakım planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
+                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, doktor onaylı)\nAyda 1.000.000 yapay zeka tokenı\nÖncelikli destek"],
                 ['name' => 'Kurumsal', 'description' => 'Özel uyumluluk ve ölçek ihtiyaçları olan gruplar için.', 'price_monthly' => 'Özel', 'price_yearly' => 'Özel', 'cta_label' => 'Bize ulaşın', 'highlighted' => false, 'features' => "Sınırsız doktor\nBüyüme'deki her şey\nÖzel katılım (onboarding)\nÖzel entegrasyonlar\nSLA ve uyumluluk incelemesi\nToplu fiyatlandırma"],
             ],
             'benefits' => [
@@ -1069,8 +1079,8 @@ class LandingPageContent extends Model
                 ['title' => 'Track the outcome', 'body' => 'Payments, balances, and visit history stay in sync — no end-of-month reconciliation.'],
             ],
             'pricing' => [
-                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nRehab & milestone care plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (patient balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
-                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, doctor-reviewed)\nPriority support"],
+                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nRehab & milestone care plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (patient balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
+                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, doctor-reviewed)\n1,000,000 AI tokens/month\nPriority support"],
                 ['name' => 'Enterprise', 'description' => 'For groups with custom compliance and scale needs.', 'price_monthly' => 'Custom', 'price_yearly' => 'Custom', 'cta_label' => 'Talk to us', 'highlighted' => false, 'features' => "Unlimited doctors\nEverything in Growth\nDedicated onboarding\nCustom integrations\nSLA & compliance review\nVolume pricing"],
             ],
             'benefits' => [
@@ -1157,8 +1167,8 @@ class LandingPageContent extends Model
                 ['title' => 'تابع النتيجة', 'body' => 'تبقى المدفوعات والأرصدة وسجل الزيارات متزامنة — دون تسوية في نهاية الشهر.'],
             ],
             'pricing' => [
-                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط رعاية إعادة التأهيل والمراحل\nسجل تسعير العلاجات والفوترة\nإدارة بيانات المرضى مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة المرضى)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
-                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى مساعد خطة الرعاية بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\nدعم ذو أولوية"],
+                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط رعاية إعادة التأهيل والمراحل\nسجل تسعير العلاجات والفوترة\nإدارة بيانات المرضى مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة المرضى)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
+                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى مساعد خطة الرعاية بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\n1,000,000 رمز ذكاء اصطناعي شهريًا\nدعم ذو أولوية"],
                 ['name' => 'مؤسسات', 'description' => 'للمجموعات ذات متطلبات الامتثال والحجم الخاصة.', 'price_monthly' => 'مخصص', 'price_yearly' => 'مخصص', 'cta_label' => 'تواصل معنا', 'highlighted' => false, 'features' => "أطباء بلا حدود\nكل ما في نمو\nتأهيل مخصص\nتكاملات مخصصة\nمراجعة اتفاقية مستوى الخدمة والامتثال\nتسعير بالجملة"],
             ],
             'benefits' => [
@@ -1245,8 +1255,8 @@ class LandingPageContent extends Model
                 ['title' => 'Sonucu takip edin', 'body' => 'Ödemeler, bakiyeler ve ziyaret geçmişi senkronize kalır — ay sonu mutabakatı gerekmez.'],
             ],
             'pricing' => [
-                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nRehabilitasyon ve kilometre taşı bazlı bakım planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
-                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, doktor onaylı)\nÖncelikli destek"],
+                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nRehabilitasyon ve kilometre taşı bazlı bakım planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
+                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, doktor onaylı)\nAyda 1.000.000 yapay zeka tokenı\nÖncelikli destek"],
                 ['name' => 'Kurumsal', 'description' => 'Özel uyumluluk ve ölçek ihtiyaçları olan gruplar için.', 'price_monthly' => 'Özel', 'price_yearly' => 'Özel', 'cta_label' => 'Bize ulaşın', 'highlighted' => false, 'features' => "Sınırsız doktor\nBüyüme'deki her şey\nÖzel katılım (onboarding)\nÖzel entegrasyonlar\nSLA ve uyumluluk incelemesi\nToplu fiyatlandırma"],
             ],
             'benefits' => [
@@ -1335,8 +1345,8 @@ class LandingPageContent extends Model
                 ['title' => 'Track the outcome', 'body' => 'Payments, balances, and visit history stay in sync — no end-of-month reconciliation.'],
             ],
             'pricing' => [
-                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nSession-based treatment plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (client balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
-                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted treatment planning for larger teams.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI treatment plan assistant (voice or text, doctor-reviewed)\nPriority support"],
+                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nSession-based treatment plan charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (client balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
+                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted treatment planning for larger teams.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI treatment plan assistant (voice or text, doctor-reviewed)\n1,000,000 AI tokens/month\nPriority support"],
                 ['name' => 'Enterprise', 'description' => 'For groups with custom compliance and scale needs.', 'price_monthly' => 'Custom', 'price_yearly' => 'Custom', 'cta_label' => 'Talk to us', 'highlighted' => false, 'features' => "Unlimited doctors\nEverything in Growth\nDedicated onboarding\nCustom integrations\nSLA & compliance review\nVolume pricing"],
             ],
             'benefits' => [
@@ -1423,8 +1433,8 @@ class LandingPageContent extends Model
                 ['title' => 'تابع النتيجة', 'body' => 'تبقى المدفوعات والأرصدة وسجل الزيارات متزامنة — دون تسوية في نهاية الشهر.'],
             ],
             'pricing' => [
-                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط العلاج المبنية على الجلسات\nسجل تسعير العلاجات والفوترة\nإدارة بيانات العملاء مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة العملاء)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
-                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى التخطيط العلاجي المدعوم بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة العلاج بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\nدعم ذو أولوية"],
+                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط خطط العلاج المبنية على الجلسات\nسجل تسعير العلاجات والفوترة\nإدارة بيانات العملاء مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة العملاء)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
+                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى التخطيط العلاجي المدعوم بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة العلاج بالذكاء الاصطناعي (صوت أو نص، بمراجعة الطبيب)\n1,000,000 رمز ذكاء اصطناعي شهريًا\nدعم ذو أولوية"],
                 ['name' => 'مؤسسات', 'description' => 'للمجموعات ذات متطلبات الامتثال والحجم الخاصة.', 'price_monthly' => 'مخصص', 'price_yearly' => 'مخصص', 'cta_label' => 'تواصل معنا', 'highlighted' => false, 'features' => "أطباء بلا حدود\nكل ما في نمو\nتأهيل مخصص\nتكاملات مخصصة\nمراجعة اتفاقية مستوى الخدمة والامتثال\nتسعير بالجملة"],
             ],
             'benefits' => [
@@ -1511,8 +1521,8 @@ class LandingPageContent extends Model
                 ['title' => 'Sonucu takip edin', 'body' => 'Ödemeler, bakiyeler ve ziyaret geçmişi senkronize kalır — ay sonu mutabakatı gerekmez.'],
             ],
             'pricing' => [
-                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$59', 'price_yearly' => '$47', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nSeans bazlı tedavi planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
-                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli tedavi planlaması.", 'price_monthly' => '$199', 'price_yearly' => '$159', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka tedavi planı asistanı (sesli veya yazılı, doktor onaylı)\nÖncelikli destek"],
+                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nSeans bazlı tedavi planı grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
+                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli tedavi planlaması.", 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka tedavi planı asistanı (sesli veya yazılı, doktor onaylı)\nAyda 1.000.000 yapay zeka tokenı\nÖncelikli destek"],
                 ['name' => 'Kurumsal', 'description' => 'Özel uyumluluk ve ölçek ihtiyaçları olan gruplar için.', 'price_monthly' => 'Özel', 'price_yearly' => 'Özel', 'cta_label' => 'Bize ulaşın', 'highlighted' => false, 'features' => "Sınırsız doktor\nBüyüme'deki her şey\nÖzel katılım (onboarding)\nÖzel entegrasyonlar\nSLA ve uyumluluk incelemesi\nToplu fiyatlandırma"],
             ],
             'benefits' => [
@@ -1559,6 +1569,272 @@ class LandingPageContent extends Model
             'quote' => [
                 'eyebrow' => 'Teklif alın',
                 'headline' => "Estevaria'yı pratiğinize taşımaya hazır mısınız?",
+                'subtext' => 'Pratiğiniz hakkında bize biraz bilgi verin, büyüklüğünüze ve ihtiyaçlarınıza uygun bir teklif hazırlayalım.',
+                'name_label' => 'Adınız',
+                'email_label' => 'E-posta adresi',
+                'phone_label' => 'Telefon numarası',
+                'company_label' => 'Klinik / şirket adı',
+                'message_label' => 'Pratiğiniz hakkında bize bilgi verin',
+                'submit_label' => 'Teklif talep edin',
+                'success_message' => 'Teşekkürler — ekibimiz kısa süre içinde bir teklifle sizinle iletişime geçecek.',
+            ],
+        ];
+    }
+
+    // ── Dietavaria (dietetics & nutrition) ───────────────────────────────
+
+    protected static function nutritionEnDefaults(): array
+    {
+        return [
+            'hero' => [
+                'eyebrow' => 'Now with AI-assisted care planning',
+                'headline' => 'The clinical operating system for modern dietitian & nutrition practices.',
+                'subheadline' => 'Dietavaria unifies scheduling, follow-up program tracking, billing, and AI-assisted care planning in one secure platform — so your team spends less time on admin and more time with clients.',
+                'primary_cta_label' => 'Book a demo',
+                'secondary_cta_label' => 'See how it works',
+            ],
+            'features' => [
+                ['title' => 'Smart scheduling', 'body' => 'Conflict-free booking across doctors and locations, with a real-time availability grid that respects every schedule.'],
+                ['title' => 'Follow-up program tracking', 'body' => 'Structured follow-up programs and body composition tracking that stay in sync across every visit and every device.'],
+                ['title' => 'AI care plan assistant', 'body' => 'Turn a spoken or typed case description into a structured, multi-session follow-up plan — reviewed and confirmed by the dietitian.'],
+                ['title' => 'Multi-clinic management', 'body' => 'A multi-tenant architecture built for groups running multiple locations, each with its own subscription and limits.'],
+                ['title' => 'Secure mobile access', 'body' => 'OTP-verified sign-in for every device and token-based sessions — no shared passwords, ever.'],
+                ['title' => 'Financial clarity', 'body' => 'Charges, payments, and outstanding balances are tracked automatically for every client, in real time.'],
+                ['title' => 'Accounting & payroll', 'body' => 'A full company fund ledger, expense and capital tracking, and payroll that automatically adds each doctor\'s revenue-share commission to their salary.'],
+                ['title' => 'Lab & test result tracking', 'body' => "Record and track every lab result or body composition scan against a client's chart, linked to the visit or appointment that ordered it."],
+                ['title' => 'Open API & integrations', 'body' => "Generate API tokens from Settings and connect outside equipment straight into a client's chart."],
+            ],
+            'how_it_works' => [
+                ['title' => 'Set up your practice', 'body' => 'Add doctors, working hours, and services in minutes — no implementation team required.'],
+                ['title' => 'Clients book & check in', 'body' => 'Appointments become visits automatically. Double bookings are rejected before they happen.'],
+                ['title' => 'AI drafts the plan', 'body' => 'Describe a case and get a structured, multi-session follow-up plan the dietitian can edit and confirm.'],
+                ['title' => 'Track the outcome', 'body' => 'Payments, balances, and visit history stay in sync — no end-of-month reconciliation.'],
+            ],
+            'pricing' => [
+                ['name' => 'Essentials', 'description' => 'For growing practices that want the full toolkit, without AI.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Get started', 'highlighted' => false, 'features' => "Up to 3 doctors\nConflict-free appointment scheduling\nFollow-up program & body composition charting\nTreatment pricing & billing ledger\nClient management with financial summaries\nFund, expenses, capital & payroll accounting\nDoctor commission tracking\nLab & test result tracking\nAuto-generated invoices\nBusiness reports (client balances)\nAPI access with integration tokens\nSecure mobile app access (OTP login)\nMulti-branch support\nEmail support"],
+                ['name' => 'Growth', 'description' => 'Everything in Essentials, plus AI-assisted care planning for larger teams.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Get started', 'highlighted' => true, 'features' => "Up to 10 doctors\nEverything in Essentials\nAI care plan assistant (voice or text, dietitian-reviewed)\n1,000,000 AI tokens/month\nPriority support"],
+                ['name' => 'Enterprise', 'description' => 'For groups with custom compliance and scale needs.', 'price_monthly' => 'Custom', 'price_yearly' => 'Custom', 'cta_label' => 'Talk to us', 'highlighted' => false, 'features' => "Unlimited doctors\nEverything in Growth\nDedicated onboarding\nCustom integrations\nSLA & compliance review\nVolume pricing"],
+            ],
+            'benefits' => [
+                ['title' => 'Performance', 'body' => 'Built on Laravel with a lean API surface — fast on the front desk and in the field.'],
+                ['title' => 'Security', 'body' => 'Token-based sessions, OTP verification, and per-clinic data isolation by default.'],
+                ['title' => 'Scalability', 'body' => 'Multi-tenant from day one — add clinics and doctors without re-architecting anything.'],
+                ['title' => 'Ease of use', 'body' => 'Front-desk staff and doctors are productive on day one, not after a week of training.'],
+            ],
+            'testimonials' => [
+                ['initials' => 'RH', 'name' => 'Rachel Huang, RD', 'role' => 'Owner, Aurora Nutrition Clinic', 'quote' => "Dietavaria's follow-up programs make tracking long-term client plans effortless."],
+                ['initials' => 'DO', 'name' => 'Dr. Daniel Osei', 'role' => 'Clinical Director, Meridian Wellness Group', 'quote' => 'Finally one system for scheduling, billing, and client records instead of several disconnected tools.'],
+                ['initials' => 'SP', 'name' => 'Sofia Petrov', 'role' => 'Practice Manager, Willowbrook Dietetics', 'quote' => "Billing reconciliation used to take days. Now it's automatic."],
+            ],
+            'faq' => [
+                ['question' => 'Is client data secure?', 'answer' => "Yes. Every session uses token-based authentication, every login is OTP-verified, and each clinic's data is fully isolated from every other clinic on the platform."],
+                ['question' => 'Can Dietavaria handle multiple locations?', 'answer' => 'Yes. Dietavaria is multi-tenant by design, with per-company subscriptions and configurable user limits for groups running several clinics.'],
+                ['question' => 'How accurate is the AI care plan?', 'answer' => "The assistant drafts a starting point from the dietitian's case description. Every plan is reviewed and confirmed by the treating dietitian before it's scheduled — it never books anything on its own."],
+                ['question' => 'Do you offer a free trial?', 'answer' => "Yes. Book a demo and we'll set up a trial practice tailored to your workflow, no credit card required."],
+                ['question' => 'What does onboarding look like?', 'answer' => 'Most practices are live within a week. We import your schedule, doctors, and services, then train your front-desk team.'],
+                ['question' => 'Is there a mobile app?', 'answer' => 'Yes. Staff sign in via OTP-secured mobile access — there are no shared passwords.'],
+            ],
+            'final_cta' => [
+                'headline' => 'Ready to give your team back their time?',
+                'subtext' => 'Book a demo and see Dietavaria running with your own scheduling, follow-up programs, and billing in under a week.',
+                'button_label' => 'Book a demo',
+                'button_email' => 'hello@dietavaria.com',
+                'note' => 'No credit card required.',
+            ],
+            'footer' => [
+                'tagline' => 'The clinical operating system for modern dietitian & nutrition practices.',
+                'contact_email' => 'hello@dietavaria.com',
+                'copyright_name' => 'Dietavaria',
+            ],
+            'contact' => [
+                'eyebrow' => 'Get in touch',
+                'headline' => "We'd love to hear from you",
+                'subtext' => 'Questions about Dietavaria? Send us a message and our team will get back to you within one business day.',
+                'name_label' => 'Your name',
+                'email_label' => 'Email address',
+                'message_label' => 'Message',
+                'submit_label' => 'Send message',
+                'success_message' => "Thanks — your message has been sent. We'll be in touch soon.",
+            ],
+            'quote' => [
+                'eyebrow' => 'Get a quote',
+                'headline' => 'Ready to bring Dietavaria to your practice?',
+                'subtext' => "Tell us a bit about your practice and we'll put together a quote tailored to your size and needs.",
+                'name_label' => 'Your name',
+                'email_label' => 'Email address',
+                'phone_label' => 'Phone number',
+                'company_label' => 'Clinic / company name',
+                'message_label' => 'Tell us about your practice',
+                'submit_label' => 'Request a quote',
+                'success_message' => 'Thanks — our team will reach out with a quote shortly.',
+            ],
+        ];
+    }
+
+    protected static function nutritionArDefaults(): array
+    {
+        return [
+            'hero' => [
+                'eyebrow' => 'الآن مع تخطيط رعاية مدعوم بالذكاء الاصطناعي',
+                'headline' => 'نظام التشغيل السريري لعيادات التغذية وأخصائيي الحمية الحديثة.',
+                'subheadline' => 'توحّد Dietavaria الجدولة وتتبع برامج المتابعة والفوترة والتخطيط العلاجي المدعوم بالذكاء الاصطناعي في منصة آمنة واحدة — ليقضي فريقك وقتًا أقل في الأعمال الإدارية ووقتًا أكبر مع العملاء.',
+                'primary_cta_label' => 'احجز عرضًا توضيحيًا',
+                'secondary_cta_label' => 'شاهد كيف يعمل',
+            ],
+            'features' => [
+                ['title' => 'جدولة ذكية', 'body' => 'حجز بلا تعارض بين الأطباء والفروع، مع شبكة توافر لحظية تحترم كل جدول عمل.'],
+                ['title' => 'تتبع برامج المتابعة', 'body' => 'برامج متابعة منظمة وتتبع لتحليل تكوين الجسم يبقى متزامنًا عبر كل زيارة وكل جهاز.'],
+                ['title' => 'مساعد خطة الرعاية بالذكاء الاصطناعي', 'body' => 'حوّل وصف الحالة المكتوب أو المنطوق إلى خطة متابعة متعددة الجلسات ومنظمة — تتم مراجعتها وتأكيدها من أخصائي التغذية.'],
+                ['title' => 'إدارة متعددة العيادات', 'body' => 'بنية متعددة المستأجرين مصممة للمجموعات التي تدير عدة فروع، لكل منها اشتراكه وحدوده الخاصة.'],
+                ['title' => 'وصول آمن عبر الجوال', 'body' => 'تسجيل دخول موثّق برمز تحقق لكل جهاز، وجلسات قائمة على الرموز — بلا كلمات مرور مشتركة أبدًا.'],
+                ['title' => 'وضوح مالي', 'body' => 'تُتابع الرسوم والمدفوعات والأرصدة المستحقة تلقائيًا لكل عميل، لحظيًا.'],
+                ['title' => 'المحاسبة والرواتب', 'body' => 'دفتر صندوق كامل للشركة، وتتبع للمصاريف ورأس المال، ورواتب تضيف تلقائيًا نسبة عمولة كل طبيب من دخله إلى راتبه.'],
+                ['title' => 'تتبع المخبر والتحاليل', 'body' => 'سجّل وتابع كل نتيجة تحليل مخبري أو مسح لتكوين الجسم في ملف العميل، مرتبطة بالزيارة أو الموعد الذي طلبها.'],
+                ['title' => 'واجهة برمجية مفتوحة وتكاملات', 'body' => 'أنشئ رموز API من الإعدادات وصِل أجهزة خارجية مباشرة بملف العميل.'],
+            ],
+            'how_it_works' => [
+                ['title' => 'أعدّ ممارستك', 'body' => 'أضف الأطباء وساعات العمل والخدمات خلال دقائق — دون الحاجة لفريق تنفيذ.'],
+                ['title' => 'يحجز العملاء ويسجّلون الدخول', 'body' => 'تتحول المواعيد إلى زيارات تلقائيًا. تُرفض الحجوزات المتعارضة قبل حدوثها.'],
+                ['title' => 'يصيغ الذكاء الاصطناعي الخطة', 'body' => 'صف الحالة واحصل على خطة متابعة منظمة متعددة الجلسات يمكن لأخصائي التغذية تعديلها وتأكيدها.'],
+                ['title' => 'تابع النتيجة', 'body' => 'تبقى المدفوعات والأرصدة وسجل الزيارات متزامنة — دون تسوية في نهاية الشهر.'],
+            ],
+            'pricing' => [
+                ['name' => 'أساسيات', 'description' => 'للممارسات النامية التي تريد كل الأدوات، بدون الذكاء الاصطناعي.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'ابدأ الآن', 'highlighted' => false, 'features' => "حتى 3 أطباء\nجدولة مواعيد بلا تعارض\nتخطيط برامج المتابعة وتحليل تكوين الجسم\nسجل تسعير العلاجات والفوترة\nإدارة بيانات العملاء مع الملخصات المالية\nمحاسبة الصندوق والمصاريف ورأس المال والرواتب\nتتبع عمولات الأطباء\nتتبع المخبر والتحاليل\nإصدار فواتير تلقائي\nتقارير الأعمال (أرصدة العملاء)\nوصول عبر API برموز تكامل\nوصول آمن عبر تطبيق الجوال (تحقق OTP)\nدعم متعدد الفروع\nدعم عبر البريد الإلكتروني"],
+                ['name' => 'نمو', 'description' => 'كل ما في أساسيات، بالإضافة إلى التخطيط العلاجي المدعوم بالذكاء الاصطناعي لفرق أكبر.', 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'ابدأ الآن', 'highlighted' => true, 'features' => "حتى 10 أطباء\nكل ما في أساسيات\nمساعد خطة الرعاية بالذكاء الاصطناعي (صوت أو نص، بمراجعة أخصائي التغذية)\n1,000,000 رمز ذكاء اصطناعي شهريًا\nدعم ذو أولوية"],
+                ['name' => 'مؤسسات', 'description' => 'للمجموعات ذات متطلبات الامتثال والحجم الخاصة.', 'price_monthly' => 'مخصص', 'price_yearly' => 'مخصص', 'cta_label' => 'تواصل معنا', 'highlighted' => false, 'features' => "أطباء بلا حدود\nكل ما في نمو\nتأهيل مخصص\nتكاملات مخصصة\nمراجعة اتفاقية مستوى الخدمة والامتثال\nتسعير بالجملة"],
+            ],
+            'benefits' => [
+                ['title' => 'الأداء', 'body' => 'مبني على Laravel بواجهة API خفيفة — سريع عند مكتب الاستقبال وفي الميدان.'],
+                ['title' => 'الأمان', 'body' => 'جلسات قائمة على الرموز، تحقق برمز OTP، وعزل بيانات كل عيادة افتراضيًا.'],
+                ['title' => 'قابلية التوسع', 'body' => 'متعدد المستأجرين منذ اليوم الأول — أضف عيادات وأطباء دون إعادة هيكلة أي شيء.'],
+                ['title' => 'سهولة الاستخدام', 'body' => 'يصبح موظفو الاستقبال والأطباء منتجين من اليوم الأول، لا بعد أسبوع من التدريب.'],
+            ],
+            'testimonials' => [
+                ['initials' => 'RH', 'name' => 'Rachel Huang, RD', 'role' => 'مالكة، Aurora Nutrition Clinic', 'quote' => 'برامج المتابعة في Dietavaria تجعل تتبع خطط العملاء طويلة المدى أمرًا سهلاً.'],
+                ['initials' => 'DO', 'name' => 'د. Daniel Osei', 'role' => 'المدير الطبي، Meridian Wellness Group', 'quote' => 'أخيرًا نظام واحد للجدولة والفوترة وسجلات العملاء بدلاً من عدة أدوات منفصلة.'],
+                ['initials' => 'SP', 'name' => 'Sofia Petrov', 'role' => 'مديرة العيادة، Willowbrook Dietetics', 'quote' => 'تسوية الفوترة كانت تستغرق أيامًا. الآن تتم تلقائيًا.'],
+            ],
+            'faq' => [
+                ['question' => 'هل بيانات العملاء آمنة؟', 'answer' => 'نعم. تستخدم كل جلسة مصادقة قائمة على الرموز، وكل تسجيل دخول يتم التحقق منه برمز OTP، وبيانات كل عيادة معزولة تمامًا عن بقية العيادات على المنصة.'],
+                ['question' => 'هل يمكن لـ Dietavaria التعامل مع عدة فروع؟', 'answer' => 'نعم. Dietavaria مصممة لتكون متعددة المستأجرين، مع اشتراكات لكل شركة وحدود مستخدمين قابلة للتخصيص للمجموعات التي تدير عدة عيادات.'],
+                ['question' => 'ما مدى دقة خطة الرعاية بالذكاء الاصطناعي؟', 'answer' => 'يضع المساعد نقطة انطلاق من وصف أخصائي التغذية للحالة. تتم مراجعة كل خطة وتأكيدها من أخصائي التغذية المعالج قبل جدولتها — لا يقوم النظام بحجز أي شيء من تلقاء نفسه.'],
+                ['question' => 'هل تقدمون فترة تجريبية مجانية؟', 'answer' => 'نعم. احجز عرضًا توضيحيًا وسنُعدّ لك ممارسة تجريبية مخصصة لسير عملك، دون الحاجة لبطاقة ائتمان.'],
+                ['question' => 'كيف يبدو التأهيل؟', 'answer' => 'تصبح معظم الممارسات جاهزة خلال أسبوع. نستورد جدولك وأطباءك وخدماتك، ثم ندرّب فريق الاستقبال لديك.'],
+                ['question' => 'هل يوجد تطبيق جوال؟', 'answer' => 'نعم. يسجّل الموظفون الدخول عبر وصول آمن بالجوال برمز تحقق — دون كلمات مرور مشتركة.'],
+            ],
+            'final_cta' => [
+                'headline' => 'هل أنت مستعد لإعادة الوقت لفريقك؟',
+                'subtext' => 'احجز عرضًا توضيحيًا وشاهد Dietavaria يعمل مع جدولتك وبرامج المتابعة والفوترة الخاصة بك خلال أقل من أسبوع.',
+                'button_label' => 'احجز عرضًا توضيحيًا',
+                'button_email' => 'hello@dietavaria.com',
+                'note' => 'لا حاجة لبطاقة ائتمان.',
+            ],
+            'footer' => [
+                'tagline' => 'نظام التشغيل السريري لعيادات التغذية وأخصائيي الحمية الحديثة.',
+                'contact_email' => 'hello@dietavaria.com',
+                'copyright_name' => 'Dietavaria',
+            ],
+            'contact' => [
+                'eyebrow' => 'تواصل معنا',
+                'headline' => 'يسعدنا التواصل معك',
+                'subtext' => 'لديك أسئلة حول Dietavaria؟ أرسل لنا رسالة وسيتواصل معك فريقنا خلال يوم عمل واحد.',
+                'name_label' => 'اسمك',
+                'email_label' => 'البريد الإلكتروني',
+                'message_label' => 'الرسالة',
+                'submit_label' => 'إرسال الرسالة',
+                'success_message' => 'شكرًا — تم إرسال رسالتك. سنتواصل معك قريبًا.',
+            ],
+            'quote' => [
+                'eyebrow' => 'احصل على عرض سعر',
+                'headline' => 'هل أنت مستعد لإحضار Dietavaria إلى ممارستك؟',
+                'subtext' => 'أخبرنا قليلاً عن ممارستك وسنُعدّ لك عرض سعر يناسب حجمها واحتياجاتها.',
+                'name_label' => 'اسمك',
+                'email_label' => 'البريد الإلكتروني',
+                'phone_label' => 'رقم الهاتف',
+                'company_label' => 'اسم العيادة / الشركة',
+                'message_label' => 'أخبرنا عن ممارستك',
+                'submit_label' => 'طلب عرض سعر',
+                'success_message' => 'شكرًا — سيتواصل معك فريقنا بعرض سعر قريبًا.',
+            ],
+        ];
+    }
+
+    protected static function nutritionTrDefaults(): array
+    {
+        return [
+            'hero' => [
+                'eyebrow' => 'Artık yapay zeka destekli bakım planlamasıyla',
+                'headline' => 'Modern diyetisyen ve beslenme pratiklerinin klinik işletim sistemi.',
+                'subheadline' => "Dietavaria; randevu planlama, takip programı takibi, faturalandırma ve yapay zeka destekli bakım planlamasını tek bir güvenli platformda birleştirir — ekibiniz idari işlere daha az, danışanlara daha çok zaman ayırsın.",
+                'primary_cta_label' => 'Demo talep edin',
+                'secondary_cta_label' => 'Nasıl çalıştığını görün',
+            ],
+            'features' => [
+                ['title' => 'Akıllı randevu planlama', 'body' => 'Her programa saygı gösteren gerçek zamanlı müsaitlik ızgarasıyla, doktorlar ve lokasyonlar arasında çakışmasız randevu.'],
+                ['title' => 'Takip programı takibi', 'body' => 'Her ziyaret ve her cihazda senkronize kalan yapılandırılmış takip programları ve vücut kompozisyonu takibi.'],
+                ['title' => 'Yapay zeka bakım planı asistanı', 'body' => 'Sözlü veya yazılı bir vaka açıklamasını, diyetisyen tarafından incelenip onaylanan yapılandırılmış, çok seanslı bir takip planına dönüştürün.'],
+                ['title' => 'Çoklu klinik yönetimi', 'body' => 'Birden fazla lokasyonu işleten gruplar için tasarlanmış, her birinin kendi aboneliği ve limitleri olan çok kiracılı bir mimari.'],
+                ['title' => 'Güvenli mobil erişim', 'body' => 'Her cihaz için OTP ile doğrulanmış giriş ve token tabanlı oturumlar — asla paylaşılan şifre yok.'],
+                ['title' => 'Finansal netlik', 'body' => 'Her danışan için ücretler, ödemeler ve bakiyeler gerçek zamanlı olarak otomatik takip edilir.'],
+                ['title' => 'Muhasebe ve bordro', 'body' => 'Tam bir şirket kasa defteri, gider ve sermaye takibi ve her doktorun ciro payı komisyonunu maaşına otomatik ekleyen bordro.'],
+                ['title' => 'Laboratuvar ve tahlil sonucu takibi', 'body' => 'Her laboratuvar sonucunu veya vücut kompozisyon taramasını danışan dosyasına kaydedin ve onu talep eden ziyaret veya randevuya bağlayın.'],
+                ['title' => 'Açık API ve entegrasyonlar', 'body' => "Ayarlar'dan API token oluşturun ve harici cihazları doğrudan danışan dosyasına bağlayın."],
+            ],
+            'how_it_works' => [
+                ['title' => 'Pratiğinizi kurun', 'body' => 'Doktorları, çalışma saatlerini ve hizmetleri dakikalar içinde ekleyin — kurulum ekibi gerekmez.'],
+                ['title' => 'Danışanlar randevu alır ve giriş yapar', 'body' => 'Randevular otomatik olarak ziyarete dönüşür. Çakışan randevular gerçekleşmeden reddedilir.'],
+                ['title' => 'Yapay zeka planı hazırlar', 'body' => 'Bir vakayı tarif edin ve diyetisyenin düzenleyip onaylayabileceği yapılandırılmış, çok seanslı bir takip planı alın.'],
+                ['title' => 'Sonucu takip edin', 'body' => 'Ödemeler, bakiyeler ve ziyaret geçmişi senkronize kalır — ay sonu mutabakatı gerekmez.'],
+            ],
+            'pricing' => [
+                ['name' => 'Temel', 'description' => 'Yapay zeka olmadan tüm araç setini isteyen büyüyen pratikler için.', 'price_monthly' => '$74', 'price_yearly' => '$59', 'cta_label' => 'Başlayın', 'highlighted' => false, 'features' => "3 doktora kadar\nÇakışmasız randevu planlama\nTakip programı ve vücut kompozisyonu grafiği\nTedavi fiyatlandırma ve faturalama defteri\nMali özetlerle danışan yönetimi\nKasa, giderler, sermaye ve bordro muhasebesi\nDoktor komisyon takibi\nLaboratuvar ve tahlil sonucu takibi\nOtomatik fatura oluşturma\nİş raporları (danışan bakiyeleri)\nEntegrasyon token'larıyla API erişimi\nGüvenli mobil uygulama erişimi (OTP girişi)\nÇoklu şube desteği\nE-posta desteği"],
+                ['name' => 'Büyüme', 'description' => "Temel'deki her şeye ek olarak, daha büyük ekipler için yapay zeka destekli bakım planlaması.", 'price_monthly' => '$249', 'price_yearly' => '$199', 'cta_label' => 'Başlayın', 'highlighted' => true, 'features' => "10 doktora kadar\nTemel'deki her şey\nYapay zeka bakım planı asistanı (sesli veya yazılı, diyetisyen onaylı)\nAyda 1.000.000 yapay zeka tokenı\nÖncelikli destek"],
+                ['name' => 'Kurumsal', 'description' => 'Özel uyumluluk ve ölçek ihtiyaçları olan gruplar için.', 'price_monthly' => 'Özel', 'price_yearly' => 'Özel', 'cta_label' => 'Bize ulaşın', 'highlighted' => false, 'features' => "Sınırsız doktor\nBüyüme'deki her şey\nÖzel katılım (onboarding)\nÖzel entegrasyonlar\nSLA ve uyumluluk incelemesi\nToplu fiyatlandırma"],
+            ],
+            'benefits' => [
+                ['title' => 'Performans', 'body' => 'Laravel üzerine yalın bir API yüzeyiyle kurulmuştur — resepsiyonda ve sahada hızlıdır.'],
+                ['title' => 'Güvenlik', 'body' => 'Varsayılan olarak token tabanlı oturumlar, OTP doğrulama ve klinik başına veri izolasyonu.'],
+                ['title' => 'Ölçeklenebilirlik', 'body' => 'İlk günden itibaren çok kiracılı — hiçbir şeyi yeniden yapılandırmadan klinik ve doktor ekleyin.'],
+                ['title' => 'Kullanım kolaylığı', 'body' => 'Resepsiyon personeli ve doktorlar bir haftalık eğitimden sonra değil, ilk günden itibaren verimlidir.'],
+            ],
+            'testimonials' => [
+                ['initials' => 'RH', 'name' => 'Rachel Huang, RD', 'role' => 'Sahibi, Aurora Nutrition Clinic', 'quote' => "Dietavaria'nın takip programları, uzun vadeli danışan planlarını takip etmeyi zahmetsiz hale getiriyor."],
+                ['initials' => 'DO', 'name' => 'Dr. Daniel Osei', 'role' => 'Tıbbi Direktör, Meridian Wellness Group', 'quote' => 'Sonunda randevu planlama, faturalandırma ve danışan kayıtları için tek bir sistem.'],
+                ['initials' => 'SP', 'name' => 'Sofia Petrov', 'role' => 'Klinik Müdürü, Willowbrook Dietetics', 'quote' => 'Faturalandırma mutabakatı günler sürerdi. Şimdi otomatik.'],
+            ],
+            'faq' => [
+                ['question' => 'Danışan verileri güvenli mi?', 'answer' => 'Evet. Her oturum token tabanlı kimlik doğrulama kullanır, her giriş OTP ile doğrulanır ve her kliniğin verisi platformdaki diğer tüm kliniklerden tamamen izole edilir.'],
+                ['question' => 'Dietavaria birden fazla lokasyonu yönetebilir mi?', 'answer' => 'Evet. Dietavaria, birden fazla klinik işleten gruplar için şirket başına abonelikler ve yapılandırılabilir kullanıcı limitleriyle çok kiracılı olarak tasarlanmıştır.'],
+                ['question' => 'Yapay zeka bakım planı ne kadar doğru?', 'answer' => 'Asistan, diyetisyenin vaka açıklamasından bir başlangıç noktası hazırlar. Her plan, programlanmadan önce ilgili diyetisyen tarafından incelenir ve onaylanır — sistem kendi başına hiçbir şey randevulamaz.'],
+                ['question' => 'Ücretsiz deneme sunuyor musunuz?', 'answer' => 'Evet. Bir demo talep edin, iş akışınıza uygun bir deneme pratiği kuralım — kredi kartı gerekmez.'],
+                ['question' => 'Kurulum süreci nasıl işliyor?', 'answer' => 'Çoğu pratik bir hafta içinde kullanıma hazır olur. Programınızı, doktorlarınızı ve hizmetlerinizi içe aktarır, ardından resepsiyon ekibinizi eğitiriz.'],
+                ['question' => 'Mobil uygulama var mı?', 'answer' => 'Evet. Personel, OTP ile güvenli mobil erişim üzerinden giriş yapar — paylaşılan şifre yoktur.'],
+            ],
+            'final_cta' => [
+                'headline' => 'Ekibinize zamanını geri vermeye hazır mısınız?',
+                'subtext' => "Bir demo talep edin ve Dietavaria'nın kendi randevu planlamanız, takip programlarınız ve faturalandırmanızla bir haftadan kısa sürede nasıl çalıştığını görün.",
+                'button_label' => 'Demo talep edin',
+                'button_email' => 'hello@dietavaria.com',
+                'note' => 'Kredi kartı gerekmez.',
+            ],
+            'footer' => [
+                'tagline' => 'Modern diyetisyen ve beslenme pratiklerinin klinik işletim sistemi.',
+                'contact_email' => 'hello@dietavaria.com',
+                'copyright_name' => 'Dietavaria',
+            ],
+            'contact' => [
+                'eyebrow' => 'Bize ulaşın',
+                'headline' => 'Sizden haber almak isteriz',
+                'subtext' => 'Dietavaria hakkında sorularınız mı var? Bize bir mesaj gönderin, ekibimiz bir iş günü içinde size dönsün.',
+                'name_label' => 'Adınız',
+                'email_label' => 'E-posta adresi',
+                'message_label' => 'Mesaj',
+                'submit_label' => 'Mesaj gönder',
+                'success_message' => 'Teşekkürler — mesajınız gönderildi. Yakında sizinle iletişime geçeceğiz.',
+            ],
+            'quote' => [
+                'eyebrow' => 'Teklif alın',
+                'headline' => "Dietavaria'yı pratiğinize taşımaya hazır mısınız?",
                 'subtext' => 'Pratiğiniz hakkında bize biraz bilgi verin, büyüklüğünüze ve ihtiyaçlarınıza uygun bir teklif hazırlayalım.',
                 'name_label' => 'Adınız',
                 'email_label' => 'E-posta adresi',

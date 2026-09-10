@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
 
@@ -98,7 +99,22 @@ class DicomStudyController extends Controller
             ]);
 
             foreach ($bySeriesUid as $seriesUid => $series) {
-                $storagePath = "dicom-studies/{$study->uuid}/{$seriesUid}";
+                // The directory name is a freshly generated UUID, never the
+                // series_uid tag itself -- that value comes straight out of
+                // attacker-controlled file bytes (DicomTagReader applies no
+                // character/format validation to it) and this path is later
+                // fed to putFileAs()/deleteDirectory() unmodified. A crafted
+                // tag like "../../xray-images" would otherwise let Flysystem's
+                // normalizer walk the resulting path out of this study's own
+                // directory entirely (two real path segments precede it, so
+                // both ".." pops succeed silently instead of throwing), then
+                // have deleteDirectory() on destroy() wipe an unrelated,
+                // cross-tenant directory on the shared 'local' disk. The raw
+                // tag value is still kept in the series_uid *column* below
+                // (a plain DB value, never touched by any Storage:: call) for
+                // display/matching -- only its use as a filesystem path is
+                // the problem.
+                $storagePath = 'dicom-studies/'.$study->uuid.'/'.(string) Str::uuid();
 
                 foreach ($series['files'] as $index => $tempPath) {
                     // Private disk (KVKK): raw DICOM files carry the same class of

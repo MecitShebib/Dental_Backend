@@ -15,13 +15,28 @@ use App\Support\ApiDocumentation;
 use App\Support\LegalContent;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/api-docs', function () {
+// Per-specialty (not one shared page): each business unit only cares about
+// its own slice of the API -- dental's X-Ray/DICOM/Lab groups meant nothing
+// to a Gynevaria integrator reading the same unified page. Uses the
+// specialty *key* (gynecology, internal_medicine, ...), same segment the
+// app's own in-product routes use (see App.jsx's /internal_medicine/...
+// routes) -- not LandingPageContent's marketing *slug* (gynevaria, ...),
+// which is a different, brand-facing identifier for the public site only.
+Route::get('/{specialty}/api-docs', function (string $specialty) {
     return view('api-docs', [
-        'groups' => ApiDocumentation::groups(),
+        'groups' => ApiDocumentation::groups($specialty),
         'enums' => ApiDocumentation::enums(),
         'baseUrl' => ApiDocumentation::baseUrl(),
+        'specialty' => $specialty,
+        'specialtySlug' => LandingPageContent::SPECIALTY_SLUGS[$specialty],
+        'brandName' => ApiDocumentation::specialtyBrandName($specialty),
+        'accent' => LandingPageContent::SPECIALTY_ACCENTS[$specialty],
     ]);
-})->name('api-docs');
+})->where('specialty', implode('|', LandingPageContent::SPECIALTIES))->name('api-docs');
+
+// Old unified /api-docs -- keeps existing bookmarks/links alive by sending
+// them to the flagship product's own docs instead of 404ing.
+Route::redirect('/api-docs', '/dental/api-docs', 301);
 
 Route::get('/privacy-policy', function () {
     return view('legal', ['page' => 'privacy', 'locale' => 'en', 'legal' => LegalContent::get('privacy', 'en')]);
@@ -105,19 +120,25 @@ Route::prefix('admin')->group(function () {
 
         Route::get('companies', [AdminCompanyController::class, 'index'])->name('admin.companies.index');
         Route::post('companies', [AdminCompanyController::class, 'store'])->name('admin.companies.store');
-        Route::get('companies/{company}', [AdminCompanyController::class, 'show'])->name('admin.companies.show');
+        // withTrashed(): a deleted company must still be openable (to show
+        // its Deleted state and a Restore button) instead of 404ing like any
+        // other soft-deleted implicit-binding lookup would.
+        Route::get('companies/{company}', [AdminCompanyController::class, 'show'])->name('admin.companies.show')->withTrashed();
         Route::put('companies/{company}', [AdminCompanyController::class, 'update'])->name('admin.companies.update');
         Route::delete('companies/{company}', [AdminCompanyController::class, 'destroy'])->name('admin.companies.destroy');
+        Route::patch('companies/{company}/restore', [AdminCompanyController::class, 'restore'])->name('admin.companies.restore')->withTrashed();
 
         Route::post('users', [AdminUserController::class, 'store'])->name('admin.users.store');
         Route::put('users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
         Route::patch('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('admin.users.toggle-status');
+        Route::patch('users/{user}/restore', [AdminUserController::class, 'restore'])->name('admin.users.restore')->withTrashed();
 
         Route::post('subscriptions', [AdminSubscriptionController::class, 'store'])->name('admin.subscriptions.store');
         Route::put('subscriptions/{subscription}', [AdminSubscriptionController::class, 'update'])->name('admin.subscriptions.update');
         Route::delete('subscriptions/{subscription}', [AdminSubscriptionController::class, 'destroy'])->name('admin.subscriptions.destroy');
         Route::patch('subscriptions/{subscription}/toggle-status', [AdminSubscriptionController::class, 'toggleStatus'])->name('admin.subscriptions.toggle-status');
+        Route::patch('subscriptions/{subscription}/restore', [AdminSubscriptionController::class, 'restore'])->name('admin.subscriptions.restore')->withTrashed();
         Route::patch('companies/{company}/toggle-status', [AdminCompanyController::class, 'toggleStatus'])->name('admin.companies.toggle-status');
 
         Route::get('landing-page', [AdminLandingPageController::class, 'edit'])->name('admin.landing-page.edit');

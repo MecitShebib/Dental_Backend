@@ -82,6 +82,12 @@ class AuthController extends Controller
         $this->otpService->markUsed($challenge);
 
         $user->forceFill(['last_login_at' => now()])->save();
+
+        // Single-session-per-account: logging in from a new device/browser
+        // must sign the previous one out. Only revokes prior LOGIN tokens
+        // (name 'api-token') -- deliberately leaves Settings > API Token's
+        // named integration tokens alone (see ApiTokenController).
+        $user->tokens()->where('name', 'api-token')->delete();
         $token = $user->createToken('api-token')->plainTextToken;
 
         $user->setAttribute('requires_specialty_selection', $this->requiresSpecialtySelection($user));

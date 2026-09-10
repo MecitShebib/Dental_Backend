@@ -9,12 +9,13 @@ use App\Models\Company;
  * booking confirmations) goes through, so the "which channel" decision
  * lives in one place instead of being duplicated at each call site.
  * Prefers a company's own connected WhatsApp number when available (no per-
- * message SMS cost); falls back to the shared Infobip SMS gateway otherwise.
+ * message SMS cost); falls back to the shared İleti Merkezi SMS gateway
+ * otherwise.
  */
 class MessagingService
 {
     public function __construct(
-        protected InfobipSmsService $infobipSms,
+        protected IletiMerkeziSmsService $sms,
         protected WhatsAppService $whatsApp,
     ) {}
 
@@ -24,8 +25,8 @@ class MessagingService
             return $this->whatsApp->send($company, $phone, $text);
         }
 
-        if ($this->infobipSms->enabled()) {
-            return $this->infobipSms->send($phone, $text);
+        if ($this->sms->enabled()) {
+            return $this->sms->send($phone, $text);
         }
 
         return false;

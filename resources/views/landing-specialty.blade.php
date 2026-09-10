@@ -13,6 +13,7 @@
         'internal_medicine' => 'medivaria_logo.png',
         'orthopedics' => 'orthovaria_logo.png',
         'cosmetic' => 'estevaria_logo.png',
+        'nutrition' => 'dietavaria_logo.png',
         default => 'dentavaria_logo.png',
     };
 
@@ -95,10 +96,15 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <script>
         (function () {
+            // The <html> tag above hardcodes data-theme="light" as a safe
+            // pre-JS default -- this runs before first paint (no FOUC) to
+            // correct it to "dark" when that's what the visitor actually
+            // wants: an explicit stored choice, or (on a first-ever visit,
+            // nothing stored yet) the OS/browser's own dark-mode preference.
             var stored = localStorage.getItem('doctovaria-theme');
-            if (stored === 'light' || stored === 'dark') {
-                document.documentElement.setAttribute('data-theme', stored);
-            }
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
 
@@ -464,12 +470,11 @@
         <section class="relative overflow-hidden px-6 pt-20 pb-28">
             <div class="mx-auto max-w-7xl">
                 <div class="mx-auto max-w-3xl text-center" data-reveal>
-                    <div class="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-xs font-medium text-blue-300">
-                        <span class="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+                    <p class="text-sm font-semibold uppercase tracking-widest text-blue-400">
                         {{ $content['hero']['eyebrow'] }}
-                    </div>
+                    </p>
 
-                    <h1 class="mt-6 text-5xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl">
+                    <h1 class="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl">
                         {{ $content['hero']['headline'] }}
                     </h1>
 
@@ -733,7 +738,7 @@
                         <li><a href="#features" class="transition hover:text-slate-300">{{ $ui['nav_features'] }}</a></li>
                         <li><a href="#pricing" class="transition hover:text-slate-300">{{ $ui['nav_pricing'] }}</a></li>
                         <li><a href="#faq" class="transition hover:text-slate-300">{{ $ui['nav_faq'] }}</a></li>
-                        <li><a href="{{ route('api-docs') }}" class="transition hover:text-slate-300">{{ $ui['nav_api_docs'] }}</a></li>
+                        <li><a href="{{ route('api-docs', ['specialty' => $specialty]) }}" class="transition hover:text-slate-300">{{ $ui['nav_api_docs'] }}</a></li>
                     </ul>
                 </div>
 

@@ -67,7 +67,7 @@
   .feat-card { background: var(--paper-raised); border-radius: 12px; padding: 18px; }
   .feat-card .icon { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-wash); color: var(--accent-strong); display: grid; place-items: center; margin-bottom: 10px; }
   .feat-card .icon svg { width: 16px; height: 16px; }
-  .feat-card h3 { font-size: clamp(13px, 1.05vw, 15px); font-weight: 700; margin: 0 0 4px; }
+  .feat-card h3 { font-size: clamp(13px, 1.05vw, 15px); font-weight: 700; margin: 0 0 4px; color: var(--ink); }
   .feat-card p { font-size: clamp(11.5px, 0.95vw, 12.5px); color: var(--ink-soft); margin: 0; line-height: 1.45; }
 
   .stat-grid { margin-top: 32px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 28px; max-width: 780px; }
@@ -147,9 +147,7 @@
         <h1 class="slide-h">Describe the case.<br>The AI drafts the plan.</h1>
         <p class="slide-lede">Turns a spoken or typed case into a structured, multi-session treatment plan in seconds — confirmed by the doctor, scheduled automatically.</p>
         <div class="cover-meta-row">
-          <div class="m">PREPARED FOR<b>—</b></div>
           <div class="m">PREPARED BY<b>Dentavaria</b></div>
-          <div class="m">DATE<b>—</b></div>
         </div>
         <p class="hint-inline">Use → or click to advance</p>
       </div>
@@ -174,7 +172,7 @@
         <p class="k">02 — The AI assistant</p>
         <h2 class="slide-h">Describe the case. The AI drafts. The doctor decides.</h2>
         <div class="flow-row">
-          <div class="flow-item"><span class="fn">01</span><h3>Describe</h3><p>Type or speak the case — no forms.</p></div>
+          <div class="flow-item"><span class="fn">01</span><h3>Describe</h3><p>Type or speak — transcribed instantly, ready to edit.</p></div>
           <div class="flow-item"><span class="fn">02</span><h3>AI drafts</h3><p>A multi-session plan, procedure by procedure.</p></div>
           <div class="flow-item"><span class="fn">03</span><h3>Doctor confirms</h3><p>Fully editable. Nothing books itself.</p></div>
           <div class="flow-item"><span class="fn">04</span><h3>Becomes real</h3><p>Appointments booked, fees recorded — instantly.</p></div>
@@ -182,26 +180,74 @@
       </div>
     </section>
 
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">03 — AI X-ray reading</p>
+        <h2 class="slide-h">Upload the X-ray. The AI reads it — in 3D.</h2>
+        <div class="flow-row">
+          <div class="flow-item"><span class="fn">01</span><h3>Link it</h3><p>Attach the X-ray to the patient — one click.</p></div>
+          <div class="flow-item"><span class="fn">02</span><h3>AI reads it</h3><p>Caries, missing teeth, old fillings, root canals, implants — spotted per tooth.</p></div>
+          <div class="flow-item"><span class="fn">03</span><h3>A real 3D mouth</h3><p>Rotate it, open the jaw, hide the gums — not a flat chart.</p></div>
+          <div class="flow-item"><span class="fn">04</span><h3>Before / after</h3><p>The X-ray's findings next to the clinic's own treatment record.</p></div>
+        </div>
+      </div>
+    </section>
+
     <section class="slide" data-slide>
       <div class="slide-inner">
-        <p class="k">03 — The platform</p>
-        <h2 class="slide-h">One system, not a standalone tool.</h2>
+        <p class="k">04 — Clinical tools</p>
+        <h2 class="slide-h">Everything for patient care, built in.</h2>
         <div class="feat-grid">
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Smart scheduling</h3><p>Conflict-free, across doctors and locations.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Digital treatment records</h3><p>Odontogram charting, synced every visit.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Financial clarity</h3><p>Charges, payments, balances — automatic.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Secure mobile</h3><p>OTP sign-in, token sessions, no shared passwords.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Multi-clinic</h3><p>Every branch, every doctor, one login.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Accounting &amp; payroll</h3><p>Fund ledger and payroll with doctor commissions.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Lab workflow</h3><p>Every case tracked, sent to delivered.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Open API</h3><p>Connect X-ray and outside equipment to the chart.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Smart scheduling &amp; reminders</h3><p>Conflict-free bookings, automatic SMS/email reminders.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Digital tooth-by-tooth charting</h3><p>One merged chart, every visit synced.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M6 6v13a1 1 0 001 1h10a1 1 0 001-1V6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></span><h3>Organized patient records</h3><p>Data, diagnosis, payments, consent — one place.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 9l2 2 4-4"/></svg></span><h3>Digital consent tracking</h3><p>Signed consent, always attached to the chart.</p></div>
         </div>
       </div>
     </section>
 
     <section class="slide dark" data-slide>
       <div class="slide-inner">
-        <p class="k">04 — What changes</p>
+        <p class="k">05 — Financial &amp; billing</p>
+        <h2 class="slide-h">Every charge accounted for, automatically.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Itemized billing ledger</h3><p>Every charge and discount, tracked live.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V4a1 1 0 011-1h10a1 1 0 011 1v5M6 18h-.5A1.5 1.5 0 014 16.5v-5A1.5 1.5 0 015.5 10h13a1.5 1.5 0 011.5 1.5v5a1.5 1.5 0 01-1.5 1.5H18m-12 0v3a1 1 0 001 1h10a1 1 0 001-1v-3"/></svg></span><h3>Patient-facing PDF quotes</h3><p>Printable plan with timeline and fees.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M4 21V10l8-6 8 6v11M9 21v-6h6v6"/></svg></span><h3>Accounting &amp; fund ledger</h3><p>Income, expenses, capital — auto-invoiced.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4zM12 9a3 3 0 100 6 3 3 0 000-6zM6.5 6v.01M17.5 18v-.01"/></svg></span><h3>Payroll with doctor commissions</h3><p>Salaries plus each doctor's revenue share.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">06 — Operations</p>
+        <h2 class="slide-h">The back office, running itself.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Dental lab workflow</h3><p>Every case tracked, sent to delivered.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3 3m-3-3l3-3"/></svg></span><h3>Running accounts</h3><p>A ledger for every supplier and partner.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7v12a1 1 0 001 1h12a1 1 0 001-1V7M9 11h6M4 4h16v3H4z"/></svg></span><h3>Inventory that tracks itself</h3><p>Stock deducted automatically as you treat.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4zM4 15l4-4 3 3 5-5 4 4M9 9a1 1 0 100-2 1 1 0 000 2z"/></svg></span><h3>X-ray &amp; image gallery</h3><p>One shared library, linked to the patient.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">07 — Reports &amp; access</p>
+        <h2 class="slide-h">Clear numbers. The right access for everyone.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m6 10V4m6 16v-7"/></svg></span><h3>Clinic reports</h3><p>Balances, lab debts, performance — always current.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Multi-branch management</h3><p>Every branch, every doctor, one login.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Secure mobile access</h3><p>OTP sign-in, token sessions, no shared passwords.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Open API</h3><p>Connect X-ray and outside equipment to the chart.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">08 — What changes</p>
         <h2 class="slide-h">The first month, in four wins.</h2>
         <div class="stat-grid">
           <div class="stat-card"><div class="rule"></div><h3>Plans in seconds</h3><p>Not a callback tomorrow — a confirmed plan today.</p></div>
@@ -212,9 +258,9 @@
       </div>
     </section>
 
-    <section class="slide" data-slide>
+    <section class="slide dark" data-slide>
       <div class="slide-inner">
-        <p class="k">05 — Security</p>
+        <p class="k">09 — Security</p>
         <h2 class="slide-h">Built for clinical data, at scale.</h2>
         <ul class="trust-row">
           <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>Case descriptions never train external models.</span></li>
@@ -227,11 +273,11 @@
 
     <section class="slide" data-slide>
       <div class="slide-inner">
-        <p class="k">06 — Investment</p>
+        <p class="k">10 — Investment</p>
         <h2 class="slide-h">Pricing that scales with the clinic.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">Essentials</span><span class="tp">$59<small>/mo</small></span><p>Full toolkit, no AI. Up to 3 doctors.</p></div>
-          <div class="price-tile hi"><span class="tn">Growth</span><span class="tp">$199<small>/mo</small></span><p>Everything, plus AI. Up to 10 doctors. Recommended.</p></div>
+          <div class="price-tile"><span class="tn">Essentials</span><span class="tp">$74<small>/mo</small></span><p>Full toolkit, no AI. Up to 3 doctors.</p></div>
+          <div class="price-tile hi"><span class="tn">Growth</span><span class="tp">$249<small>/mo</small></span><p>Everything, plus voice-to-plan AI &amp; PDF quotes. Up to 10 doctors. Recommended.</p></div>
           <div class="price-tile"><span class="tn">Enterprise</span><span class="tp">Custom</span><p>Unlimited doctors, dedicated onboarding.</p></div>
         </div>
       </div>
@@ -247,7 +293,7 @@
       </div>
     </section>
 
-    <div class="deck-counter"><span data-current>1</span> / <span data-total>8</span></div>
+    <div class="deck-counter"><span data-current>1</span> / <span data-total>12</span></div>
     <div class="deck-nav">
       <button type="button" data-prev aria-label="Previous slide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <button type="button" data-next aria-label="Next slide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
@@ -268,9 +314,7 @@
         <h1 class="slide-h">صف الحالة.<br>يصيغ الذكاء الاصطناعي الخطة.</h1>
         <p class="slide-lede">يحوّل وصفاً منطوقاً أو مكتوباً للحالة إلى خطة علاج منظمة متعددة الجلسات خلال ثوانٍ — يؤكدها الطبيب، وتُجدول تلقائياً.</p>
         <div class="cover-meta-row">
-          <div class="m">مُعدّ لـ<b>—</b></div>
           <div class="m">مُعدّ من قبل<b>Dentavaria</b></div>
-          <div class="m">التاريخ<b>—</b></div>
         </div>
         <p class="hint-inline">استخدم ← للمتابعة أو انقر</p>
       </div>
@@ -295,7 +339,7 @@
         <p class="k">02 — مساعد الذكاء الاصطناعي</p>
         <h2 class="slide-h">صف الحالة. يصيغ الذكاء الاصطناعي. يقرر الطبيب.</h2>
         <div class="flow-row">
-          <div class="flow-item"><span class="fn">01</span><h3>صف</h3><p>اكتب أو انطق بالحالة — دون نماذج.</p></div>
+          <div class="flow-item"><span class="fn">01</span><h3>صف</h3><p>اكتب أو انطق — يُفرَّغ فوراً، جاهز للتعديل.</p></div>
           <div class="flow-item"><span class="fn">02</span><h3>يصيغ الذكاء الاصطناعي</h3><p>خطة متعددة الجلسات، إجراءً بإجراء.</p></div>
           <div class="flow-item"><span class="fn">03</span><h3>يؤكد الطبيب</h3><p>قابلة للتعديل الكامل. لا شيء يُجدول من تلقاء نفسه.</p></div>
           <div class="flow-item"><span class="fn">04</span><h3>تصبح حقيقية</h3><p>مواعيد محجوزة، رسوم مسجّلة — فوراً.</p></div>
@@ -303,26 +347,74 @@
       </div>
     </section>
 
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">03 — قراءة الأشعة بالذكاء الاصطناعي</p>
+        <h2 class="slide-h">ارفع الأشعة. يقرأها الذكاء الاصطناعي — بتقنية ثلاثية الأبعاد.</h2>
+        <div class="flow-row">
+          <div class="flow-item"><span class="fn">01</span><h3>اربطها</h3><p>أرفق الأشعة بالمريض — بنقرة واحدة.</p></div>
+          <div class="flow-item"><span class="fn">02</span><h3>يقرأها الذكاء الاصطناعي</h3><p>تسوّس، أسنان مفقودة، حشوات قديمة، علاج عصب، زرعات — تُكتشف لكل سن.</p></div>
+          <div class="flow-item"><span class="fn">03</span><h3>فم ثلاثي الأبعاد حقيقي</h3><p>دوّره، افتح الفك، أخفِ اللثة — لا مخطط مسطّح.</p></div>
+          <div class="flow-item"><span class="fn">04</span><h3>قبل / بعد</h3><p>نتائج الأشعة إلى جانب سجل العلاج الخاص بالعيادة.</p></div>
+        </div>
+      </div>
+    </section>
+
     <section class="slide" data-slide>
       <div class="slide-inner">
-        <p class="k">03 — المنصة</p>
-        <h2 class="slide-h">نظام واحد، لا أداة منفصلة.</h2>
+        <p class="k">04 — الأدوات السريرية</p>
+        <h2 class="slide-h">كل ما يلزم لرعاية المريض، مدمج.</h2>
         <div class="feat-grid">
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>جدولة ذكية</h3><p>بلا تعارض، بين الأطباء والفروع.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>سجلات علاج رقمية</h3><p>رسم بياني للأسنان، متزامن مع كل زيارة.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>وضوح مالي</h3><p>الرسوم والمدفوعات والأرصدة — تلقائياً.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>وصول آمن عبر الجوال</h3><p>تسجيل دخول OTP، جلسات برموز، دون كلمات مرور مشتركة.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>متعدد العيادات</h3><p>كل فرع، كل طبيب، تسجيل دخول واحد.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>المحاسبة والرواتب</h3><p>دفتر صندوق ورواتب بعمولات الأطباء.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>سير عمل المخبر</h3><p>كل حالة، من الإرسال حتى التسليم.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>واجهة API مفتوحة</h3><p>وصل الأشعة والأجهزة الخارجية بالملف مباشرة.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>جدولة ذكية وتذكيرات</h3><p>حجز بلا تعارض، وتذكيرات SMS وبريد تلقائية.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>رسم بياني رقمي لكل سن</h3><p>مخطط واحد موحّد، متزامن مع كل زيارة.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M6 6v13a1 1 0 001 1h10a1 1 0 001-1V6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></span><h3>ملفات مرضى منظمة</h3><p>البيانات والتشخيص والمدفوعات والموافقات — في مكان واحد.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 9l2 2 4-4"/></svg></span><h3>تتبع نماذج الموافقة</h3><p>موافقة موقّعة، مرفقة دائماً بالملف.</p></div>
         </div>
       </div>
     </section>
 
     <section class="slide dark" data-slide>
       <div class="slide-inner">
-        <p class="k">04 — ماذا يتغيّر</p>
+        <p class="k">05 — المالية والفوترة</p>
+        <h2 class="slide-h">كل رسم محسوب، تلقائياً.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>دفتر فوترة تفصيلي</h3><p>كل رسم وخصم، مسجّل لحظياً.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V4a1 1 0 011-1h10a1 1 0 011 1v5M6 18h-.5A1.5 1.5 0 014 16.5v-5A1.5 1.5 0 015.5 10h13a1.5 1.5 0 011.5 1.5v5a1.5 1.5 0 01-1.5 1.5H18m-12 0v3a1 1 0 001 1h10a1 1 0 001-1v-3"/></svg></span><h3>عروض أسعار PDF للمريض</h3><p>خطة قابلة للطباعة بالجدول الزمني والرسوم.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M4 21V10l8-6 8 6v11M9 21v-6h6v6"/></svg></span><h3>محاسبة ودفتر صندوق</h3><p>الإيرادات والمصاريف ورأس المال — فوترة تلقائية.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4zM12 9a3 3 0 100 6 3 3 0 000-6zM6.5 6v.01M17.5 18v-.01"/></svg></span><h3>رواتب بعمولات الأطباء</h3><p>الراتب مع نسبة كل طبيب من إيراداته.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">06 — العمليات</p>
+        <h2 class="slide-h">المكتب الخلفي، يعمل من تلقاء نفسه.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>سير عمل المخبر</h3><p>كل حالة، من الإرسال حتى التسليم.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3 3m-3-3l3-3"/></svg></span><h3>حسابات جارية</h3><p>دفتر لكل مورّد وشريك.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7v12a1 1 0 001 1h12a1 1 0 001-1V7M9 11h6M4 4h16v3H4z"/></svg></span><h3>مخزون يتابع نفسه</h3><p>يُخصم تلقائياً مع كل علاج فعلي.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4zM4 15l4-4 3 3 5-5 4 4M9 9a1 1 0 100-2 1 1 0 000 2z"/></svg></span><h3>معرض الأشعة والصور</h3><p>مكتبة واحدة، مرتبطة بالمريض.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">07 — التقارير والوصول</p>
+        <h2 class="slide-h">أرقام واضحة. الصلاحية المناسبة للجميع.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m6 10V4m6 16v-7"/></svg></span><h3>تقارير العيادة</h3><p>الأرصدة وديون المخبر والأداء — محدّثة دائماً.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>إدارة متعددة الفروع</h3><p>كل فرع، كل طبيب، تسجيل دخول واحد.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>وصول آمن عبر الجوال</h3><p>تسجيل دخول OTP، جلسات برموز، دون كلمات مرور مشتركة.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>واجهة API مفتوحة</h3><p>وصل الأشعة والأجهزة الخارجية بالملف مباشرة.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">08 — ماذا يتغيّر</p>
         <h2 class="slide-h">الشهر الأول، في أربعة انتصارات.</h2>
         <div class="stat-grid">
           <div class="stat-card"><div class="rule"></div><h3>خطط خلال ثوانٍ</h3><p>لا اتصال غداً — خطة مؤكدة اليوم.</p></div>
@@ -333,9 +425,9 @@
       </div>
     </section>
 
-    <section class="slide" data-slide>
+    <section class="slide dark" data-slide>
       <div class="slide-inner">
-        <p class="k">05 — الأمان</p>
+        <p class="k">09 — الأمان</p>
         <h2 class="slide-h">مصمم لبيانات سريرية، بمقياس واسع.</h2>
         <ul class="trust-row">
           <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>أوصاف الحالات لا تُستخدم أبداً لتدريب نماذج خارجية.</span></li>
@@ -348,11 +440,11 @@
 
     <section class="slide" data-slide>
       <div class="slide-inner">
-        <p class="k">06 — الاستثمار</p>
+        <p class="k">10 — الاستثمار</p>
         <h2 class="slide-h">تسعير يتناسب مع نمو العيادة.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">أساسيات</span><span class="tp">$59<small>/شهرياً</small></span><p>كل الأدوات، بدون ذكاء اصطناعي. حتى 3 أطباء.</p></div>
-          <div class="price-tile hi"><span class="tn">نمو</span><span class="tp">$199<small>/شهرياً</small></span><p>كل شيء، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء. موصى به.</p></div>
+          <div class="price-tile"><span class="tn">أساسيات</span><span class="tp">$74<small>/شهرياً</small></span><p>كل الأدوات، بدون ذكاء اصطناعي. حتى 3 أطباء.</p></div>
+          <div class="price-tile hi"><span class="tn">نمو</span><span class="tp">$249<small>/شهرياً</small></span><p>كل شيء، بالإضافة إلى ذكاء اصطناعي من الصوت إلى الخطة وعروض PDF. حتى 10 أطباء. موصى به.</p></div>
           <div class="price-tile"><span class="tn">مؤسسات</span><span class="tp">مخصص</span><p>أطباء بلا حدود، تأهيل مخصص.</p></div>
         </div>
       </div>
@@ -368,7 +460,7 @@
       </div>
     </section>
 
-    <div class="deck-counter"><span data-current>1</span> / <span data-total>8</span></div>
+    <div class="deck-counter"><span data-current>1</span> / <span data-total>12</span></div>
     <div class="deck-nav">
       <button type="button" data-prev aria-label="الشريحة السابقة"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <button type="button" data-next aria-label="الشريحة التالية"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
@@ -389,9 +481,7 @@
         <h1 class="slide-h">Vakayı tarif edin.<br>Yapay zeka planı hazırlar.</h1>
         <p class="slide-lede">Sözlü ya da yazılı bir vaka tarifini saniyeler içinde yapılandırılmış, çok seanslı bir tedavi planına dönüştürür — hekim onaylar, otomatik olarak randevuya dönüşür.</p>
         <div class="cover-meta-row">
-          <div class="m">HAZIRLANAN<b>—</b></div>
           <div class="m">HAZIRLAYAN<b>Dentavaria</b></div>
-          <div class="m">TARİH<b>—</b></div>
         </div>
         <p class="hint-inline">İlerlemek için → veya tıklayın</p>
       </div>
@@ -416,7 +506,7 @@
         <p class="k">02 — Yapay zeka asistanı</p>
         <h2 class="slide-h">Vakayı tarif edin. Yapay zeka hazırlar. Hekim karar verir.</h2>
         <div class="flow-row">
-          <div class="flow-item"><span class="fn">01</span><h3>Tarif edin</h3><p>Yazın ya da söyleyin — form yok.</p></div>
+          <div class="flow-item"><span class="fn">01</span><h3>Tarif edin</h3><p>Yazın ya da söyleyin — anında yazıya döker, düzenlemeye hazır.</p></div>
           <div class="flow-item"><span class="fn">02</span><h3>YZ hazırlar</h3><p>İşlem işlem, çok seanslı bir plan.</p></div>
           <div class="flow-item"><span class="fn">03</span><h3>Hekim onaylar</h3><p>Tamamen düzenlenebilir. Hiçbir şey kendiliğinden randevu olmaz.</p></div>
           <div class="flow-item"><span class="fn">04</span><h3>Gerçek olur</h3><p>Randevular ayırtılır, ücretler anında kaydedilir.</p></div>
@@ -424,26 +514,74 @@
       </div>
     </section>
 
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">03 — Yapay zeka ile röntgen okuma</p>
+        <h2 class="slide-h">Röntgeni yükleyin. Yapay zeka onu 3 boyutlu okusun.</h2>
+        <div class="flow-row">
+          <div class="flow-item"><span class="fn">01</span><h3>Bağlayın</h3><p>Röntgeni hastaya ekleyin — tek tıkla.</p></div>
+          <div class="flow-item"><span class="fn">02</span><h3>Yapay zeka okur</h3><p>Çürük, eksik diş, eski dolgu, kanal tedavisi, implant — diş diş tespit edilir.</p></div>
+          <div class="flow-item"><span class="fn">03</span><h3>Gerçek bir 3D ağız</h3><p>Döndürün, çeneyi açın, dişetini gizleyin — düz bir grafik değil.</p></div>
+          <div class="flow-item"><span class="fn">04</span><h3>Önce / sonra</h3><p>Röntgenin bulguları, kliniğin kendi tedavi kaydının yanında.</p></div>
+        </div>
+      </div>
+    </section>
+
     <section class="slide" data-slide>
       <div class="slide-inner">
-        <p class="k">03 — Platform</p>
-        <h2 class="slide-h">Ayrı bir araç değil, tek bir sistem.</h2>
+        <p class="k">04 — Klinik araçlar</p>
+        <h2 class="slide-h">Hasta bakımı için gereken her şey, dahili.</h2>
         <div class="feat-grid">
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Akıllı randevu</h3><p>Doktorlar ve şubeler arasında çakışmasız.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Dijital tedavi kayıtları</h3><p>Odontogram kaydı, her ziyarette senkron.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Finansal netlik</h3><p>Ücretler, ödemeler, bakiyeler — otomatik.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Güvenli mobil</h3><p>OTP girişi, token oturumları, paylaşılan şifre yok.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Çoklu klinik</h3><p>Her şube, her doktor, tek giriş.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Muhasebe ve bordro</h3><p>Kasa defteri ve doktor komisyonlu bordro.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Laboratuvar iş akışı</h3><p>Her vaka, gönderimden teslimata takipte.</p></div>
-          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Açık API</h3><p>Röntgeni ve harici cihazları doğrudan dosyaya bağlayın.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Akıllı randevu ve hatırlatmalar</h3><p>Çakışmasız randevu, otomatik SMS/e-posta hatırlatmaları.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Diş diş dijital grafik</h3><p>Tek bir birleşik grafik, her ziyarette senkron.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M6 6v13a1 1 0 001 1h10a1 1 0 001-1V6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></span><h3>Düzenli hasta dosyaları</h3><p>Bilgi, tanı, ödeme, onay — tek bir yerde.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 9l2 2 4-4"/></svg></span><h3>Dijital onam takibi</h3><p>İmzalı onam, dosyaya her zaman iliştirili.</p></div>
         </div>
       </div>
     </section>
 
     <section class="slide dark" data-slide>
       <div class="slide-inner">
-        <p class="k">04 — Ne değişir</p>
+        <p class="k">05 — Finans ve faturalama</p>
+        <h2 class="slide-h">Her ücret otomatik olarak hesaba katılır.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6m-5 4h4m-7 8h10a2 2 0 002-2V6a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Kalem kalem faturalama</h3><p>Her ücret ve indirim, canlı takipte.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V4a1 1 0 011-1h10a1 1 0 011 1v5M6 18h-.5A1.5 1.5 0 014 16.5v-5A1.5 1.5 0 015.5 10h13a1.5 1.5 0 011.5 1.5v5a1.5 1.5 0 01-1.5 1.5H18m-12 0v3a1 1 0 001 1h10a1 1 0 001-1v-3"/></svg></span><h3>Hastaya özel PDF teklif</h3><p>Zaman çizelgesi ve ücretlerle basılabilir plan.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M4 21V10l8-6 8 6v11M9 21v-6h6v6"/></svg></span><h3>Muhasebe ve kasa defteri</h3><p>Gelir, gider, sermaye — otomatik faturalı.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4zM12 9a3 3 0 100 6 3 3 0 000-6zM6.5 6v.01M17.5 18v-.01"/></svg></span><h3>Doktor komisyonlu bordro</h3><p>Maaş, artı her doktorun gelir payı.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">06 — Operasyon</p>
+        <h2 class="slide-h">Arka ofis, kendi kendine işler.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Laboratuvar iş akışı</h3><p>Her vaka, gönderimden teslimata takipte.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3 3m-3-3l3-3"/></svg></span><h3>Cari hesaplar</h3><p>Her tedarikçi ve ortak için bir defter.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7v12a1 1 0 001 1h12a1 1 0 001-1V7M9 11h6M4 4h16v3H4z"/></svg></span><h3>Kendini takip eden stok</h3><p>Her tedavide otomatik düşer.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v14H4zM4 15l4-4 3 3 5-5 4 4M9 9a1 1 0 100-2 1 1 0 000 2z"/></svg></span><h3>Röntgen ve görsel galerisi</h3><p>Tek kütüphane, hastaya bağlı.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-slide>
+      <div class="slide-inner">
+        <p class="k">07 — Raporlar ve erişim</p>
+        <h2 class="slide-h">Net rakamlar. Herkese doğru erişim.</h2>
+        <div class="feat-grid">
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m6 10V4m6 16v-7"/></svg></span><h3>Klinik raporları</h3><p>Bakiye, laboratuvar borcu, performans — güncel.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Çoklu şube yönetimi</h3><p>Her şube, her doktor, tek giriş.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Güvenli mobil</h3><p>OTP girişi, token oturumları, paylaşılan şifre yok.</p></div>
+          <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Açık API</h3><p>Röntgeni ve harici cihazları doğrudan dosyaya bağlayın.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="k">08 — Ne değişir</p>
         <h2 class="slide-h">İlk ay, dört kazanımla.</h2>
         <div class="stat-grid">
           <div class="stat-card"><div class="rule"></div><h3>Saniyeler içinde plan</h3><p>Yarın geri arama değil, bugün onaylı bir plan.</p></div>
@@ -454,9 +592,9 @@
       </div>
     </section>
 
-    <section class="slide" data-slide>
+    <section class="slide dark" data-slide>
       <div class="slide-inner">
-        <p class="k">05 — Güvenlik</p>
+        <p class="k">09 — Güvenlik</p>
         <h2 class="slide-h">Büyük ölçekte klinik veriler için tasarlandı.</h2>
         <ul class="trust-row">
           <li><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1a5 5 0 00-5 5v2H4a1 1 0 00-1 1v9a1 1 0 001 1h12a1 1 0 001-1v-9a1 1 0 00-1-1h-1V6a5 5 0 00-5-5zm3 7V6a3 3 0 10-6 0v2h6z" clip-rule="evenodd"/></svg><span>Vaka tarifleri asla harici modelleri eğitmek için kullanılmaz.</span></li>
@@ -469,11 +607,11 @@
 
     <section class="slide" data-slide>
       <div class="slide-inner">
-        <p class="k">06 — Yatırım</p>
+        <p class="k">10 — Yatırım</p>
         <h2 class="slide-h">Klinikle birlikte ölçeklenen fiyatlandırma.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">Temel</span><span class="tp">$59<small>/ay</small></span><p>Yapay zeka olmadan tam araç seti. 3 doktora kadar.</p></div>
-          <div class="price-tile hi"><span class="tn">Büyüme</span><span class="tp">$199<small>/ay</small></span><p>Her şey, artı yapay zeka. 10 doktora kadar. Önerilen.</p></div>
+          <div class="price-tile"><span class="tn">Temel</span><span class="tp">$74<small>/ay</small></span><p>Yapay zeka olmadan tam araç seti. 3 doktora kadar.</p></div>
+          <div class="price-tile hi"><span class="tn">Büyüme</span><span class="tp">$249<small>/ay</small></span><p>Her şey, artı sesten plana yapay zeka ve PDF teklifler. 10 doktora kadar. Önerilen.</p></div>
           <div class="price-tile"><span class="tn">Kurumsal</span><span class="tp">Özel</span><p>Sınırsız doktor, özel katılım.</p></div>
         </div>
       </div>
@@ -489,7 +627,7 @@
       </div>
     </section>
 
-    <div class="deck-counter"><span data-current>1</span> / <span data-total>8</span></div>
+    <div class="deck-counter"><span data-current>1</span> / <span data-total>12</span></div>
     <div class="deck-nav">
       <button type="button" data-prev aria-label="Önceki slayt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <button type="button" data-next aria-label="Sonraki slayt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>

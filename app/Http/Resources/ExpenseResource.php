@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use App\Models\CariTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ExpenseResource extends JsonResource
 {
@@ -29,7 +29,9 @@ class ExpenseResource extends JsonResource
             'amount' => (float) $this->amount,
             'expense_date' => $this->expense_date?->format('Y-m-d'),
             'description' => $this->description,
-            'attachment_url' => $this->attachment_path ? Storage::disk('public')->url($this->attachment_path) : null,
+            'attachment_url' => $this->attachment_path
+                ? URL::temporarySignedRoute('expenses.attachment', now()->addMinutes(60), ['expense' => $this->id])
+                : null,
             'cari_partyable_type' => $cariLink?->partyable_type,
             'cari_partyable_id' => $cariLink?->partyable_id,
             'cari_currency' => $cariLink?->currency?->value,

@@ -108,6 +108,18 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // Same SMS-bombing concern as 'otp-request' above, but the booking
+        // page's field is named client_phone (not mobile), so it needs its
+        // own limiter rather than sharing that one.
+        RateLimiter::for('public-booking-otp-request', function ($request) {
+            $phone = (string) $request->input('client_phone');
+
+            return [
+                Limit::perMinute(3)->by($phone),
+                Limit::perHour(10)->by($phone),
+            ];
+        });
+
         // A telephony provider posting real call events -- generous cap (a
         // busy clinic can legitimately get dozens of calls an hour). Keyed by
         // the raw booking_slug route segment (a string, available before

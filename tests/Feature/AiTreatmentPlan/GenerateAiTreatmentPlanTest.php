@@ -99,13 +99,16 @@ class GenerateAiTreatmentPlanTest extends TestCase
 
     protected function makeClient(): Client
     {
-        return Client::create([
+        $client = Client::create([
             'client_code' => 'CL-3001',
             'name' => 'Sami',
             'phone' => '+963900003001',
             'gender' => 'male',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
+
+        return $client;
     }
 
     public function test_it_returns_a_draft_plan_without_persisting_appointments(): void

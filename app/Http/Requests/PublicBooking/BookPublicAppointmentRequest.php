@@ -20,6 +20,8 @@ class BookPublicAppointmentRequest extends FormRequest
             'client_name' => ['required', 'string', 'max:255'],
             'client_phone' => ['required', 'string', 'max:50'],
             'client_email' => ['nullable', 'email', 'max:255'],
+            'otp' => ['required', 'string'],
+            'otp_reference' => ['required', 'string'],
             // Honeypot: a real visitor never sees or fills this field (hidden
             // by CSS on the booking page). Any value means it's a bot.
             'website' => ['prohibited'],

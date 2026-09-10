@@ -78,13 +78,35 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        $company = $user->company;
+        // withTrashed(): plain $user->company (a normal BelongsTo) would
+        // resolve to null if the company happens to already be soft-deleted
+        // -- Company's own SoftDeletes scope excludes it from that lookup
+        // same as any other query -- and redirect()->route() needs a real
+        // company to build the URL.
+        $company = Company::withTrashed()->find($user->company_id);
         $user->delete();
         if ($company) {
             $this->companyUserLimit->syncActiveUsers($company);
         }
 
         return redirect()->route('admin.companies.show', $company)->with('status', 'User deleted successfully.');
+    }
+
+    /**
+     * Independent of Admin\CompanyController::restore() (which restores
+     * every user a company-delete cascaded into) -- this is for restoring
+     * one specific user on its own, e.g. after deleting them individually,
+     * or deciding not to bring every user back when restoring their company.
+     */
+    public function restore(User $user)
+    {
+        $company = Company::withTrashed()->find($user->company_id);
+        $user->restore();
+        if ($company) {
+            $this->companyUserLimit->syncActiveUsers($company);
+        }
+
+        return redirect()->route('admin.companies.show', $company)->with('status', 'User restored successfully.');
     }
 
     public function toggleStatus(User $user)

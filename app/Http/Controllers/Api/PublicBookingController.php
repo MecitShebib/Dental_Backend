@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PublicBooking\BookPublicAppointmentRequest;
+use App\Http\Requests\PublicBooking\RequestBookingOtpRequest;
 use App\Models\Company;
+use App\Services\PublicBookingOtpService;
 use App\Services\PublicBookingService;
 use Illuminate\Http\Request;
 
@@ -37,6 +39,20 @@ class PublicBookingController extends Controller
             'date' => $data['date'],
             'free_times' => $booking->freeTimes($company, (int) $data['doctor_id'], $data['date']),
         ]);
+    }
+
+    public function requestOtp(RequestBookingOtpRequest $request, Company $company, PublicBookingOtpService $otp)
+    {
+        $this->assertBookable($company);
+
+        $phone = $request->validated()['client_phone'];
+        $challenge = $otp->issue($company, $phone);
+
+        return $this->success([
+            'otp_reference' => $challenge->reference,
+            'masked_mobile' => $otp->maskMobile($phone),
+            'expires_at' => $challenge->expires_at?->toIso8601String(),
+        ], 'Verification code sent.');
     }
 
     public function book(BookPublicAppointmentRequest $request, Company $company, PublicBookingService $booking)

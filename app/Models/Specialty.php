@@ -30,6 +30,8 @@ class Specialty extends Model
 
     public const COSMETIC = 'cosmetic';
 
+    public const NUTRITION = 'nutrition';
+
     protected $fillable = [
         'key',
         'brand_name',

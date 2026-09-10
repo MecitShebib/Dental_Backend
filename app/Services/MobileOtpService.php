@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserOtp;
+use App\Services\Concerns\GeneratesOtpCodes;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class MobileOtpService
 {
+    use GeneratesOtpCodes;
+
     public function issue(User $user, string $purpose, string $mobile): UserOtp
     {
         UserOtp::query()
@@ -22,7 +25,7 @@ class MobileOtpService
         $otp = $this->generateOtp();
 
         if ($this->providerEnabled()) {
-            $this->sendInfobipOtp($mobile, $otp);
+            $this->sendOtpSms($mobile, $otp);
         }
 
         $challenge = UserOtp::query()->create([
@@ -38,7 +41,7 @@ class MobileOtpService
             'user_id' => $user->id,
             'purpose' => $purpose,
             'mobile' => $mobile,
-            'otp' => $this->providerEnabled() ? 'sent_via_infobip' : $otp,
+            'otp' => $this->providerEnabled() ? 'sent_via_sms_provider' : $otp,
             'reference' => $challenge->reference,
         ]);
 
@@ -102,19 +105,6 @@ class MobileOtpService
         ])->save();
     }
 
-    public function maskMobile(string $mobile): string
-    {
-        $normalized = $this->normalizeMobile($mobile);
-        $lastFour = substr($normalized, -4);
-
-        return str_repeat('*', max(strlen($normalized) - 4, 0)).$lastFour;
-    }
-
-    public function normalizeMobile(string $mobile): string
-    {
-        return preg_replace('/\D+/', '', trim($mobile)) ?? '';
-    }
-
     protected function referenceFor(string $purpose): string
     {
         $prefix = match ($purpose) {
@@ -126,28 +116,9 @@ class MobileOtpService
         return $prefix.'_'.Str::lower((string) Str::uuid());
     }
 
-    protected function providerEnabled(): bool
+    protected function sendOtpSms(string $mobile, string $otp): void
     {
-        return app(InfobipSmsService::class)->enabled();
-    }
-
-    protected function generateOtp(): string
-    {
-        $fixed = (string) config('services.otp.fixed_code', '');
-        if ($fixed !== '') {
-            return $fixed;
-        }
-
-        $digits = max(1, (int) config('services.otp.digits', 6));
-        $min = (int) str_pad('1', $digits, '0');
-        $max = (int) str_pad('', $digits, '9');
-
-        return (string) random_int($min, $max);
-    }
-
-    protected function sendInfobipOtp(string $mobile, string $otp): void
-    {
-        $sent = app(InfobipSmsService::class)->send($mobile, "Your Dentavaria verification code is: {$otp}");
+        $sent = app(IletiMerkeziSmsService::class)->send($mobile, "Your Dentavaria verification code is: {$otp}");
 
         if (! $sent) {
             throw ValidationException::withMessages([

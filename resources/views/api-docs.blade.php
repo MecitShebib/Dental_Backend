@@ -1,17 +1,36 @@
+@php
+    // Same wordmark files, same specialty->file mapping as
+    // landing-specialty.blade.php (also used in the admin panel and the
+    // app's own sidebar -- see Sidebar.jsx's SPECIALTY_LOGOS).
+    $wordmarkSrc = '/brand/'.match ($specialty ?? null) {
+        'dental' => 'dentavaria_logo.png',
+        'gynecology' => 'gynevaria_logo.png',
+        'internal_medicine' => 'medivaria_logo.png',
+        'orthopedics' => 'orthovaria_logo.png',
+        'cosmetic' => 'estevaria_logo.png',
+        'nutrition' => 'dietavaria_logo.png',
+        default => 'dentavaria_logo.png',
+    };
+@endphp
 <!doctype html>
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Public REST API reference for Dentavaria — endpoints, request fields, response shapes, and how to authenticate.">
-    <title>API Documentation — Dentavaria</title>
+    <meta name="description" content="Public REST API reference for {{ $brandName }} — endpoints, request fields, response shapes, and how to authenticate.">
+    <title>API Documentation — {{ $brandName }}</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <script>
         (function () {
-            var stored = localStorage.getItem('dentavaria-theme');
-            if (stored === 'light' || stored === 'dark') {
-                document.documentElement.setAttribute('data-theme', stored);
-            }
+            // Same key + same "stored choice, else OS preference" logic as
+            // the landing pages (landing-specialty.blade.php) -- this page
+            // is reached from there ("Back to site" / footer link both
+            // round-trip), so it should open in whichever theme the visitor
+            // already chose there, not always dark.
+            var stored = localStorage.getItem('doctovaria-theme');
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -25,21 +44,42 @@
         .method-POST { background: rgba(52, 211, 153, 0.15); color: #6ee7b7; }
         .method-PUT { background: rgba(251, 191, 36, 0.15); color: #fcd34d; }
         .method-DELETE { background: rgba(248, 113, 113, 0.15); color: #fca5a5; }
+
+        /* Light theme -- same exact-class-token override technique and the
+           same color values as landing-specialty.blade.php, so the two
+           pages read as one site instead of the docs page always staying
+           dark regardless of what the visitor picked. */
+        html[data-theme="light"] body { background-color: #ffffff; }
+        html[data-theme="light"] [class~="bg-[#05070a]"] { background-color: #ffffff; }
+        html[data-theme="light"] [class~="bg-[#05070a]/90"] { background-color: rgba(255, 255, 255, 0.86); }
+        html[data-theme="light"] [class~="text-white"] { color: #0f172a; }
+        html[data-theme="light"] [class~="text-slate-200"] { color: #1e293b; }
+        html[data-theme="light"] [class~="text-slate-300"] { color: #334155; }
+        html[data-theme="light"] [class~="text-slate-400"] { color: #475569; }
+        html[data-theme="light"] [class~="text-slate-500"] { color: #64748b; }
+        html[data-theme="light"] [class~="text-slate-600"] { color: #94a3b8; }
+        html[data-theme="light"] [class~="border-white/5"] { border-color: rgba(15, 23, 42, 0.08); }
+        html[data-theme="light"] [class~="border-white/10"] { border-color: rgba(15, 23, 42, 0.12); }
+        html[data-theme="light"] [class~="border-white/15"] { border-color: rgba(15, 23, 42, 0.16); }
+        html[data-theme="light"] [class~="bg-white/[0.02]"] { background-color: #f8fafc; }
+        html[data-theme="light"] [class~="bg-black/40"] { background-color: #f1f5f9; }
+        html[data-theme="light"] [class~="bg-black/30"] { background-color: #f1f5f9; }
+        html[data-theme="light"] [class~="hover:bg-white/5"]:hover { background-color: rgba(15, 23, 42, 0.06); }
+        html[data-theme="light"] [class~="hover:border-white/30"]:hover { border-color: rgba(15, 23, 42, 0.28); }
+        html[data-theme="light"] [class~="selection:bg-emerald-500/30"] *::selection { background-color: rgba(16, 185, 129, 0.22); }
+        html[data-theme="light"] [class~="selection:text-white"] *::selection { color: #0f172a; }
     </style>
 </head>
 <body class="bg-[#05070a] text-slate-200 antialiased selection:bg-emerald-500/30 selection:text-white">
 
 <header class="sticky top-0 z-30 border-b border-white/5 bg-[#05070a]/90 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-        <a href="{{ route('home') }}" class="flex items-center gap-2.5">
-            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600">
-                <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4"><path d="M12 3c-3 0-5 2-5 5 0 2.5 1 4 1 7 0 2 .8 3.5 2 3.5s1.5-2 2-4c.3-1.2.7-1.2 1 0 .5 2 .8 4 2 4s2-1.5 2-3.5c0-3 1-4.5 1-7 0-3-2-5-5-5-.7 0-1 .3-1.5.6-.5-.3-.8-.6-1.5-.6Z" fill="#05070a"/></svg>
-            </span>
-            <span class="text-base font-semibold tracking-tight text-white">Dentavaria</span>
+        <a href="{{ route('specialty.home', ['specialtySlug' => $specialtySlug]) }}" class="flex items-center gap-2.5">
+            <img src="{{ $wordmarkSrc }}" alt="{{ $brandName }}" class="block h-8 w-auto">
         </a>
         <div class="flex items-center gap-5 text-sm">
             <span class="hidden text-slate-500 sm:inline">API Documentation</span>
-            <a href="{{ route('home') }}" class="rounded-full border border-white/15 px-4 py-2 font-semibold text-white transition hover:border-white/30 hover:bg-white/5">Back to site</a>
+            <a href="{{ route('specialty.home', ['specialtySlug' => $specialtySlug]) }}" class="rounded-full border border-white/15 px-4 py-2 font-semibold text-white transition hover:border-white/30 hover:bg-white/5">Back to site</a>
         </div>
     </div>
 </header>
@@ -57,9 +97,9 @@
 
     <main class="min-w-0 flex-1">
         <div class="max-w-2xl">
-            <p class="text-sm font-semibold uppercase tracking-widest text-emerald-400">Reference</p>
-            <h1 class="mt-3 text-4xl font-semibold tracking-tight text-white">Dentavaria API</h1>
-            <p class="mt-4 text-slate-400">Every endpoint that powers the Dentavaria app is available to call directly — whether you're building your own integration or connecting outside equipment (an X-ray imaging system, a lab scanner) straight into a patient's chart.</p>
+            <p class="text-sm font-semibold uppercase tracking-widest" style="color: {{ $accent }};">Reference</p>
+            <h1 class="mt-3 text-4xl font-semibold tracking-tight text-white">{{ $brandName }} API</h1>
+            <p class="mt-4 text-slate-400">Every endpoint that powers the {{ $brandName }} app is available to call directly — whether you're building your own integration or connecting outside equipment (an imaging system, a lab scanner) straight into a patient's chart.</p>
         </div>
 
         <section id="getting-started" class="mt-14 border-t border-white/5 pt-10">
@@ -67,7 +107,7 @@
 
             <div class="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-5">
                 <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Base URL</p>
-                <code class="mt-2 block text-sm text-emerald-300">{{ $baseUrl }}</code>
+                <code class="mt-2 block text-sm" style="color: {{ $accent }};">{{ $baseUrl }}</code>
             </div>
 
             <div class="mt-6 space-y-4 text-sm leading-relaxed text-slate-400">
@@ -201,7 +241,7 @@
         </section>
 
         <footer class="mt-16 border-t border-white/5 pt-8 pb-4 text-xs text-slate-600">
-            Dentavaria — the clinical operating system for modern dental practices.
+            {{ $brandName }} — part of the Doctovaria clinical operating system.
         </footer>
     </main>
 </div>

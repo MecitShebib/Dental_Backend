@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\ClientSpecialtyRecord;
 use App\Models\Company;
 use App\Models\Specialty;
 use App\Models\User;
@@ -44,11 +45,27 @@ class PrescriptionTest extends TestCase
         ]);
     }
 
+    // In real usage a client is only ever created (and thus enrolled, via
+    // ClientSpecialtyEnrollmentService) through ClientController::store() --
+    // this helper stands in for that so these fixtures match how
+    // assertActingDoctorOwnsClient() actually sees a patient in production.
+    protected function enrollClient(Client $client, User $doctor): void
+    {
+        ClientSpecialtyRecord::create([
+            'company_id' => $client->company_id,
+            'client_id' => $client->id,
+            'specialty_id' => $doctor->specialty_id,
+            'primary_doctor_id' => $doctor->id,
+            'created_by' => $doctor->id,
+        ]);
+    }
+
     public function test_a_doctor_can_write_a_prescription_and_its_specialty_is_derived_from_them(): void
     {
         $company = Company::factory()->create();
         $doctor = $this->makeDoctor($company, Specialty::DENTAL);
         $client = $this->makeClient($company);
+        $this->enrollClient($client, $doctor);
         Sanctum::actingAs($doctor);
 
         $response = $this->postJson("/api/clients/{$client->id}/prescriptions", [
@@ -78,6 +95,7 @@ class PrescriptionTest extends TestCase
         $company = Company::factory()->create();
         $doctor = $this->makeDoctor($company, Specialty::ORTHOPEDICS);
         $client = $this->makeClient($company);
+        $this->enrollClient($client, $doctor);
         Sanctum::actingAs($doctor);
 
         $this->postJson("/api/clients/{$client->id}/prescriptions", [
@@ -104,6 +122,7 @@ class PrescriptionTest extends TestCase
         $company = Company::factory()->create();
         $doctor = $this->makeDoctor($company, Specialty::COSMETIC);
         $client = $this->makeClient($company);
+        $this->enrollClient($client, $doctor);
         Sanctum::actingAs($doctor);
 
         $created = $this->postJson("/api/clients/{$client->id}/prescriptions", [
@@ -149,6 +168,7 @@ class PrescriptionTest extends TestCase
         $doctorA = $this->makeDoctor($companyA, Specialty::INTERNAL_MEDICINE);
         $doctorB = $this->makeDoctor($companyB, Specialty::INTERNAL_MEDICINE);
         $clientA = $this->makeClient($companyA);
+        $this->enrollClient($clientA, $doctorA);
 
         Sanctum::actingAs($doctorA);
         $created = $this->postJson("/api/clients/{$clientA->id}/prescriptions", [
@@ -161,5 +181,30 @@ class PrescriptionTest extends TestCase
         Sanctum::actingAs($doctorB);
         $this->getJson("/api/clients/{$clientA->id}/prescriptions")->assertNotFound();
         $this->putJson("/api/prescriptions/{$prescriptionId}", ['medication_name' => 'Hacked'])->assertNotFound();
+    }
+
+    public function test_a_doctor_cannot_write_a_prescription_for_a_colleagues_patient(): void
+    {
+        // Security regression test: store() used to resolve/pin doctor_id to
+        // the acting doctor (blocking impersonation) but never actually
+        // checked whether $client belonged to them, so any doctor in the
+        // same company could write a prescription onto a colleague's patient
+        // just by knowing the client id.
+        $company = Company::factory()->create();
+        $owningDoctor = $this->makeDoctor($company, Specialty::DENTAL);
+        $otherDoctor = $this->makeDoctor($company, Specialty::DENTAL);
+        $client = $this->makeClient($company);
+        $this->enrollClient($client, $owningDoctor);
+
+        Sanctum::actingAs($otherDoctor);
+        $response = $this->postJson("/api/clients/{$client->id}/prescriptions", [
+            'doctor_id' => $otherDoctor->id,
+            'medication_name' => 'Amoxicillin',
+            'prescribed_date' => '2026-09-01',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('client');
+        $this->assertDatabaseCount('prescriptions', 0);
     }
 }

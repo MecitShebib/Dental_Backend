@@ -164,7 +164,7 @@ class TenantIsolationTest extends TestCase
         $response = $this->postJson('/api/users', [
             'name' => 'New Hire',
             'email' => 'new-hire@example.com',
-            'password' => 'password',
+            'password' => 'Password123!',
             'is_project_admin' => true,
         ])->assertCreated();
 

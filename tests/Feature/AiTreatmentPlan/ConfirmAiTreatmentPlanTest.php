@@ -32,13 +32,16 @@ class ConfirmAiTreatmentPlanTest extends TestCase
 
     protected function makeClient(string $code = 'CL-3101'): Client
     {
-        return Client::create([
+        $client = Client::create([
             'client_code' => $code,
             'name' => 'Rama',
             'phone' => '+963900003101',
             'gender' => 'female',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
+
+        return $client;
     }
 
     protected function sessionPayload(string $date): array

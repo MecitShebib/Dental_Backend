@@ -16,8 +16,8 @@
             place-items: center;
             font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
             background:
-                radial-gradient(circle at 15% -10%, rgba(16, 185, 129, 0.14), transparent 42%),
-                radial-gradient(circle at 88% 10%, rgba(13, 148, 136, 0.10), transparent 38%),
+                radial-gradient(circle at 15% -10%, rgba(37, 99, 235, 0.14), transparent 42%),
+                radial-gradient(circle at 88% 10%, rgba(29, 78, 216, 0.10), transparent 38%),
                 #f8fafc;
             color: #0f172a;
             padding: 1.5rem;
@@ -53,21 +53,21 @@
         input::placeholder { color: #94a3b8; }
         input:focus {
             outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
         }
         button {
             width: 100%;
             padding: .9rem 1rem;
             border: 0;
             border-radius: 12px;
-            background: linear-gradient(135deg, #10b981, #0d9488);
-            color: #04140f;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
             font: inherit;
             font-weight: 700;
             font-size: .95rem;
             cursor: pointer;
-            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.22);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
         }
         button:hover { filter: brightness(1.08); }
         .errors {

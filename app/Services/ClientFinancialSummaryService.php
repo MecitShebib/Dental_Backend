@@ -18,10 +18,18 @@ class ClientFinancialSummaryService
         $totalServices = (float) $client->treatmentCharges()->sum('amount');
         $totalPaid = (float) $client->payments()->sum('amount');
 
+        // A discount is just a treatment_charges row with a negative amount
+        // (see TreatmentChargeService) -- already netted into total_services_amount
+        // above, this is purely a display breakdown (e.g. for the treatment plan
+        // PDF's fees table) so a discount can be shown as its own line instead of
+        // silently folded into the subtotal.
+        $totalDiscount = (float) $client->treatmentCharges()->where('amount', '<', 0)->sum('amount');
+
         return [
             'total_services_amount' => round($totalServices, 2),
             'total_paid_amount' => round($totalPaid, 2),
             'remaining_amount' => round($totalServices - $totalPaid, 2),
+            'total_discount_amount' => round(abs($totalDiscount), 2),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class XrayImage extends Model
 {
-    use BelongsToCompany, HasFactory, HasUuid;
+    use Auditable, BelongsToCompany, HasFactory, HasUuid;
 
     protected $fillable = [
         'uuid',
@@ -20,6 +21,13 @@ class XrayImage extends Model
         'original_filename',
         'notes',
         'uploaded_by',
+        'ai_odontogram_status',
+        'ai_analyzed_at',
+    ];
+
+    protected $casts = [
+        'ai_odontogram_status' => 'array',
+        'ai_analyzed_at' => 'datetime',
     ];
 
     public function client(): BelongsTo

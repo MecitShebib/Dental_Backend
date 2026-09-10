@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ClientConsentResource extends JsonResource
 {
@@ -16,7 +16,9 @@ class ClientConsentResource extends JsonResource
             'title' => $this->title,
             'body' => $this->body,
             'sections' => $this->sections ?? [],
-            'signature_url' => Storage::disk('public')->url($this->signature_path),
+            // Signed URL, not a plain Storage one -- the signature (a form
+            // of biometric-adjacent personal data) lives on the private disk.
+            'signature_url' => URL::temporarySignedRoute('client-consents.signature', now()->addMinutes(60), ['consent' => $this->id]),
             'signed_at' => optional($this->signed_at)->toDateTimeString(),
             'signed_by' => $this->creator?->name,
             'client_name' => $this->client?->name,

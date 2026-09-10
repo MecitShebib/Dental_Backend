@@ -33,7 +33,15 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Deliberately false (KVKK/veri güvenliği): this disk holds X-ray
+            // images, consent signatures, and expense attachments. Laravel's
+            // auto "serve" route (GET+PUT /storage/{path}) has no auth check
+            // of its own, which would make every file on this disk directly
+            // fetchable by URL. Access instead goes exclusively through the
+            // signed, resource-specific routes in routes/api.php (e.g.
+            // xray-images.file) so each file is scoped to the record + tenant
+            // it belongs to.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

@@ -42,7 +42,12 @@
                             <small>{{ $company->code }}</small><br>
                             <small>{{ $company->email }}</small>
                         </td>
-                        <td><span class="status">{{ $company->status }}</span></td>
+                        <td>
+                            <span class="status">{{ $company->status }}</span>
+                            @if ($company->trashed())
+                                <span class="status status-danger">deleted</span>
+                            @endif
+                        </td>
                         <td>{{ $company->users->count() }} total / {{ $company->users->where('status', 'active')->count() }} active</td>
                         <td>
                             @if ($company->currentSubscription)
@@ -55,11 +60,15 @@
                         <td>
                             <div class="actions-row table-actions">
                                 <a class="btn-link" href="{{ route('admin.companies.show', $company) }}">Open Company</a>
-                                <button class="btn-muted" type="button" data-open-modal="toggle-company-{{ $company->id }}">
-                                    Make {{ $company->status === 'active' ? 'Inactive' : 'Active' }}
-                                </button>
-                                <button class="btn btn-soft" type="button" data-open-modal="update-company-{{ $company->id }}">Update</button>
-                                <button class="btn btn-danger" type="button" data-open-modal="delete-company-{{ $company->id }}">Delete</button>
+                                @if ($company->trashed())
+                                    <button class="btn btn-soft" type="button" data-open-modal="restore-company-{{ $company->id }}">Restore</button>
+                                @else
+                                    <button class="btn-muted" type="button" data-open-modal="toggle-company-{{ $company->id }}">
+                                        Make {{ $company->status === 'active' ? 'Inactive' : 'Active' }}
+                                    </button>
+                                    <button class="btn btn-soft" type="button" data-open-modal="update-company-{{ $company->id }}">Update</button>
+                                    <button class="btn btn-danger" type="button" data-open-modal="delete-company-{{ $company->id }}">Delete</button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -78,16 +87,24 @@
             </div>
             <form method="POST" action="{{ route('admin.companies.store') }}">
                 @csrf
-                <input name="name" placeholder="Company name" required>
-                <input name="code" placeholder="Company code" required>
-                <input name="email" type="email" placeholder="Email">
-                <input name="phone" placeholder="Phone">
-                <textarea name="address" placeholder="Address"></textarea>
+                <input type="hidden" name="_modal_id" value="create-company-modal">
+                <input name="name" placeholder="Company name" value="{{ old('name') }}" required>
+                @error('name', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <input name="code" placeholder="Company code" value="{{ old('code') }}" required>
+                @error('code', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <input name="email" type="email" placeholder="Email" value="{{ old('email') }}">
+                @error('email', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <input name="phone" placeholder="Phone" value="{{ old('phone') }}">
+                @error('phone', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <textarea name="address" placeholder="Address">{{ old('address') }}</textarea>
+                @error('address', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <select name="status">
-                    <option value="active">active</option>
-                    <option value="inactive">inactive</option>
+                    <option value="active" @selected(old('status', 'active') === 'active')>active</option>
+                    <option value="inactive" @selected(old('status') === 'inactive')>inactive</option>
                 </select>
-                <textarea name="notes" placeholder="Notes"></textarea>
+                @error('status', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <textarea name="notes" placeholder="Notes">{{ old('notes') }}</textarea>
+                @error('notes', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <button class="btn" type="submit">Create Company</button>
             </form>
         </div>
@@ -109,7 +126,19 @@
             </div>
         </dialog>
 
-        <dialog id="update-company-{{ $company->id }}" class="modal">
+        @php
+            // This modal (and its form fields/errors) repeats once per row in
+            // the loop above, all sharing the same field names -- old()
+            // and $errors are both global, not scoped per row, so without
+            // this guard a failed update for one company would leak its
+            // typed-in values (and error bag, see ScopesErrorsToModal) into
+            // every *other* company's identically-named modal on the same
+            // page too. Only the one row whose own _modal_id comes back from
+            // old() is the one that actually just failed.
+            $companyModalId = 'update-company-'.$company->id;
+            $companyReopened = old('_modal_id') === $companyModalId;
+        @endphp
+        <dialog id="{{ $companyModalId }}" class="modal">
             <div class="modal-card">
                 <div class="modal-head">
                     <h3>Update {{ $company->name }}</h3>
@@ -118,16 +147,24 @@
                 <form method="POST" action="{{ route('admin.companies.update', $company) }}">
                     @csrf
                     @method('PUT')
-                    <input name="name" value="{{ $company->name }}" required>
-                    <input name="code" value="{{ $company->code }}" required>
-                    <input name="email" type="email" value="{{ $company->email }}">
-                    <input name="phone" value="{{ $company->phone }}">
-                    <textarea name="address">{{ $company->address }}</textarea>
+                    <input type="hidden" name="_modal_id" value="{{ $companyModalId }}">
+                    <input name="name" value="{{ $companyReopened ? old('name') : $company->name }}" required>
+                    @error('name', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <input name="code" value="{{ $companyReopened ? old('code') : $company->code }}" required>
+                    @error('code', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <input name="email" type="email" value="{{ $companyReopened ? old('email') : $company->email }}">
+                    @error('email', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <input name="phone" value="{{ $companyReopened ? old('phone') : $company->phone }}">
+                    @error('phone', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <textarea name="address">{{ $companyReopened ? old('address') : $company->address }}</textarea>
+                    @error('address', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
                     <select name="status">
-                        <option value="active" @selected($company->status === 'active')>active</option>
-                        <option value="inactive" @selected($company->status === 'inactive')>inactive</option>
+                        <option value="active" @selected(($companyReopened ? old('status') : $company->status) === 'active')>active</option>
+                        <option value="inactive" @selected(($companyReopened ? old('status') : $company->status) === 'inactive')>inactive</option>
                     </select>
-                    <textarea name="notes">{{ $company->notes }}</textarea>
+                    @error('status', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <textarea name="notes">{{ $companyReopened ? old('notes') : $company->notes }}</textarea>
+                    @error('notes', $companyModalId) <span class="field-error">{{ $message }}</span> @enderror
                     <button class="btn" type="submit">Update Company</button>
                 </form>
             </div>
@@ -139,11 +176,26 @@
                     <h3>Delete Company</h3>
                     <button class="close-btn" type="button" data-close-modal>&times;</button>
                 </div>
-                <p>Delete <strong>{{ $company->name }}</strong>? This removes the company record.</p>
+                <p>Delete <strong>{{ $company->name }}</strong>? Its users and subscriptions are deleted along with it. Nothing is removed permanently -- the company stays listed here (marked Deleted) and can be restored later.</p>
                 <form method="POST" action="{{ route('admin.companies.destroy', $company) }}">
                     @csrf
                     @method('DELETE')
                     <button class="btn btn-danger" type="submit">Delete Company</button>
+                </form>
+            </div>
+        </dialog>
+
+        <dialog id="restore-company-{{ $company->id }}" class="modal">
+            <div class="modal-card">
+                <div class="modal-head">
+                    <h3>Restore Company</h3>
+                    <button class="close-btn" type="button" data-close-modal>&times;</button>
+                </div>
+                <p>Restore <strong>{{ $company->name }}</strong>? Its users and subscriptions that were deleted along with it are restored too.</p>
+                <form method="POST" action="{{ route('admin.companies.restore', $company) }}">
+                    @csrf
+                    @method('PATCH')
+                    <button class="btn" type="submit">Restore Company</button>
                 </form>
             </div>
         </dialog>

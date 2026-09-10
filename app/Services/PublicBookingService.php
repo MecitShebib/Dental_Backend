@@ -30,6 +30,7 @@ class PublicBookingService
         protected MessagingService $messaging,
         protected MessageTemplateService $templates,
         protected ClientSpecialtyEnrollmentService $enrollment,
+        protected PublicBookingOtpService $otp,
     ) {}
 
     public function doctorsFor(Company $company): Collection
@@ -53,10 +54,21 @@ class PublicBookingService
     }
 
     /**
-     * @param  array{doctor_id: int, date: string, start_time: string, client_name: string, client_phone: string, client_email: ?string}  $data
+     * @param  array{doctor_id: int, date: string, start_time: string, client_name: string, client_phone: string, client_email: ?string, otp: string, otp_reference: string}  $data
      */
     public function book(Company $company, array $data): Appointment
     {
+        $challenge = $this->otp->findChallenge($company, $data['client_phone'], $data['otp_reference']);
+
+        if (! $challenge) {
+            throw ValidationException::withMessages([
+                'otp_reference' => ['This verification session was not found. Please request a new code.'],
+            ]);
+        }
+
+        $this->otp->verify($challenge, $data['otp']);
+        $this->otp->markUsed($challenge);
+
         $doctor = $this->doctorQuery($company)->find($data['doctor_id']);
 
         if (! $doctor) {

@@ -12,6 +12,7 @@ use App\Specialties\Cosmetic\CosmeticModule;
 use App\Specialties\Dental\DentalModule;
 use App\Specialties\Gynecology\GynecologyModule;
 use App\Specialties\InternalMedicine\InternalMedicineModule;
+use App\Specialties\Nutrition\NutritionModule;
 use App\Specialties\Orthopedics\OrthopedicsModule;
 use App\Specialties\SpecialtyModuleRegistry;
 use Database\Seeders\SpecialtySeeder;
@@ -29,10 +30,10 @@ class AuthOtpFlowTest extends TestCase
         parent::setUp();
 
         config([
-            'services.infobip.enabled' => true,
-            'services.infobip.api_key' => 'test-api-key',
-            'services.infobip.base_url' => 'https://api.infobip.com',
-            'services.infobip.sender' => 'Dentavaria',
+            'services.iletimerkezi.enabled' => true,
+            'services.iletimerkezi.api_key' => 'test-api-key',
+            'services.iletimerkezi.api_hash' => 'test-api-hash',
+            'services.iletimerkezi.sender' => 'Dentavaria',
             'services.otp.digits' => 6,
         ]);
     }
@@ -50,11 +51,11 @@ class AuthOtpFlowTest extends TestCase
         $user = $this->activeUser();
         $this->fakeGeneratedOtp('123456');
         Http::fake([
-            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
-                'messages' => [[
-                    'messageId' => '1000007721',
-                    'status' => ['groupId' => 1, 'groupName' => 'PENDING'],
-                ]],
+            'https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response([
+                'response' => [
+                    'status' => ['code' => 200, 'message' => 'OK'],
+                    'order' => ['id' => '1000007721'],
+                ],
             ], 200),
         ]);
 
@@ -81,11 +82,11 @@ class AuthOtpFlowTest extends TestCase
         $user = $this->activeUser();
         $this->fakeGeneratedOtp('123456');
         Http::fake([
-            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
-                'messages' => [[
-                    'messageId' => '1000007721',
-                    'status' => ['groupId' => 1, 'groupName' => 'PENDING'],
-                ]],
+            'https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response([
+                'response' => [
+                    'status' => ['code' => 200, 'message' => 'OK'],
+                    'order' => ['id' => '1000007721'],
+                ],
             ], 200),
         ]);
 
@@ -152,10 +153,11 @@ class AuthOtpFlowTest extends TestCase
             $app->make(InternalMedicineModule::class),
             $app->make(OrthopedicsModule::class),
             $app->make(CosmeticModule::class),
+            $app->make(NutritionModule::class),
         ));
 
         $this->fakeGeneratedOtp('999111');
-        Http::fake(['https://api.infobip.com/sms/2/text/advanced*' => Http::response(['messages' => [['messageId' => '1', 'status' => ['groupId' => 1, 'groupName' => 'PENDING']]]], 200)]);
+        Http::fake(['https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response(['response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => '1']]], 200)]);
 
         $loginResponse = $this->postJson('/api/auth/login', ['mobile' => '963955223456', 'password' => 'secret'])->assertOk();
         $challenge = UserOtp::query()->where('reference', $loginResponse->json('otp_reference'))->firstOrFail();
@@ -173,11 +175,11 @@ class AuthOtpFlowTest extends TestCase
         $user = $this->activeUser();
         $this->fakeGeneratedOtp('654321');
         Http::fake([
-            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
-                'messages' => [[
-                    'messageId' => '1000008899',
-                    'status' => ['groupId' => 1, 'groupName' => 'PENDING'],
-                ]],
+            'https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response([
+                'response' => [
+                    'status' => ['code' => 200, 'message' => 'OK'],
+                    'order' => ['id' => '1000008899'],
+                ],
             ], 200),
         ]);
 
@@ -197,18 +199,73 @@ class AuthOtpFlowTest extends TestCase
         $this->postJson('/api/auth/reset-password', [
             'mobile' => '963955123456',
             'otp_reference' => $challenge->reference,
-            'new_password' => 'new-secret',
-            'new_password_confirmation' => 'new-secret',
+            'new_password' => 'NewSecret1!',
+            'new_password_confirmation' => 'NewSecret1!',
         ])->assertOk()
             ->assertJsonPath('message', 'Password reset successfully');
 
         $user->refresh();
 
-        $this->assertTrue(Hash::check('new-secret', $user->password));
+        $this->assertTrue(Hash::check('NewSecret1!', $user->password));
         $this->assertDatabaseMissing('user_otps', [
             'id' => $challenge->id,
             'used_at' => null,
         ]);
+    }
+
+    public function test_logging_in_again_revokes_the_previous_login_token(): void
+    {
+        $user = $this->activeUser();
+        // Mockery's andReturn() takes multiple values to return sequentially
+        // across calls -- needed here since fakeGeneratedOtp() (single value)
+        // would leave a stale expectation behind if called a second time for
+        // this test's second login.
+        $this->partialMock(MobileOtpService::class, function ($mock) {
+            $mock->shouldAllowMockingProtectedMethods()
+                ->shouldReceive('generateOtp')->andReturn('111111', '222222');
+        });
+        Http::fake(['https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response(['response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => '1']]], 200)]);
+
+        $firstReference = $this->postJson('/api/auth/login', ['mobile' => '963955123456', 'password' => 'secret'])
+            ->assertOk()->json('otp_reference');
+        $firstToken = $this->postJson('/api/auth/login/verify-otp', [
+            'mobile' => '963955123456', 'password' => 'secret', 'otp' => '111111', 'otp_reference' => $firstReference,
+        ])->assertOk()->json('token');
+
+        $secondReference = $this->postJson('/api/auth/login', ['mobile' => '963955123456', 'password' => 'secret'])
+            ->assertOk()->json('otp_reference');
+        $secondToken = $this->postJson('/api/auth/login/verify-otp', [
+            'mobile' => '963955123456', 'password' => 'secret', 'otp' => '222222', 'otp_reference' => $secondReference,
+        ])->assertOk()->json('token');
+
+        // Logging in from a second device signs the first one out. (This is
+        // the first auth check performed against firstToken in this test --
+        // Laravel's testing guard memoizes a resolved user for the rest of
+        // the test once one succeeds, so checking it here, before it's ever
+        // been used successfully, is what makes this a real check rather
+        // than a false pass from stale in-test guard state.)
+        $this->withHeader('Authorization', "Bearer {$firstToken}")->getJson('/api/auth/me')->assertStatus(401);
+        // ...while the new device keeps working.
+        $this->withHeader('Authorization', "Bearer {$secondToken}")->getJson('/api/auth/me')->assertOk();
+
+        $this->assertSame(1, $user->tokens()->where('name', 'api-token')->count());
+    }
+
+    public function test_logging_in_again_does_not_revoke_named_integration_api_tokens(): void
+    {
+        $user = $this->activeUser();
+        $integrationToken = $user->createToken('integration:Zapier', ['*'])->plainTextToken;
+
+        $this->fakeGeneratedOtp('333333');
+        Http::fake(['https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response(['response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => '1']]], 200)]);
+
+        $reference = $this->postJson('/api/auth/login', ['mobile' => '963955123456', 'password' => 'secret'])
+            ->assertOk()->json('otp_reference');
+        $this->postJson('/api/auth/login/verify-otp', [
+            'mobile' => '963955123456', 'password' => 'secret', 'otp' => '333333', 'otp_reference' => $reference,
+        ])->assertOk();
+
+        $this->withHeader('Authorization', "Bearer {$integrationToken}")->getJson('/api/auth/me')->assertOk();
     }
 
     protected function activeUser(): User

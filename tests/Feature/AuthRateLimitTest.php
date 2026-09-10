@@ -21,19 +21,19 @@ class AuthRateLimitTest extends TestCase
         parent::setUp();
 
         config([
-            'services.infobip.enabled' => true,
-            'services.infobip.api_key' => 'test-api-key',
-            'services.infobip.base_url' => 'https://api.infobip.com',
-            'services.infobip.sender' => 'Dentavaria',
+            'services.iletimerkezi.enabled' => true,
+            'services.iletimerkezi.api_key' => 'test-api-key',
+            'services.iletimerkezi.api_hash' => 'test-api-hash',
+            'services.iletimerkezi.sender' => 'Dentavaria',
             'services.otp.digits' => 6,
         ]);
 
         Http::fake([
-            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
-                'messages' => [[
-                    'messageId' => '1000007721',
-                    'status' => ['groupId' => 1, 'groupName' => 'PENDING'],
-                ]],
+            'https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response([
+                'response' => [
+                    'status' => ['code' => 200, 'message' => 'OK'],
+                    'order' => ['id' => '1000007721'],
+                ],
             ], 200),
         ]);
     }

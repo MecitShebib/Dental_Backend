@@ -23,14 +23,20 @@ class AiTreatmentPlanService
         protected ClientSpecialtyEnrollmentService $enrollment,
     ) {}
 
-    public function buildJsonSchema(): array
+    /**
+     * The per-tooth finding shape shared by both the multi-session treatment
+     * plan schema below and the single-shot X-ray analysis schema
+     * (xrayAnalysisJsonSchema()) -- one vocabulary, one JSON shape, whether
+     * the AI is reading an X-ray or planning future sessions.
+     */
+    public function toothSchema(): array
     {
         $enumOrNull = fn (array $values) => [
             'type' => ['string', 'null'],
             'enum' => [...$values, null],
         ];
 
-        $toothSchema = [
+        return [
             'type' => 'object',
             'properties' => [
                 'tooth_number' => ['type' => 'integer', 'minimum' => 11, 'maximum' => 85],
@@ -80,7 +86,10 @@ class AiTreatmentPlanService
             ],
             'additionalProperties' => false,
         ];
+    }
 
+    public function buildJsonSchema(): array
+    {
         $sessionSchema = [
             'type' => 'object',
             'properties' => [
@@ -89,7 +98,7 @@ class AiTreatmentPlanService
                 'session_description' => ['type' => 'string'],
                 'teeth' => [
                     'type' => 'array',
-                    'items' => $toothSchema,
+                    'items' => $this->toothSchema(),
                     'minItems' => 0,
                     'maxItems' => 8,
                 ],
@@ -121,15 +130,28 @@ class AiTreatmentPlanService
     public function resolveSessionSlot(mixed $doctor, Carbon $fromDate, int $durationMinutes, int $searchDays = 14): array
     {
         $cursor = $fromDate->copy();
+        $now = now();
 
         for ($attempt = 0; $attempt < $searchDays; $attempt++) {
             try {
                 $times = $this->availability->availableStartTimes($doctor, $cursor->toDateString(), $durationMinutes);
+                $startTimes = $times['start_times'];
 
-                if (! empty($times['start_times'])) {
+                // The schedule grid doesn't know what time it is "now" -- on
+                // the very first candidate day, a slot earlier than the
+                // current time is still technically "free" but can't
+                // actually be booked, so don't let the AI pick it.
+                if ($cursor->isSameDay($now)) {
+                    $startTimes = array_values(array_filter(
+                        $startTimes,
+                        fn (string $time) => Carbon::parse($cursor->toDateString().' '.$time)->greaterThan($now),
+                    ));
+                }
+
+                if (! empty($startTimes)) {
                     return [
                         'date' => $cursor->toDateString(),
-                        'start_time' => $times['start_times'][0],
+                        'start_time' => $startTimes[0],
                     ];
                 }
             } catch (ValidationException) {
@@ -351,6 +373,81 @@ class AiTreatmentPlanService
                 }
             }
         }
+    }
+
+    /**
+     * A single-shot version of buildJsonSchema() -- just the teeth array,
+     * no sessions/scheduling -- used to read one X-ray image into a
+     * baseline odontogram status (see analyzeXrayImage()) rather than plan
+     * future visits.
+     */
+    public function xrayAnalysisJsonSchema(): array
+    {
+        return [
+            'name' => 'dental_xray_analysis',
+            'strict' => true,
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'teeth' => [
+                        'type' => 'array',
+                        'items' => $this->toothSchema(),
+                        'minItems' => 0,
+                        'maxItems' => 32,
+                    ],
+                ],
+                'required' => ['teeth'],
+                'additionalProperties' => false,
+            ],
+        ];
+    }
+
+    public function buildXraySystemPrompt(): string
+    {
+        return <<<'PROMPT'
+            You are a dental radiograph (X-ray) analysis assistant used inside a
+            clinic's patient record system. You will receive one dental X-ray image.
+            For each tooth visible in the image, identify only the conditions that
+            are actually determinable from a radiograph: caries (radiolucent
+            lesions), missing teeth (an empty socket or healed edentulous ridge),
+            existing restorations (crowns, bridges, fillings -- radiopaque metal or
+            ceramic shapes), root canal treatment (a radiopaque filling inside a
+            root canal), and implants (a metal post in the bone). Use FDI tooth
+            numbering (11-48).
+
+            Only report a tooth if you can point to actual visual evidence for it in
+            the image -- do not guess, and do not include a tooth just to say
+            nothing is wrong with it; a tooth with no notable finding should simply
+            be left out of the teeth array. Do not report findings that cannot be
+            determined from a plain radiograph (e.g. surface discoloration, which is
+            a clinical, not radiographic, finding).
+            PROMPT;
+    }
+
+    /**
+     * Reads one X-ray image and returns a baseline odontogram-v2 status
+     * (same shape a doctor's own visit/appointment chart produces) built
+     * purely from what the AI can see in the image -- this is the "before"
+     * source the 3D odontogram tab renders until/unless the clinic's own
+     * visit records add more recent findings on top (see
+     * mergeOdontogramV2Snapshots on the frontend).
+     */
+    public function analyzeXrayImage(string $imageUrl): array
+    {
+        $messages = [
+            ['role' => 'system', 'content' => $this->buildXraySystemPrompt()],
+            ['role' => 'user', 'content' => [
+                ['type' => 'text', 'text' => 'Analyze this dental X-ray and report per-tooth findings.'],
+                ['type' => 'image_url', 'image_url' => ['url' => $imageUrl]],
+            ]],
+        ];
+
+        $response = $this->openAi->chatCompletionJson($messages, $this->xrayAnalysisJsonSchema());
+
+        return [
+            'odontogram_status' => $this->buildOdontogramStatus($response['content']['teeth']),
+            'usage' => $response['usage'],
+        ];
     }
 
     public function buildSystemPrompt(): string

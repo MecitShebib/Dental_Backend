@@ -283,4 +283,72 @@ class SubscriptionControllerTest extends TestCase
         $this->assertNotSame('Should Not Apply', $subscription->fresh()->plan_name);
         $this->assertDatabaseHas('subscriptions', ['company_id' => $company->id, 'specialty_id' => $gynecology->id, 'plan_name' => 'Existing Gyne Plan']);
     }
+
+    public function test_a_duplicate_specialty_error_on_create_is_scoped_to_the_create_modal(): void
+    {
+        // Regression test: assertNoDuplicateActiveSpecialty() throws its own
+        // ValidationException directly in the controller, bypassing
+        // StoreSubscriptionRequest's failedValidation() override entirely --
+        // that override is what normally scopes errors to _modal_id (see
+        // ScopesErrorsToModal). Without also calling ->errorBag() on this
+        // manually-thrown exception, the error landed in the unnamed
+        // 'default' bag, which the create modal's own
+        // @error('specialty_ids', 'create-subscription-modal') never checks
+        // -- the modal reopened (via the working _modal_id echo) but showed
+        // no error at all, which from the admin's side looked exactly like
+        // "I submitted and nothing happened".
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $this->createExistingSubscription($company, $dental, ['plan_name' => 'First']);
+
+        $response = $this->actingAs($this->adminUser())->from(route('admin.companies.show', $company))->post(
+            route('admin.subscriptions.store'),
+            $this->baseSubscriptionPayload($company, $dental, [
+                'plan_name' => 'Second',
+                '_modal_id' => 'create-subscription-modal',
+            ]),
+        );
+
+        $response->assertSessionHasErrors('specialty_ids', null, 'create-subscription-modal');
+        $response->assertSessionHasInput('_modal_id', 'create-subscription-modal');
+    }
+
+    public function test_a_duplicate_specialty_error_on_update_is_scoped_to_that_subscriptions_own_modal_id(): void
+    {
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
+        $subscription = $this->createExistingSubscription($company, $dental);
+        $this->createExistingSubscription($company, $gynecology, ['plan_name' => 'Existing Gyne Plan']);
+
+        $response = $this->actingAs($this->adminUser())->from(route('admin.companies.show', $company))->put(
+            route('admin.subscriptions.update', $subscription),
+            $this->updateSubscriptionPayload($subscription, [$dental->id, $gynecology->id], [
+                '_modal_id' => 'update-subscription-'.$subscription->id,
+            ]),
+        );
+
+        $response->assertSessionHasErrors('specialty_ids', null, 'update-subscription-'.$subscription->id);
+        $response->assertSessionHasInput('_modal_id', 'update-subscription-'.$subscription->id);
+    }
+
+    public function test_a_failed_update_scopes_its_errors_to_that_subscriptions_own_modal_id(): void
+    {
+        $company = Company::factory()->create();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $subscription = $this->createExistingSubscription($company, $dental);
+
+        $response = $this->actingAs($this->adminUser())->from(route('admin.companies.show', $company))->put(
+            route('admin.subscriptions.update', $subscription),
+            $this->updateSubscriptionPayload($subscription, [$dental->id], [
+                'plan_name' => '',
+                '_modal_id' => 'update-subscription-'.$subscription->id,
+            ]),
+        );
+
+        $response->assertSessionHasErrors('plan_name', null, 'update-subscription-'.$subscription->id);
+        $response->assertSessionHasInput('_modal_id', 'update-subscription-'.$subscription->id);
+    }
 }

@@ -20,16 +20,31 @@ class PublicBookingTest extends TestCase
         parent::setUp();
 
         config([
-            'services.infobip.enabled' => true,
-            'services.infobip.api_key' => 'test-api-key',
-            'services.infobip.base_url' => 'https://api.infobip.com',
+            'services.iletimerkezi.enabled' => true,
+            'services.iletimerkezi.api_key' => 'test-api-key',
+            'services.iletimerkezi.api_hash' => 'test-api-hash',
+            // A fixed OTP means booking tests can drive the real
+            // request-otp -> book flow without mocking OTP generation.
+            'services.otp.fixed_code' => '123456',
         ]);
 
         Http::fake([
-            'https://api.infobip.com/sms/2/text/advanced*' => Http::response([
-                'messages' => [['messageId' => 'test', 'status' => ['groupId' => 1, 'groupName' => 'PENDING']]],
+            'https://api.iletimerkezi.com/v1/send-sms/json*' => Http::response([
+                'response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => 'test']],
             ], 200),
         ]);
+    }
+
+    /**
+     * Drives the two-step OTP flow this booking form now requires: request a
+     * code for the phone number, then return the reference to attach to the
+     * final /book payload alongside the fixed '123456' code from setUp().
+     */
+    protected function requestBookingOtp(string $slug, string $phone): string
+    {
+        return $this->postJson("/api/public/companies/{$slug}/book/request-otp", [
+            'client_phone' => $phone,
+        ])->assertOk()->json('data.otp_reference');
     }
 
     protected function makeBookableDoctor(Company $company, string $weekday = 'monday'): User
@@ -63,6 +78,8 @@ class PublicBookingTest extends TestCase
             ->assertOk();
         $this->assertContains('09:00', $availability->json('data.free_times'));
 
+        $otpReference = $this->requestBookingOtp('dentavaria-clinic', '+905551112233');
+
         $response = $this->postJson('/api/public/companies/dentavaria-clinic/book', [
             'doctor_id' => $doctor->id,
             'date' => $date,
@@ -70,6 +87,8 @@ class PublicBookingTest extends TestCase
             'client_name' => 'Walk-in Patient',
             'client_phone' => '+905551112233',
             'client_email' => 'patient@example.com',
+            'otp' => '123456',
+            'otp_reference' => $otpReference,
         ])->assertCreated();
 
         $appointment = Appointment::query()->findOrFail($response->json('data.appointment_id'));
@@ -82,7 +101,7 @@ class PublicBookingTest extends TestCase
         $this->assertSame($client->id, $appointment->client_id);
         $this->assertSame('Walk-in Patient', $client->name);
 
-        Http::assertSent(fn ($request) => str_contains((string) $request['messages'][0]['text'], 'confirmed'));
+        Http::assertSent(fn ($request) => str_contains((string) $request['request']['order']['message']['text'], 'confirmed'));
     }
 
     public function test_booking_the_same_slot_twice_is_rejected(): void
@@ -91,20 +110,26 @@ class PublicBookingTest extends TestCase
         $doctor = $this->makeBookableDoctor($company);
         $date = $this->nextMonday()->toDateString();
 
+        $firstReference = $this->requestBookingOtp('busy-clinic', '+905550000001');
         $payload = [
             'doctor_id' => $doctor->id,
             'date' => $date,
             'start_time' => '09:00',
             'client_name' => 'First Patient',
             'client_phone' => '+905550000001',
+            'otp' => '123456',
+            'otp_reference' => $firstReference,
         ];
 
         $this->postJson('/api/public/companies/busy-clinic/book', $payload)->assertCreated();
+
+        $secondReference = $this->requestBookingOtp('busy-clinic', '+905550000002');
 
         $this->postJson('/api/public/companies/busy-clinic/book', [
             ...$payload,
             'client_name' => 'Second Patient',
             'client_phone' => '+905550000002',
+            'otp_reference' => $secondReference,
         ])->assertStatus(422);
 
         $this->assertSame(1, Appointment::query()->count());
@@ -115,6 +140,7 @@ class PublicBookingTest extends TestCase
         $company = Company::factory()->create(['booking_slug' => 'bot-target']);
         $doctor = $this->makeBookableDoctor($company);
         $date = $this->nextMonday()->toDateString();
+        $otpReference = $this->requestBookingOtp('bot-target', '+905550000000');
 
         $this->postJson('/api/public/companies/bot-target/book', [
             'doctor_id' => $doctor->id,
@@ -122,6 +148,8 @@ class PublicBookingTest extends TestCase
             'start_time' => '09:00',
             'client_name' => 'Bot',
             'client_phone' => '+905550000000',
+            'otp' => '123456',
+            'otp_reference' => $otpReference,
             'website' => 'http://spam.example',
         ])->assertStatus(422);
 
@@ -146,14 +174,18 @@ class PublicBookingTest extends TestCase
         $doctor = $this->makeBookableDoctor($company);
         $date = $this->nextMonday()->toDateString();
 
+        $firstReference = $this->requestBookingOtp('repeat-clinic', '+905559998877');
         $this->postJson('/api/public/companies/repeat-clinic/book', [
             'doctor_id' => $doctor->id, 'date' => $date, 'start_time' => '09:00',
             'client_name' => 'Repeat Patient', 'client_phone' => '+905559998877',
+            'otp' => '123456', 'otp_reference' => $firstReference,
         ])->assertCreated();
 
+        $secondReference = $this->requestBookingOtp('repeat-clinic', '+905559998877');
         $this->postJson('/api/public/companies/repeat-clinic/book', [
             'doctor_id' => $doctor->id, 'date' => $date, 'start_time' => '09:30',
             'client_name' => 'Repeat Patient', 'client_phone' => '+905559998877',
+            'otp' => '123456', 'otp_reference' => $secondReference,
         ])->assertCreated();
 
         $this->assertSame(1, Client::query()->where('phone', '+905559998877')->count());

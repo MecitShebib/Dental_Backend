@@ -14,7 +14,7 @@ class LandingPageContentSmokeTest extends TestCase
     {
         foreach (LandingPageContent::LOCALES as $locale) {
             $hub = LandingPageContent::hub($locale);
-            $this->assertCount(5, $hub['products'], "hub products count wrong for {$locale}");
+            $this->assertCount(6, $hub['products'], "hub products count wrong for {$locale}");
             $this->assertNotEmpty($hub['hero']['headline']);
         }
 
@@ -33,13 +33,14 @@ class LandingPageContentSmokeTest extends TestCase
         }
     }
 
-    public function test_specialty_key_for_slug_resolves_all_five(): void
+    public function test_specialty_key_for_slug_resolves_all_six(): void
     {
         $this->assertSame('dental', LandingPageContent::specialtyKeyForSlug('dentavaria'));
         $this->assertSame('gynecology', LandingPageContent::specialtyKeyForSlug('gynevaria'));
         $this->assertSame('internal_medicine', LandingPageContent::specialtyKeyForSlug('medivaria'));
         $this->assertSame('orthopedics', LandingPageContent::specialtyKeyForSlug('orthovaria'));
         $this->assertSame('cosmetic', LandingPageContent::specialtyKeyForSlug('estevaria'));
+        $this->assertSame('nutrition', LandingPageContent::specialtyKeyForSlug('dietavaria'));
         $this->assertNull(LandingPageContent::specialtyKeyForSlug('nonexistent'));
     }
 }

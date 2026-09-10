@@ -41,13 +41,16 @@ class TranscribeAiTreatmentPlanAudioTest extends TestCase
 
     protected function makeClient(): Client
     {
-        return Client::create([
+        $client = Client::create([
             'client_code' => 'CL-4001',
             'name' => 'Rana',
             'phone' => '+963900004001',
             'gender' => 'female',
             'status' => 'new',
         ]);
+        $this->signKvkkConsent($client);
+
+        return $client;
     }
 
     public function test_it_transcribes_a_recording_into_text(): void

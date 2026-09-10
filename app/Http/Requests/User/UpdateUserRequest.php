@@ -3,11 +3,18 @@
 namespace App\Http\Requests\User;
 
 use App\Enums\UserStatus;
+use App\Http\Requests\Concerns\ScopesErrorsToModal;
+use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UpdateUserRequest extends FormRequest
 {
+    // See the identical note in StoreUserRequest -- only touches the
+    // non-JSON redirect path, the mobile API's JSON responses are unaffected.
+    use ScopesErrorsToModal;
+
     public function authorize(): bool
     {
         return true;
@@ -19,11 +26,21 @@ class UpdateUserRequest extends FormRequest
 
         return [
             'company_id' => ['sometimes', 'required', 'integer', 'exists:companies,id'],
-            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
+            // See the identical note in StoreUserRequest -- required from the
+            // admin panel only, and scoped against the target company_id
+            // (falling back to the acting user's own company for the API,
+            // which never submits company_id on update either).
+            'branch_id' => [
+                $this->routeIs('admin.*') ? 'required' : 'nullable',
+                'integer',
+                Rule::exists('branches', 'id')->where(
+                    fn ($query) => $query->where('company_id', $this->input('company_id') ?: $this->user()?->company_id)
+                ),
+            ],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'password' => ['nullable', 'string', 'min:6'],
+            'phone' => ['nullable', 'string', 'max:50', new ValidPhone],
+            'password' => ['nullable', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'job_title' => ['nullable', 'string', 'max:255'],
             'branch_name' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::enum(UserStatus::class)],

@@ -32,7 +32,7 @@ class SpecialtyLandingPageTest extends TestCase
         $this->get('/en/not-a-real-product')->assertNotFound();
     }
 
-    public function test_hub_page_lists_all_five_products_linking_to_their_own_pages(): void
+    public function test_hub_page_lists_all_six_products_linking_to_their_own_pages(): void
     {
         $response = $this->get('/');
         $response->assertOk();

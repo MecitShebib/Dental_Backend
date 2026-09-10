@@ -42,7 +42,7 @@ class LegalContent
                         'When a Clinic uses the AI treatment plan assistant, the case description (and, where applicable, a transcription of a voice recording) is sent to OpenAI, our AI processing provider, to generate a structured treatment plan and to transcribe audio. OpenAI processes this data under its own data processing terms and does not use it to train its models. We do not send full patient names or contact details to OpenAI as part of this process.',
                     ]],
                     ['heading' => '5. SMS delivery', 'body' => [
-                        'To deliver one-time login codes and appointment reminders, we share the recipient\'s phone number and message content with our SMS delivery provider (Turkey SMS), solely for the purpose of sending that message.',
+                        'To deliver one-time login codes and appointment reminders, we share the recipient\'s phone number and message content with our SMS delivery provider, İleti Merkezi (based in Türkiye), solely for the purpose of sending that message.',
                     ]],
                     ['heading' => '6. Cookies and local storage', 'body' => [
                         'The website uses a small number of essential cookies to keep you signed in to the admin panel, and browser local storage to remember your light/dark theme preference. We do not use advertising or cross-site tracking cookies.',
@@ -58,6 +58,8 @@ class LegalContent
                     ]],
                     ['heading' => '10. International transfers', 'body' => [
                         'Our infrastructure and processors, including OpenAI, may process data outside of Türkiye. Where this occurs, we rely on the safeguards provided by those processors\' own compliance frameworks.',
+                        'X-ray images and AI treatment-plan case descriptions specifically: these are only ever sent to OpenAI (United States) after the patient\'s explicit consent to that transfer has been recorded through the Clinic\'s KVKK consent form (see section 15 below). A Clinic\'s staff cannot use the AI treatment-plan assistant or the AI X-ray reading feature for a patient who has not signed that consent.',
+                        'Our SMS provider, İleti Merkezi, processes data only within Türkiye -- OTP codes and appointment reminders sent by SMS are not an international transfer.',
                     ]],
                     ['heading' => '11. Your rights', 'body' => [
                         'Subject to applicable law (including the Turkish Personal Data Protection Law, KVKK, and, where relevant, the GDPR), you may have the right to access, correct, delete, or export your personal information, and to object to or restrict certain processing. Patients should direct these requests to their Clinic, which controls their records; website visitors and Clinic staff may contact us directly using the details below.',
@@ -70,6 +72,14 @@ class LegalContent
                     ]],
                     ['heading' => '14. Contact us', 'body' => [
                         'Questions about this policy can be sent to privacy@dentavaria.com or through the Contact form on this website.',
+                    ]],
+                    ['heading' => '15. Legal basis for processing (Türkiye — KVKK Art. 5/6)', 'body' => [
+                        'This section states the legal basis under Turkish Law No. 6698 on the Protection of Personal Data ("KVKK") for the categories of data described in section 2.',
+                        'Website visitor and inquiry data (name, email, phone, message): Art. 5/2(c) — necessary for taking steps at your request before entering into a contract, or Art. 5/2(f) — our legitimate interest in responding to inquiries.',
+                        'Clinic staff account data (name, email, phone, role, login/OTP activity): Art. 5/2(c) — necessary for performance of the Clinic\'s contract with us, and Art. 5/2(ç) — necessary to fulfil our own legal obligations (e.g. account security).',
+                        'Patient data entered by a Clinic (name, contact details, appointment/visit history, treatment records, billing): processed by us as a data processor, on the Clinic\'s instructions and legal basis as data controller (typically KVKK Art. 6/3 for health data — processing by persons under a duty of confidentiality for the purposes of protection of public health, preventive medicine, medical diagnosis and treatment, or the Clinic\'s own contract with the patient).',
+                        'X-ray images and AI treatment-plan case descriptions sent to OpenAI: KVKK Art. 6/2 — explicit consent (açık rıza), obtained from the patient by the Clinic through the KVKK consent form before this feature is used, since this involves special-category health data crossing borders. See section 10 above.',
+                        'Technical/usage data (IP address, browser, basic logs): Art. 5/2(f) — our legitimate interest in securing and maintaining the Service.',
                     ]],
                 ],
             ],
@@ -96,7 +106,7 @@ class LegalContent
                         'عند استخدام العيادة لمساعد خطة العلاج بالذكاء الاصطناعي، يُرسَل وصف الحالة (وكذلك تفريغ التسجيل الصوتي عند الحاجة) إلى OpenAI، مزوّد المعالجة بالذكاء الاصطناعي لدينا، لإنشاء خطة علاج منظمة ولتفريغ الصوت نصيًا. تعالج OpenAI هذه البيانات وفق شروط معالجة البيانات الخاصة بها، ولا تستخدمها لتدريب نماذجها. لا نُرسل الاسم الكامل للمريض أو بيانات التواصل الخاصة به إلى OpenAI كجزء من هذه العملية.',
                     ]],
                     ['heading' => '5. إرسال الرسائل النصية', 'body' => [
-                        'لإرسال رموز الدخول لمرة واحدة وتذكيرات المواعيد، نشارك رقم هاتف المستلم ومحتوى الرسالة مع مزوّد خدمة الرسائل النصية لدينا (Turkey SMS)، لغرض إرسال تلك الرسالة فقط.',
+                        'لإرسال رموز الدخول لمرة واحدة وتذكيرات المواعيد، نشارك رقم هاتف المستلم ومحتوى الرسالة مع مزوّد خدمة الرسائل النصية لدينا، İleti Merkezi (ومقره تركيا)، لغرض إرسال تلك الرسالة فقط.',
                     ]],
                     ['heading' => '6. ملفات تعريف الارتباط والتخزين المحلي', 'body' => [
                         'يستخدم الموقع عددًا محدودًا من ملفات تعريف الارتباط الأساسية للحفاظ على تسجيل دخولك إلى لوحة التحكم الإدارية، ويستخدم التخزين المحلي للمتصفح لحفظ تفضيلك للوضع الفاتح أو الداكن. لا نستخدم ملفات تعريف ارتباط إعلانية أو تتبّع عبر مواقع أخرى.',
@@ -112,6 +122,8 @@ class LegalContent
                     ]],
                     ['heading' => '10. نقل البيانات دوليًا', 'body' => [
                         'قد تُعالج بنيتنا التحتية والجهات المعالِجة لدينا، بما فيها OpenAI، البيانات خارج تركيا. وفي هذه الحالة، نعتمد على الضمانات التي توفرها أطر الامتثال الخاصة بهذه الجهات.',
+                        'بخصوص صور الأشعة السينية ووصف الحالة المُرسَل لخطة العلاج بالذكاء الاصطناعي تحديدًا: لا تُرسَل هذه البيانات إلى OpenAI (الولايات المتحدة) إلا بعد تسجيل الموافقة الصريحة للمريض على هذا النقل عبر نموذج موافقة KVKK الخاص بالعيادة (انظر القسم 15 أدناه). لا يمكن لموظفي العيادة استخدام مساعد خطة العلاج بالذكاء الاصطناعي أو ميزة قراءة الأشعة بالذكاء الاصطناعي لمريض لم يوقّع تلك الموافقة.',
+                        'مزوّد خدمة الرسائل النصية لدينا، İleti Merkezi، يعالج البيانات داخل تركيا فقط -- رموز التحقق OTP وتذكيرات المواعيد المُرسَلة عبر الرسائل النصية لا تشكل نقلًا دوليًا للبيانات.',
                     ]],
                     ['heading' => '11. حقوقك', 'body' => [
                         'وفقًا للقوانين المعمول بها (بما في ذلك قانون حماية البيانات الشخصية التركي KVKK، واللائحة العامة لحماية البيانات GDPR عند الانطباق)، قد يكون لديك الحق في الوصول إلى معلوماتك الشخصية أو تصحيحها أو حذفها أو تصديرها، وفي الاعتراض على بعض عمليات المعالجة أو تقييدها. يجب على المرضى توجيه هذه الطلبات إلى عيادتهم التي تتحكم في سجلاتهم؛ أما زوار الموقع وموظفو العيادات فيمكنهم التواصل معنا مباشرة عبر البيانات أدناه.',
@@ -124,6 +136,14 @@ class LegalContent
                     ]],
                     ['heading' => '14. تواصل معنا', 'body' => [
                         'يمكن إرسال أي استفسارات حول هذه السياسة إلى privacy@dentavaria.com أو عبر نموذج "تواصل معنا" في هذا الموقع.',
+                    ]],
+                    ['heading' => '15. الأساس القانوني للمعالجة (تركيا — المادتان 5 و6 من KVKK)', 'body' => [
+                        'يوضح هذا القسم الأساس القانوني بموجب القانون التركي رقم 6698 لحماية البيانات الشخصية ("KVKK") لفئات البيانات الموضحة في القسم 2.',
+                        'بيانات زوار الموقع والاستفسارات (الاسم، البريد الإلكتروني، الهاتف، الرسالة): المادة 5/2(ج) — ضرورية لاتخاذ خطوات بناءً على طلبكم قبل إبرام عقد، أو المادة 5/2(و) — مصلحتنا المشروعة في الرد على الاستفسارات.',
+                        'بيانات حسابات موظفي العيادة (الاسم، البريد الإلكتروني، الهاتف، الدور، نشاط الدخول/OTP): المادة 5/2(ج) — ضرورية لتنفيذ عقد العيادة معنا، والمادة 5/2(ح) — ضرورية للوفاء بالتزاماتنا القانونية (مثل أمن الحسابات).',
+                        'بيانات المرضى التي تُدخلها العيادة (الاسم، بيانات التواصل، سجل المواعيد/الزيارات، السجلات العلاجية، الفوترة): نعالجها بصفتنا معالج بيانات، بناءً على تعليمات العيادة وأساسها القانوني بصفتها المتحكم بالبيانات (عادةً المادة 6/3 من KVKK للبيانات الصحية — المعالجة من قبل أشخاص يخضعون لواجب السرية لأغراض حماية الصحة العامة والطب الوقائي والتشخيص والعلاج الطبي، أو عقد العيادة الخاص مع المريض).',
+                        'صور الأشعة ووصف حالة خطة العلاج بالذكاء الاصطناعي المُرسَلة إلى OpenAI: المادة 6/2 من KVKK — الموافقة الصريحة (açık rıza)، التي تحصل عليها العيادة من المريض عبر نموذج موافقة KVKK قبل استخدام هذه الميزة، نظرًا لتضمّنها نقل بيانات صحية ذات طبيعة خاصة عبر الحدود. انظر القسم 10 أعلاه.',
+                        'البيانات التقنية/الاستخدامية (عنوان IP، المتصفح، السجلات الأساسية): المادة 5/2(و) — مصلحتنا المشروعة في تأمين الخدمة وصيانتها.',
                     ]],
                 ],
             ],
@@ -150,7 +170,7 @@ class LegalContent
                         'Bir Klinik yapay zeka tedavi planı asistanını kullandığında, vaka açıklaması (ve varsa bir sesli kaydın transkripsiyonu), yapılandırılmış bir tedavi planı oluşturmak ve sesi metne dönüştürmek üzere yapay zeka işleme sağlayıcımız OpenAI\'a gönderilir. OpenAI bu verileri kendi veri işleme koşulları kapsamında işler ve bunları kendi modellerini eğitmek için kullanmaz. Bu süreçte hastanın tam adını veya iletişim bilgilerini OpenAI\'a göndermiyoruz.',
                     ]],
                     ['heading' => '5. SMS gönderimi', 'body' => [
-                        'Tek kullanımlık giriş kodlarını ve randevu hatırlatmalarını iletmek için, alıcının telefon numarasını ve mesaj içeriğini yalnızca bu mesajı göndermek amacıyla SMS gönderim sağlayıcımız (Turkey SMS) ile paylaşırız.',
+                        'Tek kullanımlık giriş kodlarını ve randevu hatırlatmalarını iletmek için, alıcının telefon numarasını ve mesaj içeriğini yalnızca bu mesajı göndermek amacıyla SMS gönderim sağlayıcımız İleti Merkezi (Türkiye merkezli) ile paylaşırız.',
                     ]],
                     ['heading' => '6. Çerezler ve yerel depolama', 'body' => [
                         'Web sitesi, yönetim paneline girişinizi sürdürmek için az sayıda temel çerez ve açık/koyu tema tercihinizi hatırlamak için tarayıcı yerel depolamasını kullanır. Reklam veya siteler arası izleme çerezleri kullanmıyoruz.',
@@ -166,6 +186,8 @@ class LegalContent
                     ]],
                     ['heading' => '10. Uluslararası veri aktarımları', 'body' => [
                         'Altyapımız ve OpenAI dahil işleyicilerimiz, verileri Türkiye dışında işleyebilir. Bu durumlarda, söz konusu işleyicilerin kendi uyumluluk çerçevelerinin sağladığı güvencelere dayanırız.',
+                        'Özellikle röntgen görüntüleri ve yapay zeka tedavi planı vaka açıklamaları: bu veriler, ancak hastanın bu aktarıma ilişkin açık rızası Klinik\'in KVKK açık rıza formu üzerinden alınıp kaydedildikten sonra OpenAI\'a (Amerika Birleşik Devletleri) gönderilir (aşağıdaki 15. bölüme bakınız). Klinik personeli, bu rızayı imzalamamış bir hasta için yapay zeka tedavi planı asistanını veya yapay zeka röntgen okuma özelliğini kullanamaz.',
+                        'SMS sağlayıcımız İleti Merkezi, verileri yalnızca Türkiye içinde işler -- SMS ile gönderilen OTP kodları ve randevu hatırlatmaları bir uluslararası veri aktarımı teşkil etmez.',
                     ]],
                     ['heading' => '11. Haklarınız', 'body' => [
                         'Yürürlükteki mevzuat uyarınca (Kişisel Verilerin Korunması Kanunu - KVKK ve ilgili olduğu ölçüde GDPR dahil), kişisel bilgilerinize erişme, bunları düzeltme, silme veya dışa aktarma ve belirli işleme faaliyetlerine itiraz etme veya bunları kısıtlama hakkına sahip olabilirsiniz. Hastalar bu taleplerini, kayıtlarını kontrol eden kendi Kliniklerine yöneltmelidir; web sitesi ziyaretçileri ve Klinik personeli ise aşağıdaki bilgiler üzerinden doğrudan bizimle iletişime geçebilir.',
@@ -178,6 +200,14 @@ class LegalContent
                     ]],
                     ['heading' => '14. Bize ulaşın', 'body' => [
                         'Bu politikayla ilgili sorularınızı privacy@dentavaria.com adresine veya bu web sitesindeki İletişim formu aracılığıyla gönderebilirsiniz.',
+                    ]],
+                    ['heading' => '15. İşleme faaliyetlerimizin hukuki sebepleri (KVKK m.5/6)', 'body' => [
+                        'Bu bölüm, 2. bölümde açıklanan veri kategorileri için 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamındaki hukuki sebebi belirtir.',
+                        'Web sitesi ziyaretçisi ve talep verileri (ad, e-posta, telefon, mesaj): KVKK m.5/2(c) — bir sözleşmenin kurulmasından önce talebiniz üzerine gerekli işlemlerin yapılması, veya m.5/2(f) — taleplere yanıt vermekteki meşru menfaatimiz.',
+                        'Klinik personeli hesap verileri (ad, e-posta, telefon, rol, giriş/OTP etkinliği): KVKK m.5/2(c) — Klinik ile aramızdaki sözleşmenin ifası için gereklilik, ve m.5/2(ç) — hesap güvenliği gibi kendi hukuki yükümlülüklerimizin yerine getirilmesi için gereklilik.',
+                        'Bir Klinik tarafından girilen hasta verileri (ad, iletişim bilgileri, randevu/muayene geçmişi, tedavi kayıtları, faturalama): bu verileri veri işleyen sıfatıyla, Klinik\'in talimatları ve veri sorumlusu sıfatıyla kendi hukuki sebebi doğrultusunda işleriz (sağlık verileri için tipik olarak KVKK m.6/3 — kamu sağlığının korunması, koruyucu hekimlik, tıbbi teşhis ve tedavi amacıyla, sır saklama yükümlülüğü altındaki kişilerce işlenmesi, veya Klinik\'in hastasıyla olan kendi sözleşmesi).',
+                        'OpenAI\'a gönderilen röntgen görüntüleri ve yapay zeka tedavi planı vaka açıklamaları: KVKK m.6/2 — açık rıza; bu, özel nitelikli sağlık verisinin yurt dışına aktarımını içerdiğinden, bu özellik kullanılmadan önce Klinik tarafından hastadan KVKK açık rıza formu aracılığıyla alınır. Yukarıdaki 10. bölüme bakınız.',
+                        'Teknik/kullanım verileri (IP adresi, tarayıcı, temel kayıtlar): KVKK m.5/2(f) — Hizmet\'in güvenliğini sağlama ve sürdürmedeki meşru menfaatimiz.',
                     ]],
                 ],
             ],
@@ -215,7 +245,7 @@ class LegalContent
                         'Dentavaria and its licensors own all rights in the Service, including its software, design, and branding. Clinics retain all rights to the patient and business data they enter into the Service.',
                     ]],
                     ['heading' => '8. Third-party services', 'body' => [
-                        'The Service integrates third-party providers, including OpenAI (for AI treatment plans and audio transcription) and an SMS provider (for OTP and notifications). Use of these features is subject to those providers\' availability, and Dentavaria is not liable for their outages or errors.',
+                        'The Service integrates third-party providers, including OpenAI (for AI treatment plans and audio transcription) and İleti Merkezi (for OTP and notification SMS). Use of these features is subject to those providers\' availability, and Dentavaria is not liable for their outages or errors.',
                     ]],
                     ['heading' => '9. Service availability', 'body' => [
                         'We aim to keep the Service available and reliable but do not guarantee uninterrupted access. Scheduled maintenance and unforeseen outages may occur.',
@@ -234,6 +264,13 @@ class LegalContent
                     ]],
                     ['heading' => '14. Contact us', 'body' => [
                         'Questions about these Terms can be sent to support@dentavaria.com or through the Contact form on this website.',
+                    ]],
+                    ['heading' => '15. Data processing terms (KVKK Art. 9 processor agreement)', 'body' => [
+                        'This section governs Dentavaria\'s processing of patient personal data as a data processor ("veri işleyen") on behalf of the Clinic, which remains the data controller. It forms part of these Terms and applies automatically -- no separate signature is required.',
+                        'Dentavaria will process patient data only on the Clinic\'s documented instructions (as reflected by the Clinic\'s own use of the Service\'s features), and only for the purpose of providing the Service.',
+                        'Dentavaria uses the following sub-processors, each limited to the purpose stated: OpenAI (AI treatment-plan generation and audio transcription -- only when the Clinic\'s staff use those features, and only after the patient\'s KVKK explicit consent has been recorded), and İleti Merkezi, a Türkiye-based provider (delivering OTP codes and appointment reminders by SMS -- a domestic transfer, not subject to KVKK Art. 9). Dentavaria will notify Clinics of any change to this sub-processor list with reasonable advance notice.',
+                        'If Dentavaria becomes aware of a personal data breach affecting a Clinic\'s patient data, it will notify the affected Clinic without undue delay, so the Clinic can meet its own obligation to notify the Personal Data Protection Board ("Kurul") within 72 hours where the breach is significant.',
+                        'On termination of a Clinic\'s subscription, Dentavaria will make patient data available for export for a reasonable period (see section 11 above), after which it may be deleted or anonymized in line with the retention practice described in the Privacy Policy.',
                     ]],
                 ],
             ],
@@ -265,7 +302,7 @@ class LegalContent
                         'تملك Dentavaria والجهات المرخِّصة لها جميع الحقوق المتعلقة بالخدمة، بما في ذلك برمجياتها وتصميمها وهويتها التجارية. تحتفظ العيادات بجميع حقوقها في بيانات المرضى والبيانات التجارية التي تُدخلها إلى الخدمة.',
                     ]],
                     ['heading' => '8. خدمات الأطراف الثالثة', 'body' => [
-                        'تدمج الخدمة مزوّدين من أطراف ثالثة، منهم OpenAI (لخطط العلاج بالذكاء الاصطناعي وتفريغ الصوت نصيًا) ومزوّد خدمة الرسائل النصية (لرموز التحقق OTP والإشعارات). يخضع استخدام هذه الميزات لمدى توفر هذه الجهات، ولا تتحمل Dentavaria مسؤولية انقطاعها أو أخطائها.',
+                        'تدمج الخدمة مزوّدين من أطراف ثالثة، منهم OpenAI (لخطط العلاج بالذكاء الاصطناعي وتفريغ الصوت نصيًا) وİleti Merkezi (لرموز التحقق OTP ورسائل الإشعارات). يخضع استخدام هذه الميزات لمدى توفر هذه الجهات، ولا تتحمل Dentavaria مسؤولية انقطاعها أو أخطائها.',
                     ]],
                     ['heading' => '9. توفر الخدمة', 'body' => [
                         'نسعى للحفاظ على توفر الخدمة وموثوقيتها، لكننا لا نضمن الوصول دون انقطاع. قد تحدث أعمال صيانة مجدولة أو انقطاعات غير متوقعة.',
@@ -284,6 +321,13 @@ class LegalContent
                     ]],
                     ['heading' => '14. تواصل معنا', 'body' => [
                         'يمكن إرسال أي استفسارات حول هذه الشروط إلى support@dentavaria.com أو عبر نموذج "تواصل معنا" في هذا الموقع.',
+                    ]],
+                    ['heading' => '15. شروط معالجة البيانات (اتفاقية معالج البيانات بموجب المادة 9 من KVKK)', 'body' => [
+                        'يحكم هذا القسم معالجة Dentavaria لبيانات المرضى الشخصية بصفتها معالج بيانات ("veri işleyen") نيابةً عن العيادة، التي تبقى هي المتحكم بالبيانات. يشكل هذا القسم جزءًا من هذه الشروط ويسري تلقائيًا دون الحاجة لتوقيع منفصل.',
+                        'تعالج Dentavaria بيانات المرضى فقط بناءً على تعليمات العيادة الموثقة (كما تعكسها استخدام العيادة لميزات الخدمة)، وفقط لغرض تقديم الخدمة.',
+                        'تستخدم Dentavaria الجهات المعالجة الفرعية التالية، كل منها محدود بالغرض المذكور: OpenAI (لإنشاء خطط العلاج بالذكاء الاصطناعي وتفريغ الصوت نصيًا -- فقط عند استخدام موظفي العيادة لهذه الميزات، وفقط بعد تسجيل الموافقة الصريحة للمريض بموجب KVKK)، وİleti Merkezi، وهي جهة تركية (لإرسال رموز التحقق OTP وتذكيرات المواعيد عبر الرسائل النصية -- وهو نقل محلي، لا يخضع للمادة 9 من KVKK). ستُخطر Dentavaria العيادات بأي تغيير في قائمة الجهات المعالجة الفرعية هذه بإشعار مسبق معقول.',
+                        'في حال علمت Dentavaria بوقوع خرق لبيانات شخصية يؤثر على بيانات مرضى إحدى العيادات، ستُخطر العيادة المتأثرة دون تأخير لا مبرر له، لتتمكن العيادة من الوفاء بالتزامها بإخطار هيئة حماية البيانات الشخصية ("الهيئة") خلال 72 ساعة في حال كان الخرق جسيمًا.',
+                        'عند إنهاء اشتراك إحدى العيادات، ستتيح Dentavaria تصدير بيانات المرضى لفترة معقولة (انظر القسم 11 أعلاه)، وبعدها يجوز حذفها أو جعلها مجهولة الهوية وفقًا لسياسة الاحتفاظ الموضحة في سياسة الخصوصية.',
                     ]],
                 ],
             ],
@@ -315,7 +359,7 @@ class LegalContent
                         'Hizmet üzerindeki, yazılımı, tasarımı ve markası dahil tüm haklar Dentavaria ve lisans verenlerine aittir. Klinikler, Hizmet\'e girdikleri hasta ve işletme verileri üzerindeki tüm haklarını saklı tutar.',
                     ]],
                     ['heading' => '8. Üçüncü taraf hizmetleri', 'body' => [
-                        'Hizmet; yapay zeka tedavi planları ve ses transkripsiyonu için OpenAI ile OTP ve bildirimler için bir SMS sağlayıcısı dahil üçüncü taraf sağlayıcılarla entegredir. Bu özelliklerin kullanımı, söz konusu sağlayıcıların kullanılabilirliğine tabidir ve Dentavaria, bunların kesintilerinden veya hatalarından sorumlu değildir.',
+                        'Hizmet; yapay zeka tedavi planları ve ses transkripsiyonu için OpenAI ile OTP ve bildirim SMS\'leri için İleti Merkezi dahil üçüncü taraf sağlayıcılarla entegredir. Bu özelliklerin kullanımı, söz konusu sağlayıcıların kullanılabilirliğine tabidir ve Dentavaria, bunların kesintilerinden veya hatalarından sorumlu değildir.',
                     ]],
                     ['heading' => '9. Hizmetin kullanılabilirliği', 'body' => [
                         'Hizmet\'i kullanılabilir ve güvenilir tutmayı hedefliyoruz ancak kesintisiz erişimi garanti etmiyoruz. Planlı bakım çalışmaları ve öngörülemeyen kesintiler meydana gelebilir.',
@@ -334,6 +378,13 @@ class LegalContent
                     ]],
                     ['heading' => '14. Bize ulaşın', 'body' => [
                         'Bu Şartlarla ilgili sorularınızı support@dentavaria.com adresine veya bu web sitesindeki İletişim formu aracılığıyla gönderebilirsiniz.',
+                    ]],
+                    ['heading' => '15. Veri işleme şartları (KVKK m.9 veri işleyen sözleşmesi)', 'body' => [
+                        'Bu bölüm, Dentavaria\'nın hasta kişisel verilerini, veri sorumlusu olarak kalan Klinik adına veri işleyen sıfatıyla işlemesini düzenler. Bu bölüm işbu Şartların bir parçasıdır ve ayrı bir imza gerektirmeksizin otomatik olarak uygulanır.',
+                        'Dentavaria, hasta verilerini yalnızca Klinik\'in belgelenmiş talimatları doğrultusunda (Klinik\'in Hizmet özelliklerini kendi kullanımıyla yansıtıldığı şekilde) ve yalnızca Hizmet\'i sunmak amacıyla işler.',
+                        'Dentavaria aşağıdaki alt işleyenleri, her biri belirtilen amaçla sınırlı olmak üzere kullanır: OpenAI (yapay zeka tedavi planı oluşturma ve ses transkripsiyonu -- yalnızca Klinik personeli bu özellikleri kullandığında ve yalnızca hastanın KVKK açık rızası kaydedildikten sonra), ve Türkiye merkezli bir sağlayıcı olan İleti Merkezi (OTP kodlarının ve randevu hatırlatmalarının SMS ile iletilmesi -- yurt içi bir aktarım olduğundan KVKK m.9\'a tabi değildir). Dentavaria, bu alt işleyen listesindeki her değişikliği makul bir süre önceden Kliniklere bildirecektir.',
+                        'Dentavaria\'nın bir Kliniğin hasta verilerini etkileyen bir kişisel veri ihlalinden haberdar olması hâlinde, etkilenen Kliniği gecikmeksizin bilgilendirecektir; böylece Klinik, ihlalin niteliği ağırsa Kişisel Verileri Koruma Kurulu\'na 72 saat içinde bildirim yapma yükümlülüğünü yerine getirebilir.',
+                        'Bir Kliniğin aboneliğinin sona ermesi üzerine, Dentavaria hasta verilerinin dışa aktarılmasına makul bir süre boyunca imkan tanır (yukarıdaki 11. bölüme bakınız); bu sürenin ardından veriler, Gizlilik Politikası\'nda açıklanan saklama uygulamasına uygun olarak silinebilir veya anonim hale getirilebilir.',
                     ]],
                 ],
             ],

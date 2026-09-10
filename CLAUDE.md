@@ -44,7 +44,7 @@ php artisan tinker
 
 ### Dual authentication surfaces
 
-**Mobile API** (`routes/api.php`, prefix `/api`): Stateless, Sanctum token-based. Login is a two-step OTP flow — `POST /auth/login` issues a challenge, `POST /auth/login/verify-otp` verifies it and returns a bearer token. OTP codes are delivered via Infobip (`MobileOtpService`) when `INFOBIP_ENABLED=true`; otherwise a random 6-digit code is logged to the console for local dev.
+**Mobile API** (`routes/api.php`, prefix `/api`): Stateless, Sanctum token-based. Login is a two-step OTP flow — `POST /auth/login` issues a challenge, `POST /auth/login/verify-otp` verifies it and returns a bearer token. OTP codes are delivered via İleti Merkezi (`MobileOtpService`, `IletiMerkeziSmsService`) when `ILETIMERKEZI_ENABLED=true`; otherwise a random 6-digit code is logged to the console for local dev. İleti Merkezi (Turkey-domiciled) was chosen specifically over a foreign provider so OTP/reminder SMS stays a domestic KVKK m.8 transfer rather than a cross-border m.9 one — see `docs/kvkk-veri-envanteri.md`.
 
 **Admin Panel** (`routes/web.php`): Session-based, email+password. Only users with `is_project_admin=true` can access it. Admin routes use the `EnsureAdminUser` middleware.
 
@@ -98,7 +98,7 @@ Backed PHP enums under `app/Enums/` for: `UserStatus`, `ClientGender`, `ClientSt
 
 Copy `.env.example` to `.env` before first run. Key non-obvious settings:
 
-- `INFOBIP_ENABLED` — set to `false` locally to skip real SMS; OTP is printed to the Laravel log instead.
+- `ILETIMERKEZI_ENABLED` — set to `false` locally to skip real SMS; OTP is printed to the Laravel log instead.
 - `DB_CONNECTION` — defaults to `sqlite`; change to `mysql` and set `DB_HOST/DB_DATABASE/DB_USERNAME/DB_PASSWORD` for production.
 - `QUEUE_CONNECTION=database` — requires the queue worker (`php artisan queue:listen`) to be running for background jobs.
 - `OPENAI_API_KEY` — required for the AI treatment plan assistant (`AiTreatmentPlanController`/`AiTreatmentPlanService`), which calls OpenAI for chat completions and Whisper transcription. `OPENAI_CHAT_MODEL`/`OPENAI_WHISPER_MODEL` default to `gpt-4o-mini`/`whisper-1`.

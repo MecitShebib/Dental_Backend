@@ -40,6 +40,14 @@ class UserResource extends JsonResource
             // AppLayout can redirect correctly on every render, not just
             // the one right after login.
             'requires_specialty_selection' => (bool) ($this->requires_specialty_selection ?? false),
+            // Global (not per-company) env-driven toggles the frontend needs
+            // on every render -- baked into this payload rather than a
+            // separate endpoint since it's the one response already fetched
+            // once at bootstrap and persisted into authUser. See
+            // config/features.php.
+            'feature_flags' => [
+                'three_d_odontogram_enabled' => (bool) config('features.three_d_odontogram'),
+            ],
             'notes' => $this->notes,
             'last_login_at' => optional($this->last_login_at)->toDateTimeString(),
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->map(fn ($role) => [

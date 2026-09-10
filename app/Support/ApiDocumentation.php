@@ -36,7 +36,30 @@ class ApiDocumentation
         ];
     }
 
-    public static function groups(): array
+    /**
+     * @param  string|null  $specialtyKey  One of the Specialty model's key
+     *   constants (e.g. 'dental', 'gynecology'), or null for the full,
+     *   unfiltered set. A group with no 'specialties' key is shared by every
+     *   specialty (the generic CRM/scheduling/billing surface); a group that
+     *   sets one (e.g. dental's X-Ray/DICOM/Lab groups) only appears for
+     *   those specialties, since those features don't exist outside dental
+     *   today.
+     */
+    public static function groups(?string $specialtyKey = null): array
+    {
+        $groups = static::allGroups();
+
+        if ($specialtyKey === null) {
+            return $groups;
+        }
+
+        return array_values(array_filter(
+            $groups,
+            fn (array $group) => empty($group['specialties']) || in_array($specialtyKey, $group['specialties'], true),
+        ));
+    }
+
+    private static function allGroups(): array
     {
         return [
             [
@@ -99,7 +122,7 @@ class ApiDocumentation
                         'request' => [
                             ['name' => 'mobile', 'type' => 'string', 'required' => true],
                             ['name' => 'otp_reference', 'type' => 'string', 'required' => true],
-                            ['name' => 'new_password', 'type' => 'string', 'required' => true, 'notes' => 'min 6, must be confirmed by a matching new_password_confirmation field'],
+                            ['name' => 'new_password', 'type' => 'string', 'required' => true, 'notes' => 'min 8, must include an uppercase letter, a lowercase letter, a number, and a symbol -- confirmed by a matching new_password_confirmation field'],
                         ],
                         'response' => [['name' => 'message', 'type' => 'string']],
                     ],
@@ -128,7 +151,7 @@ class ApiDocumentation
                             ['name' => 'name', 'type' => 'string', 'required' => true],
                             ['name' => 'email', 'type' => 'string', 'required' => true, 'notes' => 'unique'],
                             ['name' => 'phone', 'type' => 'string', 'required' => false],
-                            ['name' => 'password', 'type' => 'string', 'required' => true, 'notes' => 'min 6'],
+                            ['name' => 'password', 'type' => 'string', 'required' => true, 'notes' => 'min 8, must include an uppercase letter, a lowercase letter, a number, and a symbol'],
                             ['name' => 'job_title', 'type' => 'string', 'required' => false],
                             ['name' => 'branch_name', 'type' => 'string', 'required' => false],
                             ['name' => 'status', 'type' => 'enum', 'required' => false, 'enum' => 'UserStatus', 'notes' => 'defaults active'],
@@ -526,6 +549,7 @@ class ApiDocumentation
             ],
             [
                 'id' => 'lab',
+                'specialties' => ['dental'],
                 'title' => 'Dental Lab',
                 'intro' => 'Lab partner directory and lab-case tracking (sent → in_progress → ready → delivered). Setting lab_cost on a case automatically syncs an expense to your books.',
                 'endpoints' => [
@@ -578,6 +602,7 @@ class ApiDocumentation
             ],
             [
                 'id' => 'xray-images',
+                'specialties' => ['dental'],
                 'title' => 'X-Ray Images',
                 'intro' => 'The shared company gallery an outside X-ray machine (or any integration) posts images into. Images land unlinked by default and get attached to a patient afterward — either by the machine itself (if it knows the client_id) or by staff picking them from the gallery in the app.',
                 'endpoints' => [
@@ -617,6 +642,48 @@ class ApiDocumentation
                 ],
             ],
             [
+                'id' => 'dicom-studies',
+                'specialties' => ['dental'],
+                'title' => 'CBCT / DICOM Scans',
+                'intro' => 'Where a CBCT/CT machine (or any DICOM-exporting device) posts a scan straight into a patient\'s chart, the same way an X-ray machine posts into the X-Ray gallery above. A scan can be posted either as one .zip archive or as a set of loose .dcm files — either shape works for a single-file export or a full multi-hundred-slice study. Scans land unlinked by default (client_id omitted) and get attached to a patient afterward, either by the machine itself if it already knows the client_id, or by staff picking it from the gallery in the app.',
+                'endpoints' => [
+                    [
+                        'method' => 'GET', 'path' => '/dicom-studies', 'auth' => 'Bearer token', 'summary' => 'Lists the company-wide scan gallery, optionally scoped to one client or to unlinked-only.',
+                        'request' => [
+                            ['name' => 'client_id', 'type' => 'integer (query)', 'required' => false, 'notes' => 'only scans linked to this client'],
+                            ['name' => 'unlinked', 'type' => 'boolean (query)', 'required' => false, 'notes' => 'only scans not yet linked to any client'],
+                        ],
+                        'response' => [['name' => '[DicomStudy object]', 'type' => 'array']],
+                    ],
+                    ['method' => 'GET', 'path' => '/dicom-studies/{id}', 'auth' => 'Bearer token', 'summary' => 'Fetches one scan, including its series.', 'request' => [], 'response' => [['name' => '(DicomStudy object)', 'type' => '']]],
+                    [
+                        'method' => 'POST', 'path' => '/dicom-studies', 'auth' => 'Bearer token', 'summary' => "Uploads a scan. This is the endpoint a CBCT/CT machine's integration token calls — send either archive or files, not both.",
+                        'request' => [
+                            ['name' => 'archive', 'type' => 'file', 'required' => false, 'notes' => 'multipart, .zip, max 1GB — required if files is omitted'],
+                            ['name' => 'files', 'type' => 'file[]', 'required' => false, 'notes' => 'multipart, min 1, each max 1GB — loose .dcm files, required if archive is omitted'],
+                            ['name' => 'client_id', 'type' => 'integer', 'required' => false, 'notes' => 'tag a client directly, if already known — usually omitted'],
+                        ],
+                        'response' => [['name' => '(DicomStudy object)', 'type' => '', 'status' => 201]],
+                    ],
+                    [
+                        'method' => 'PUT', 'path' => '/dicom-studies/{id}', 'auth' => 'Bearer token', 'summary' => 'Links (or unlinks) a scan to a client, or edits its description — the "Save" action in the picker.',
+                        'request' => [
+                            ['name' => 'client_id', 'type' => 'integer | null', 'required' => false, 'notes' => 'send null to unlink'],
+                            ['name' => 'description', 'type' => 'string', 'required' => false],
+                        ],
+                        'response' => [['name' => '(DicomStudy object)', 'type' => '']],
+                    ],
+                    ['method' => 'DELETE', 'path' => '/dicom-studies/{id}', 'auth' => 'Bearer token', 'summary' => 'Deletes a scan and its stored files.', 'request' => [], 'response' => []],
+                ],
+                'object' => [
+                    'name' => 'DicomStudy object', 'fields' => [
+                        'id, uuid, client_id, client_name (if linked)',
+                        'modality, study_date, description, slice_count, status',
+                        'series (array — one entry per DICOM series in this study)', 'created_at',
+                    ],
+                ],
+            ],
+            [
                 'id' => 'integrations',
                 'title' => 'API Tokens (for integrations)',
                 'intro' => 'Manage the long-lived tokens created from Settings > API Token, used to authenticate outside systems (e.g. an X-ray imaging machine) instead of a login session.',
@@ -631,4 +698,19 @@ class ApiDocumentation
             ],
         ];
     }
+
+    /** Specialty key -> brand name, for the per-specialty /{specialty}/api-docs page header. */
+    public static function specialtyBrandName(string $specialtyKey): string
+    {
+        return match ($specialtyKey) {
+            'dental' => 'Dentavaria',
+            'gynecology' => 'Gynevaria',
+            'internal_medicine' => 'Medivaria',
+            'orthopedics' => 'Orthovaria',
+            'cosmetic' => 'Estevaria',
+            'nutrition' => 'Dietavaria',
+            default => 'Doctovaria',
+        };
+    }
+
 }

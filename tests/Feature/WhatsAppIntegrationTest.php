@@ -101,15 +101,15 @@ class WhatsAppIntegrationTest extends TestCase
         Mail::fake();
 
         config([
-            'services.infobip.enabled' => true,
-            'services.infobip.api_key' => 'test-api-key',
-            'services.infobip.base_url' => 'https://api.infobip.com',
+            'services.iletimerkezi.enabled' => true,
+            'services.iletimerkezi.api_key' => 'test-api-key',
+            'services.iletimerkezi.api_hash' => 'test-api-hash',
         ]);
 
         Http::fake([
             'https://graph.facebook.com/v20.0/*' => Http::response(['messages' => [['id' => 'wamid.abc']]], 200),
-            'https://api.infobip.com/*' => Http::response([
-                'messages' => [['messageId' => 'test', 'status' => ['groupId' => 1, 'groupName' => 'PENDING']]],
+            'https://api.iletimerkezi.com/*' => Http::response([
+                'response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => 'test']],
             ], 200),
         ]);
 
@@ -141,6 +141,6 @@ class WhatsAppIntegrationTest extends TestCase
         Artisan::call('appointments:send-reminders');
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com'));
-        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.infobip.com'));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.iletimerkezi.com'));
     }
 }

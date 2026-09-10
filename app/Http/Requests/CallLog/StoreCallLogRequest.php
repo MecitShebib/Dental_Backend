@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\CallLog;
 
+use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ class StoreCallLogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone_number' => ['required', 'string', 'max:50'],
+            'phone_number' => ['required', 'string', 'max:50', new ValidPhone],
             'direction' => ['required', Rule::in(['inbound', 'outbound'])],
             'status' => ['required', Rule::in(['answered', 'missed', 'voicemail'])],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
