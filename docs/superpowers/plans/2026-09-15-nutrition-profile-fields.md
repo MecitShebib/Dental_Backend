@@ -279,6 +279,148 @@ EOF
 
 ---
 
+### Task 3.5: Add audit trail to `NutritionClientProfile` (Auditable + created_by/updated_by)
+
+> Added after a code-quality review of Task 3 found a real gap: this table stores KVKK-sensitive health data (allergies, chronic conditions, medications, smoking/alcohol status) but has neither the `Auditable` trait (auto-writes an `AuditLog` row on create/update/delete — see `app/Models/Concerns/Auditable.php`, built for exactly this class of model per `docs/superpowers/plans/2026-09-05-kvkk-uyumlulugu.md`) nor `created_by`/`updated_by` columns, unlike the closer, more recent sibling table `PatientLabResult` (also per-client health data, also `BelongsToCompanyViaClient`) which has both. Fixed via a follow-up migration rather than editing the already-committed one.
+
+**Files:**
+- Create: `C:\Users\MK\Desktop\Dental_Backend\database\migrations\2026_09_15_000003_add_audit_columns_to_nutrition_client_profiles_table.php`
+- Modify: `C:\Users\MK\Desktop\Dental_Backend\app\Models\NutritionClientProfile.php`
+
+- [ ] **Step 1: Write the migration**
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('nutrition_client_profiles', function (Blueprint $table) {
+            $table->foreignId('created_by')->nullable()->after('notes')->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->after('created_by')->constrained('users')->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('nutrition_client_profiles', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('created_by');
+            $table->dropConstrainedForeignId('updated_by');
+        });
+    }
+};
+```
+
+- [ ] **Step 2: Update the model**
+
+Find:
+
+```php
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToCompanyViaClient;
+use App\Models\Concerns\HasUuid;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class NutritionClientProfile extends Model
+{
+    use BelongsToCompanyViaClient, HasUuid;
+
+    protected $fillable = [
+        'uuid',
+        'client_id',
+        'height_cm',
+        'dietary_type',
+        'allergies',
+        'chronic_conditions',
+        'medications_affecting_diet',
+        'smoking_status',
+        'alcohol_status',
+        'activity_level',
+        'goal',
+        'target_weight_kg',
+        'notes',
+    ];
+```
+
+Replace with (adds the trait and the two new fillable columns; alphabetizes the trait list the way `PatientLabResult` does):
+
+```php
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToCompanyViaClient;
+use App\Models\Concerns\HasUuid;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class NutritionClientProfile extends Model
+{
+    use Auditable, BelongsToCompanyViaClient, HasUuid;
+
+    protected $fillable = [
+        'uuid',
+        'client_id',
+        'height_cm',
+        'dietary_type',
+        'allergies',
+        'chronic_conditions',
+        'medications_affecting_diet',
+        'smoking_status',
+        'alcohol_status',
+        'activity_level',
+        'goal',
+        'target_weight_kg',
+        'notes',
+        'created_by',
+        'updated_by',
+    ];
+```
+
+- [ ] **Step 3: Run the migration and verify the columns exist**
+
+Run: `cd "C:\Users\MK\Desktop\Dental_Backend" && APP_ENV=local DB_CONNECTION=sqlite DB_DATABASE="C:\Users\MK\Desktop\Dental_Backend\database\database.sqlite" php artisan migrate`
+
+IMPORTANT: always use that exact `APP_ENV=local DB_CONNECTION=sqlite DB_DATABASE="C:\Users\MK\Desktop\Dental_Backend\database\database.sqlite"` prefix for every artisan command in this and all later tasks — this repo's real `.env` currently points at a production database (a known, separately-flagged issue), and running artisan commands without this override risks connecting to it (at best hanging on a confirmation prompt, at worst touching real data).
+
+Expected: `Migrating: 2026_09_15_000003_add_audit_columns_to_nutrition_client_profiles_table` then `Migrated:`.
+
+Then verify: `cd "C:\Users\MK\Desktop\Dental_Backend" && APP_ENV=local DB_CONNECTION=sqlite DB_DATABASE="C:\Users\MK\Desktop\Dental_Backend\database\database.sqlite" php artisan tinker --execute="print_r(Schema::getColumnListing('nutrition_client_profiles'));"`
+Expected: the list now includes `created_by` and `updated_by`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+cd "C:\Users\MK\Desktop\Dental_Backend"
+git add database/migrations/2026_09_15_000003_add_audit_columns_to_nutrition_client_profiles_table.php app/Models/NutritionClientProfile.php
+git commit -m "$(cat <<'EOF'
+feat: add audit trail to NutritionClientProfile
+
+Adds the Auditable trait (auto-writes an AuditLog row on
+create/update/delete, per docs/superpowers/plans/2026-09-05-kvkk-uyumlulugu.md)
+plus created_by/updated_by columns, matching the closer sibling
+table PatientLabResult -- this table holds the same class of
+KVKK-sensitive health data (allergies, chronic conditions,
+medications, smoking/alcohol status). Found by code review after
+Task 3.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
 ### Task 4: Profile endpoint (FormRequest, Resource, Controller, routes) — TDD via Feature test
 
 **Files:**
@@ -529,7 +671,10 @@ class ClientProfileController extends Controller
     {
         $this->assertActingDoctorOwnsClient($request, $client);
 
-        $profile = $client->nutritionProfile()->firstOrCreate(['client_id' => $client->id]);
+        $profile = $client->nutritionProfile()->firstOrCreate(
+            ['client_id' => $client->id],
+            ['created_by' => $request->user()->id, 'updated_by' => $request->user()->id],
+        );
 
         return $this->success(NutritionClientProfileResource::make($profile));
     }
@@ -538,13 +683,21 @@ class ClientProfileController extends Controller
     {
         $this->assertActingDoctorOwnsClient($request, $client);
 
-        $profile = $client->nutritionProfile()->firstOrCreate(['client_id' => $client->id]);
-        $profile->update($request->validated());
+        $profile = $client->nutritionProfile()->firstOrCreate(
+            ['client_id' => $client->id],
+            ['created_by' => $request->user()->id, 'updated_by' => $request->user()->id],
+        );
+        $profile->update([
+            ...$request->validated(),
+            'updated_by' => $request->user()->id,
+        ]);
 
         return $this->success(NutritionClientProfileResource::make($profile), 'Nutrition profile updated successfully.');
     }
 }
 ```
+
+(`created_by`/`updated_by` mirror the exact pattern `PatientLabResultController::store()`/`update()` already use — set both on first creation, `updated_by` refreshed on every update, `created_by` left untouched after that. Not exposed in `NutritionClientProfileResource`'s JSON output, matching `PatientLabResultResource`, which doesn't expose them either — they're internal audit fields, not frontend-facing.)
 
 - [ ] **Step 6: Add the routes**
 
