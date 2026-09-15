@@ -3,11 +3,14 @@
 use App\Http\Controllers\Api\Nutrition\AiConversationController;
 use App\Http\Controllers\Api\Nutrition\AppointmentController;
 use App\Http\Controllers\Api\Nutrition\ClientController;
+use App\Http\Controllers\Api\Nutrition\ClientProfileController;
 use App\Http\Controllers\Api\Nutrition\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::apiResource('clients', ClientController::class)->names('nutrition.clients');
+    Route::get('clients/{client}/profile', [ClientProfileController::class, 'show'])->name('nutrition.clients.profile.show');
+    Route::put('clients/{client}/profile', [ClientProfileController::class, 'update'])->name('nutrition.clients.profile.update');
     Route::apiResource('appointments', AppointmentController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('nutrition.appointments');
     Route::get('dashboard/stats', [DashboardController::class, 'stats'])->name('nutrition.dashboard.stats');
 
