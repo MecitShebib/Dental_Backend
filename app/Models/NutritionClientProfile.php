@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\NutritionActivityLevel;
+use App\Enums\NutritionDietaryType;
+use App\Enums\NutritionGoal;
+use App\Enums\NutritionSubstanceUseStatus;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompanyViaClient;
 use App\Models\Concerns\HasUuid;
@@ -37,6 +41,11 @@ class NutritionClientProfile extends Model
             'target_weight_kg' => 'decimal:1',
             'allergies' => 'array',
             'chronic_conditions' => 'array',
+            'dietary_type' => NutritionDietaryType::class,
+            'smoking_status' => NutritionSubstanceUseStatus::class,
+            'alcohol_status' => NutritionSubstanceUseStatus::class,
+            'activity_level' => NutritionActivityLevel::class,
+            'goal' => NutritionGoal::class,
         ];
     }
 
