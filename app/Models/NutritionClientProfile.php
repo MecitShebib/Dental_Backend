@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompanyViaClient;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NutritionClientProfile extends Model
 {
-    use BelongsToCompanyViaClient, HasUuid;
+    use Auditable, BelongsToCompanyViaClient, HasUuid;
 
     protected $fillable = [
         'uuid',
@@ -25,6 +26,8 @@ class NutritionClientProfile extends Model
         'goal',
         'target_weight_kg',
         'notes',
+        'created_by',
+        'updated_by',
     ];
 
     protected function casts(): array
