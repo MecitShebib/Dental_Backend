@@ -476,6 +476,7 @@ class ClientProfileTest extends TestCase
         ]);
 
         ClientSpecialtyRecord::create([
+            'company_id' => $company->id,
             'client_id' => $client->id,
             'specialty_id' => $nutrition->id,
             'primary_doctor_id' => $doctor->id,
