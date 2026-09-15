@@ -1607,7 +1607,7 @@ In `tr.json`, find the equivalent `"medicalNotes"` line and insert immediately a
     "nutritionProfileSectionTitle":  "Beslenme Profili",
     "heightCm":  "Boy (cm)",
     "dietaryType":  "Diyet Tipi",
-    "dietaryTypeOmnivore":  "Karma Beslenen",
+    "dietaryTypeOmnivore":  "Karma Beslenme",
     "dietaryTypeVegetarian":  "Vejetaryen",
     "dietaryTypeVegan":  "Vegan",
     "dietaryTypeHalal":  "Helal",
