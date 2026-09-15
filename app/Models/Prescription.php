@@ -8,6 +8,7 @@ use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Prescription extends Model
@@ -20,11 +21,6 @@ class Prescription extends Model
         'specialty_id',
         'doctor_id',
         'appointment_id',
-        'medication_name',
-        'dosage',
-        'frequency',
-        'duration',
-        'instructions',
         'prescribed_date',
         'notes',
         'created_by',
@@ -56,5 +52,10 @@ class Prescription extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(PrescriptionItem::class)->orderBy('sort_order')->orderBy('id');
     }
 }

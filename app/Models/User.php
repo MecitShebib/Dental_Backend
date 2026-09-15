@@ -45,6 +45,8 @@ class User extends Authenticatable
         'last_login_at',
         'monthly_salary',
         'commission_percentage',
+        'signature_path',
+        'stamp_path',
     ];
 
     /**

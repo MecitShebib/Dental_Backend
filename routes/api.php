@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\CrmSettingsController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DicomStudyController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
+use App\Http\Controllers\Api\DoctorSignatureController;
 use App\Http\Controllers\Api\DoctorScheduleController;
 use App\Http\Controllers\Api\EmployeeSalaryController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -214,10 +215,16 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::put('lab-results/{labResult}', [PatientLabResultController::class, 'update']);
     Route::delete('lab-results/{labResult}', [PatientLabResultController::class, 'destroy']);
 
+    Route::get('prescription-medications', [PrescriptionController::class, 'medicationSuggestions']);
     Route::get('clients/{client}/prescriptions', [PrescriptionController::class, 'index']);
     Route::post('clients/{client}/prescriptions', [PrescriptionController::class, 'store']);
     Route::put('prescriptions/{prescription}', [PrescriptionController::class, 'update']);
     Route::delete('prescriptions/{prescription}', [PrescriptionController::class, 'destroy']);
+
+    Route::post('me/signature', [DoctorSignatureController::class, 'uploadSignature']);
+    Route::delete('me/signature', [DoctorSignatureController::class, 'destroySignature']);
+    Route::post('me/stamp', [DoctorSignatureController::class, 'uploadStamp']);
+    Route::delete('me/stamp', [DoctorSignatureController::class, 'destroyStamp']);
 
     Route::get('cari/parties', [CariPartyController::class, 'index']);
     Route::post('cari/parties', [CariPartyController::class, 'store']);
@@ -312,6 +319,8 @@ Route::middleware('signed')->group(function () {
     Route::get('client-consents/{consent}/signature', [ClientConsentController::class, 'signature'])->name('client-consents.signature');
     Route::get('expenses/{expense}/attachment', [ExpenseController::class, 'attachment'])->name('expenses.attachment');
     Route::get('dicom-series/{dicomSeries}/files/{index}', [DicomStudyController::class, 'seriesFile'])->name('dicom-series.file');
+    Route::get('users/{user}/signature-file', [DoctorSignatureController::class, 'signatureFile'])->name('users.signature-file');
+    Route::get('users/{user}/stamp-file', [DoctorSignatureController::class, 'stampFile'])->name('users.stamp-file');
 });
 
 // Split from the 'signed' group above: opening one real CBCT scan means the

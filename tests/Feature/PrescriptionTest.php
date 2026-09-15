@@ -60,7 +60,7 @@ class PrescriptionTest extends TestCase
         ]);
     }
 
-    public function test_a_doctor_can_write_a_prescription_and_its_specialty_is_derived_from_them(): void
+    public function test_a_doctor_can_write_a_prescription_with_multiple_items_and_its_specialty_is_derived_from_them(): void
     {
         $company = Company::factory()->create();
         $doctor = $this->makeDoctor($company, Specialty::DENTAL);
@@ -70,24 +70,41 @@ class PrescriptionTest extends TestCase
 
         $response = $this->postJson("/api/clients/{$client->id}/prescriptions", [
             'doctor_id' => $doctor->id,
-            'medication_name' => 'Amoxicillin',
-            'dosage' => '500mg',
-            'frequency' => '3x daily',
-            'duration' => '7 days',
-            'instructions' => 'Take with food.',
             'prescribed_date' => '2026-09-01',
+            'items' => [
+                ['medication_name' => 'Amoxicillin', 'dosage_instruction' => '1x3x7', 'instructions' => 'Take with food.'],
+                ['medication_name' => 'Ibuprofen', 'dosage_instruction' => '1x2x5'],
+            ],
         ]);
 
         $response->assertCreated();
-        $response->assertJsonPath('data.medication_name', 'Amoxicillin');
         $response->assertJsonPath('data.specialty_key', Specialty::DENTAL);
+        $response->assertJsonCount(2, 'data.items');
+        $response->assertJsonPath('data.items.0.medication_name', 'Amoxicillin');
+        $response->assertJsonPath('data.items.0.dosage_instruction', '1x3x7');
+        $response->assertJsonPath('data.items.1.medication_name', 'Ibuprofen');
 
         $this->assertDatabaseHas('prescriptions', [
             'client_id' => $client->id,
             'doctor_id' => $doctor->id,
             'specialty_id' => $doctor->specialty_id,
-            'medication_name' => 'Amoxicillin',
         ]);
+        $this->assertDatabaseCount('prescription_items', 2);
+    }
+
+    public function test_it_rejects_a_prescription_with_no_items(): void
+    {
+        $company = Company::factory()->create();
+        $doctor = $this->makeDoctor($company, Specialty::DENTAL);
+        $client = $this->makeClient($company);
+        $this->enrollClient($client, $doctor);
+        Sanctum::actingAs($doctor);
+
+        $this->postJson("/api/clients/{$client->id}/prescriptions", [
+            'doctor_id' => $doctor->id,
+            'prescribed_date' => '2026-09-01',
+            'items' => [],
+        ])->assertStatus(422)->assertJsonValidationErrors('items');
     }
 
     public function test_prescriptions_are_listed_for_a_client_ordered_by_prescribed_date(): void
@@ -100,21 +117,21 @@ class PrescriptionTest extends TestCase
 
         $this->postJson("/api/clients/{$client->id}/prescriptions", [
             'doctor_id' => $doctor->id,
-            'medication_name' => 'Ibuprofen',
             'prescribed_date' => '2026-08-01',
+            'items' => [['medication_name' => 'Ibuprofen']],
         ])->assertCreated();
 
         $this->postJson("/api/clients/{$client->id}/prescriptions", [
             'doctor_id' => $doctor->id,
-            'medication_name' => 'Naproxen',
             'prescribed_date' => '2026-08-15',
+            'items' => [['medication_name' => 'Naproxen']],
         ])->assertCreated();
 
         $response = $this->getJson("/api/clients/{$client->id}/prescriptions")->assertOk();
 
         $response->assertJsonCount(2, 'data');
-        $response->assertJsonPath('data.0.medication_name', 'Naproxen');
-        $response->assertJsonPath('data.1.medication_name', 'Ibuprofen');
+        $response->assertJsonPath('data.0.items.0.medication_name', 'Naproxen');
+        $response->assertJsonPath('data.1.items.0.medication_name', 'Ibuprofen');
     }
 
     public function test_a_prescription_can_be_updated_and_deleted(): void
@@ -127,17 +144,24 @@ class PrescriptionTest extends TestCase
 
         $created = $this->postJson("/api/clients/{$client->id}/prescriptions", [
             'doctor_id' => $doctor->id,
-            'medication_name' => 'Tretinoin',
             'prescribed_date' => '2026-08-10',
+            'items' => [['medication_name' => 'Tretinoin']],
         ])->assertCreated();
 
         $prescriptionId = $created->json('data.id');
 
+        // A full replace: the new item set entirely replaces the old one,
+        // same convention the frontend's table always follows.
         $this->putJson("/api/prescriptions/{$prescriptionId}", [
-            'dosage' => '0.05%',
-            'instructions' => 'Apply nightly.',
+            'items' => [
+                ['medication_name' => 'Tretinoin', 'dosage_instruction' => '0.05%', 'instructions' => 'Apply nightly.'],
+                ['medication_name' => 'Moisturizer'],
+            ],
         ])->assertOk()
-            ->assertJsonPath('data.dosage', '0.05%');
+            ->assertJsonCount(2, 'data.items')
+            ->assertJsonPath('data.items.0.dosage_instruction', '0.05%');
+
+        $this->assertDatabaseCount('prescription_items', 2);
 
         $this->deleteJson("/api/prescriptions/{$prescriptionId}")->assertOk();
 
@@ -153,8 +177,8 @@ class PrescriptionTest extends TestCase
 
         $this->postJson("/api/clients/{$client->id}/prescriptions", [
             'doctor_id' => $doctor->id,
-            'medication_name' => 'Aspirin',
             'prescribed_date' => '2026-08-18',
+            'items' => [['medication_name' => 'Aspirin']],
         ])->assertStatus(422)
             ->assertJsonValidationErrors('doctor_id');
 
@@ -173,14 +197,14 @@ class PrescriptionTest extends TestCase
         Sanctum::actingAs($doctorA);
         $created = $this->postJson("/api/clients/{$clientA->id}/prescriptions", [
             'doctor_id' => $doctorA->id,
-            'medication_name' => 'Metformin',
             'prescribed_date' => '2026-08-18',
+            'items' => [['medication_name' => 'Metformin']],
         ])->assertCreated();
         $prescriptionId = $created->json('data.id');
 
         Sanctum::actingAs($doctorB);
         $this->getJson("/api/clients/{$clientA->id}/prescriptions")->assertNotFound();
-        $this->putJson("/api/prescriptions/{$prescriptionId}", ['medication_name' => 'Hacked'])->assertNotFound();
+        $this->putJson("/api/prescriptions/{$prescriptionId}", ['items' => [['medication_name' => 'Hacked']]])->assertNotFound();
     }
 
     public function test_a_doctor_cannot_write_a_prescription_for_a_colleagues_patient(): void
@@ -199,12 +223,48 @@ class PrescriptionTest extends TestCase
         Sanctum::actingAs($otherDoctor);
         $response = $this->postJson("/api/clients/{$client->id}/prescriptions", [
             'doctor_id' => $otherDoctor->id,
-            'medication_name' => 'Amoxicillin',
             'prescribed_date' => '2026-09-01',
+            'items' => [['medication_name' => 'Amoxicillin']],
         ]);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('client');
         $this->assertDatabaseCount('prescriptions', 0);
+    }
+
+    public function test_medication_suggestions_are_scoped_to_the_requesters_company_and_deduplicated(): void
+    {
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+        $doctorA = $this->makeDoctor($companyA, Specialty::DENTAL);
+        $doctorB = $this->makeDoctor($companyB, Specialty::DENTAL);
+        $clientA = $this->makeClient($companyA);
+        $clientB = $this->makeClient($companyB);
+        $this->enrollClient($clientA, $doctorA);
+        $this->enrollClient($clientB, $doctorB);
+
+        Sanctum::actingAs($doctorA);
+        $this->postJson("/api/clients/{$clientA->id}/prescriptions", [
+            'doctor_id' => $doctorA->id,
+            'prescribed_date' => '2026-08-01',
+            'items' => [['medication_name' => 'Voltaren'], ['medication_name' => 'Parol']],
+        ])->assertCreated();
+        $this->postJson("/api/clients/{$clientA->id}/prescriptions", [
+            'doctor_id' => $doctorA->id,
+            'prescribed_date' => '2026-08-02',
+            'items' => [['medication_name' => 'Voltaren']],
+        ])->assertCreated();
+
+        Sanctum::actingAs($doctorB);
+        $this->postJson("/api/clients/{$clientB->id}/prescriptions", [
+            'doctor_id' => $doctorB->id,
+            'prescribed_date' => '2026-08-01',
+            'items' => [['medication_name' => 'FromOtherCompany']],
+        ])->assertCreated();
+
+        Sanctum::actingAs($doctorA);
+        $response = $this->getJson('/api/prescription-medications')->assertOk();
+
+        $response->assertJson(['data' => ['Parol', 'Voltaren']]);
     }
 }

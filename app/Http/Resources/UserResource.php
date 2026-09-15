@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
 
 class UserResource extends JsonResource
 {
@@ -49,6 +50,17 @@ class UserResource extends JsonResource
                 'three_d_odontogram_enabled' => (bool) config('features.three_d_odontogram'),
             ],
             'notes' => $this->notes,
+            // A doctor's own signature/stamp image, pasted onto their
+            // generated prescriptions (see Settings > Signature & Stamp and
+            // PrescriptionResource's doctor_signature_url/doctor_stamp_url).
+            // Signed rather than a plain Storage URL, same private-disk
+            // convention as X-ray images; null until the doctor saves one.
+            'signature_url' => $this->signature_path
+                ? URL::temporarySignedRoute('users.signature-file', now()->addMinutes(60), ['user' => $this->id])
+                : null,
+            'stamp_url' => $this->stamp_path
+                ? URL::temporarySignedRoute('users.stamp-file', now()->addMinutes(60), ['user' => $this->id])
+                : null,
             'last_login_at' => optional($this->last_login_at)->toDateTimeString(),
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->map(fn ($role) => [
                 'id' => $role->id,
