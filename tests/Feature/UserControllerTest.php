@@ -222,4 +222,68 @@ class UserControllerTest extends TestCase
         $keys = collect($response->json('data'))->pluck('specialty_key');
         $this->assertTrue($keys->contains('gynecology'));
     }
+
+    // Regression test: two users sharing one phone number (even across
+    // different companies) made the OTP login lookup ambiguous for that
+    // number -- phone had no uniqueness check at all, unlike email.
+    public function test_a_user_cannot_be_created_with_a_phone_number_already_in_use(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        User::factory()->create(['company_id' => $company->id, 'phone' => '+905342641738']);
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/users', [
+            'name' => 'Duplicate Phone',
+            'email' => 'duplicate-phone@example.test',
+            'password' => 'Password123!',
+            'phone' => '+905342641738',
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors('phone');
+        $this->assertDatabaseCount('users', 2);
+    }
+
+    public function test_a_phone_number_already_used_by_another_company_is_also_rejected(): void
+    {
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+        $manager = $this->makeManager($companyB);
+        User::factory()->create(['company_id' => $companyA->id, 'phone' => '+905342641738']);
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/users', [
+            'name' => 'Cross Company Duplicate',
+            'email' => 'cross-company@example.test',
+            'password' => 'Password123!',
+            'phone' => '+905342641738',
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors('phone');
+    }
+
+    public function test_a_users_phone_can_be_updated_to_an_unused_number_but_not_to_a_taken_one(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        $employee = User::factory()->create(['company_id' => $company->id, 'phone' => '+905340000001']);
+        $otherEmployee = User::factory()->create(['company_id' => $company->id, 'phone' => '+905340000002']);
+        Sanctum::actingAs($manager);
+
+        // Keeping its own unchanged phone number must not self-block.
+        $this->putJson("/api/users/{$employee->id}", [
+            'name' => $employee->name,
+            'email' => $employee->email,
+            'phone' => '+905340000001',
+        ])->assertOk();
+
+        // Taking someone else's number is rejected.
+        $this->putJson("/api/users/{$employee->id}", [
+            'name' => $employee->name,
+            'email' => $employee->email,
+            'phone' => '+905340000002',
+        ])->assertStatus(422)->assertJsonValidationErrors('phone');
+
+        $this->assertSame('+905340000001', $employee->fresh()->phone);
+    }
 }

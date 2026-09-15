@@ -39,7 +39,9 @@ class UpdateUserRequest extends FormRequest
             ],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'max:50', new ValidPhone],
+            // See the identical note in StoreUserRequest -- global
+            // uniqueness, since phone is the OTP login lookup key.
+            'phone' => ['nullable', 'string', 'max:50', new ValidPhone, Rule::unique('users', 'phone')->ignore($userId)],
             'password' => ['nullable', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'job_title' => ['nullable', 'string', 'max:255'],
             'branch_name' => ['nullable', 'string', 'max:255'],

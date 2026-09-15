@@ -52,7 +52,12 @@ class StoreUserRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:50', new ValidPhone],
+            // Global uniqueness (not scoped to company_id), same as email
+            // above -- phone is what the OTP login flow looks a user up by
+            // before it knows which company they belong to, so two users
+            // sharing one phone number (even across different companies)
+            // makes login ambiguous/broken for both of them.
+            'phone' => ['nullable', 'string', 'max:50', new ValidPhone, 'unique:users,phone'],
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'job_title' => ['nullable', 'string', 'max:255'],
             'branch_name' => ['nullable', 'string', 'max:255'],
