@@ -58,6 +58,11 @@ class Client extends Model
         return $this->hasOne(TreatmentRecord::class);
     }
 
+    public function nutritionProfile(): HasOne
+    {
+        return $this->hasOne(NutritionClientProfile::class);
+    }
+
     public function visits(): HasMany
     {
         return $this->hasMany(Visit::class);
