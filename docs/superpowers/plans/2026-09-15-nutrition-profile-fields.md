@@ -833,6 +833,8 @@ EOF
 
 This follows the same "local state + direct `api.nutrition.*` call + own save button" pattern already used by `NutritionCarePlanModal.jsx` (see that file for precedent) — it does not touch the shared `ClientFormFields.jsx` component every specialty's edit page uses for the base client fields (name/phone/email/etc.), since this profile is nutrition-only data on a separate table with its own endpoint.
 
+**Note on the API response shape:** `lib/api.js`'s `request()`/`parseResponse()` already unwraps the backend's `{message, data}` envelope — a successful call resolves directly to the flat payload (e.g. `NutritionClientProfileResource::toArray()`'s object), not `{data: {...}}`. So every call site below reads `response` directly, never `response?.data` (a code-quality review of an earlier draft of this task caught that exact mistake — `response?.data` would be `undefined` on an already-unwrapped object, silently blanking the form and, on save, overwriting real profile data with nulls).
+
 - [ ] **Step 1: Add the new imports and local state**
 
 Find the top of the file:
@@ -985,7 +987,7 @@ Leave that `useEffect` byte-for-byte untouched. Insert a new, separate `useEffec
 
     void api.nutrition.clientProfile.show(existingClient.id, authToken).then((response) => {
       if (!isCancelled) {
-        setProfileDraft(profileFromApi(response?.data));
+        setProfileDraft(profileFromApi(response));
       }
     });
 
@@ -1377,7 +1379,7 @@ Replace with:
 
     void api.nutrition.clientProfile.show(clientId, authToken).then((response) => {
       if (!isCancelled) {
-        setNutritionProfile(response?.data ?? null);
+        setNutritionProfile(response ?? null);
       }
     });
 
