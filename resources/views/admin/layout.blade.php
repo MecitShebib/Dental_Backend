@@ -194,6 +194,30 @@
         .flash { padding: .9rem 1.1rem; margin-bottom: 1.25rem; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 14px; color: #1d4ed8; }
         .errors { padding: .9rem 1.1rem; margin-bottom: 1.25rem; background: var(--danger-soft); border: 1px solid rgba(220, 38, 38, 0.28); border-radius: 14px; color: #b91c1c; }
         .field-error { display: block; margin: -.45rem 0 .65rem; font-size: .78rem; color: #dc2626; }
+        .password-field { position: relative; margin-bottom: .65rem; }
+        .password-field input { padding-right: 2.5rem; margin-bottom: 0; }
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: .35rem;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--text-faint);
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .password-toggle:hover { color: var(--text); background: var(--surface-3); }
+        .password-toggle svg { width: 18px; height: 18px; }
+        .password-toggle .eye-off { display: none; }
+        .password-toggle.is-visible .eye-on { display: none; }
+        .password-toggle.is-visible .eye-off { display: block; }
         .muted { color: var(--text-muted); }
         dialog.modal {
             width: min(720px, calc(100% - 2rem));
@@ -320,6 +344,46 @@
             var reopenDialog = document.getElementById(reopenModalId);
             if (reopenDialog) reopenDialog.showModal();
         }
+    </script>
+    <script>
+        // Adds a show/hide eye toggle to every password field on every admin
+        // page (including ones inside dialogs pushed via the modals stack
+        // above) without having to touch each view individually -- new
+        // password fields added later pick this up automatically since it
+        // just walks the DOM once at load time. Fields default to hidden
+        // (native input[type=password] behavior); clicking the icon flips
+        // the input's type.
+        //
+        // NOTE: never write the literal "at-stack('modals')" directive text
+        // in a plain comment on this page -- Blade's compiler matches that
+        // syntax regardless of surrounding context (even inside a //
+        // comment) and silently duplicates every dialog on the page. See
+        // the regression test in CompanyControllerTest for the bug this
+        // caused once already.
+        document.querySelectorAll('input[type="password"]').forEach(function (input) {
+            if (input.closest('.password-field')) return;
+
+            var wrapper = document.createElement('div');
+            wrapper.className = 'password-field';
+            input.parentNode.insertBefore(wrapper, input);
+            wrapper.appendChild(input);
+
+            var toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'password-toggle';
+            toggle.setAttribute('aria-label', 'Show password');
+            toggle.innerHTML =
+                '<svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>' +
+                '<svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.3 21.3 0 0 1 5.06-5.94"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.4 21.4 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+            toggle.addEventListener('click', function () {
+                var isVisible = input.type === 'text';
+                input.type = isVisible ? 'password' : 'text';
+                toggle.classList.toggle('is-visible', !isVisible);
+                toggle.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+            });
+
+            wrapper.appendChild(toggle);
+        });
     </script>
 </body>
 </html>

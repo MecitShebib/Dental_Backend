@@ -56,6 +56,30 @@
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
         }
+        .password-field { position: relative; margin-bottom: .9rem; }
+        .password-field input { padding-right: 2.6rem; margin-bottom: 0; }
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: .5rem;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .password-toggle:hover { color: #334155; background: rgba(15, 23, 42, 0.06); }
+        .password-toggle svg { width: 18px; height: 18px; }
+        .password-toggle .eye-off { display: none; }
+        .password-toggle.is-visible .eye-on { display: none; }
+        .password-toggle.is-visible .eye-off { display: block; }
         button {
             width: 100%;
             padding: .9rem 1rem;
@@ -95,8 +119,23 @@
             </div>
         @endif
         <input type="tel" name="phone" placeholder="Phone number" value="{{ old('phone') }}" required>
-        <input type="password" name="password" placeholder="Password" required>
+        <div class="password-field">
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="button" class="password-toggle" onclick="window.togglePasswordField(this)" aria-label="Show password">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.3 21.3 0 0 1 5.06-5.94"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.4 21.4 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+            </button>
+        </div>
         <button type="submit">Sign in</button>
     </form>
+    <script>
+        window.togglePasswordField = function (button) {
+            const input = button.previousElementSibling;
+            const isVisible = input.type === 'text';
+            input.type = isVisible ? 'password' : 'text';
+            button.classList.toggle('is-visible', !isVisible);
+            button.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+        };
+    </script>
 </body>
 </html>
