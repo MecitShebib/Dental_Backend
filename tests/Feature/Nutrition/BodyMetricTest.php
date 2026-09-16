@@ -115,6 +115,24 @@ class BodyMetricTest extends TestCase
         $fileResponse->assertOk();
     }
 
+    public function test_destroy_removes_the_measurement(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        $created = $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 79,
+        ])->json('data');
+
+        $response = $this->deleteJson("/api/nutrition/body-metrics/{$created['uuid']}");
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('nutrition_body_metrics', ['uuid' => $created['uuid']]);
+    }
+
     public function test_a_doctor_from_another_specialty_cannot_access_body_metrics(): void
     {
         $company = Company::factory()->create();

@@ -14,7 +14,7 @@ Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic'])->group
     Route::put('clients/{client}/profile', [ClientProfileController::class, 'update'])->name('nutrition.clients.profile.update');
     Route::get('clients/{client}/body-metrics', [BodyMetricController::class, 'index'])->name('nutrition.body-metrics.index');
     Route::post('clients/{client}/body-metrics', [BodyMetricController::class, 'store'])->name('nutrition.body-metrics.store');
-    Route::delete('body-metrics/{bodyMetric}', [BodyMetricController::class, 'destroy'])->name('nutrition.body-metrics.destroy');
+    Route::delete('body-metrics/{bodyMetric:uuid}', [BodyMetricController::class, 'destroy'])->name('nutrition.body-metrics.destroy');
     Route::apiResource('appointments', AppointmentController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('nutrition.appointments');
     Route::get('dashboard/stats', [DashboardController::class, 'stats'])->name('nutrition.dashboard.stats');
 
