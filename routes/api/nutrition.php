@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Nutrition\AiConversationController;
 use App\Http\Controllers\Api\Nutrition\AppointmentController;
+use App\Http\Controllers\Api\Nutrition\BodyMetricController;
 use App\Http\Controllers\Api\Nutrition\ClientController;
 use App\Http\Controllers\Api\Nutrition\ClientProfileController;
 use App\Http\Controllers\Api\Nutrition\DashboardController;
@@ -11,6 +12,9 @@ Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic'])->group
     Route::apiResource('clients', ClientController::class)->names('nutrition.clients');
     Route::get('clients/{client}/profile', [ClientProfileController::class, 'show'])->name('nutrition.clients.profile.show');
     Route::put('clients/{client}/profile', [ClientProfileController::class, 'update'])->name('nutrition.clients.profile.update');
+    Route::get('clients/{client}/body-metrics', [BodyMetricController::class, 'index'])->name('nutrition.body-metrics.index');
+    Route::post('clients/{client}/body-metrics', [BodyMetricController::class, 'store'])->name('nutrition.body-metrics.store');
+    Route::delete('body-metrics/{bodyMetric}', [BodyMetricController::class, 'destroy'])->name('nutrition.body-metrics.destroy');
     Route::apiResource('appointments', AppointmentController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('nutrition.appointments');
     Route::get('dashboard/stats', [DashboardController::class, 'stats'])->name('nutrition.dashboard.stats');
 

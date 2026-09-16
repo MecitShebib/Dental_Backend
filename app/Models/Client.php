@@ -63,6 +63,11 @@ class Client extends Model
         return $this->hasOne(NutritionClientProfile::class);
     }
 
+    public function nutritionBodyMetrics(): HasMany
+    {
+        return $this->hasMany(NutritionBodyMetric::class)->orderByDesc('recorded_at');
+    }
+
     public function visits(): HasMany
     {
         return $this->hasMany(Visit::class);

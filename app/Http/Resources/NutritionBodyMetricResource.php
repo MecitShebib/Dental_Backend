@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
+
+class NutritionBodyMetricResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'uuid' => $this->uuid,
+            'client_id' => $this->client_id,
+            'recorded_at' => $this->recorded_at?->toDateString(),
+            'source' => $this->source,
+            'weight_kg' => $this->weight_kg,
+            'bmi' => $this->bmi,
+            'body_fat_percent' => $this->body_fat_percent,
+            'muscle_mass_kg' => $this->muscle_mass_kg,
+            'visceral_fat_rating' => $this->visceral_fat_rating,
+            'water_percent' => $this->water_percent,
+            'bone_mass_kg' => $this->bone_mass_kg,
+            'basal_metabolic_rate' => $this->basal_metabolic_rate,
+            'waist_cm' => $this->waist_cm,
+            'hip_cm' => $this->hip_cm,
+            'notes' => $this->notes,
+            'report_original_filename' => $this->report_original_filename,
+            'report_url' => $this->report_path
+                ? URL::temporarySignedRoute('nutrition.body-metrics.file', now()->addMinutes(60), ['bodyMetric' => $this->id])
+                : null,
+        ];
+    }
+}

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\CompanyTreatmentProductController;
 use App\Http\Controllers\Api\ConsentTemplateController;
 use App\Http\Controllers\Api\CosmeticCarePlanController;
 use App\Http\Controllers\Api\CrmSettingsController;
+use App\Http\Controllers\Api\Nutrition\BodyMetricController as NutritionBodyMetricController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DicomStudyController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
@@ -321,6 +322,7 @@ Route::middleware('signed')->group(function () {
     Route::get('dicom-series/{dicomSeries}/files/{index}', [DicomStudyController::class, 'seriesFile'])->name('dicom-series.file');
     Route::get('users/{user}/signature-file', [DoctorSignatureController::class, 'signatureFile'])->name('users.signature-file');
     Route::get('users/{user}/stamp-file', [DoctorSignatureController::class, 'stampFile'])->name('users.stamp-file');
+    Route::get('nutrition/body-metrics/{bodyMetric}/file', [NutritionBodyMetricController::class, 'file'])->name('nutrition.body-metrics.file');
 });
 
 // Split from the 'signed' group above: opening one real CBCT scan means the
