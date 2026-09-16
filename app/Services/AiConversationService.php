@@ -60,7 +60,7 @@ class AiConversationService
         $systemPrompt = $specialty->key === Specialty::DENTAL
             ? $this->buildChatSystemPrompt()
             : SpecialtyAiProfiles::chatSystemPrompt($specialty->key);
-        $messages = $this->buildOpenAiMessages($client, $conversation->messages()->get(), $systemPrompt);
+        $messages = $this->buildOpenAiMessages($client, $conversation->messages()->get(), $systemPrompt, $specialty);
         $response = $this->openAi->chatCompletionJson($messages, $this->buildChatResponseSchema());
 
         $this->aiTokenUsage->recordUsage(
@@ -98,7 +98,7 @@ class AiConversationService
 
         $isDental = $specialty->key === Specialty::DENTAL;
         $systemPrompt = $isDental ? $this->plans->buildSystemPrompt() : SpecialtyAiProfiles::planSystemPrompt($specialty->key);
-        $messages = $this->buildOpenAiMessages($client, $conversation->messages()->get(), $systemPrompt);
+        $messages = $this->buildOpenAiMessages($client, $conversation->messages()->get(), $systemPrompt, $specialty);
         $plan = $isDental
             ? $this->plans->generatePlanFromMessages($treatingDoctor, $actingUser, $client, $messages)
             : $this->specialtyPlans->generatePlanFromMessages($specialty, $treatingDoctor, $actingUser, $client, $messages);
@@ -144,10 +144,16 @@ class AiConversationService
      * plan-building) followed by a small, always-fresh block of the patient's
      * basic info -- cheap enough to resend every turn, unlike images.
      */
-    protected function buildOpenAiMessages(Client $client, Collection $history, string $systemPrompt): array
+    protected function buildOpenAiMessages(Client $client, Collection $history, string $systemPrompt, Specialty $specialty): array
     {
+        $contextText = $this->buildPatientContextText($client);
+
+        if ($specialty->key === Specialty::NUTRITION) {
+            $contextText .= "\n\n".$this->buildNutritionContextText($client);
+        }
+
         $messages = [
-            ['role' => 'system', 'content' => $systemPrompt."\n\n".$this->buildPatientContextText($client)],
+            ['role' => 'system', 'content' => $systemPrompt."\n\n".$contextText],
         ];
 
         foreach ($history as $message) {
@@ -195,13 +201,128 @@ class AiConversationService
         return "Patient context:\n".implode("\n", $lines);
     }
 
+    /**
+     * Nutrition-only: folds the client's static profile (sub-project 2) and
+     * recent body-composition measurement history (sub-project 3) into the
+     * system prompt automatically, so the doctor never has to type this in
+     * by hand -- see docs/superpowers/specs/2026-09-15-nutrition-specialty-expansion-design.md
+     * section 5. Capped at the 5 most recent measurements for the same
+     * cost/context-size reason recentImageUrls() caps attachments.
+     */
+    protected function buildNutritionContextText(Client $client): string
+    {
+        $lines = [];
+
+        $profile = $client->nutritionProfile;
+        if ($profile) {
+            if ($profile->height_cm) {
+                $lines[] = "Height: {$profile->height_cm} cm";
+            }
+            if ($profile->dietary_type) {
+                $lines[] = 'Dietary type: '.($profile->dietary_type->value ?? $profile->dietary_type);
+            }
+            if (! empty($profile->allergies)) {
+                $lines[] = 'Allergies: '.implode(', ', $profile->allergies);
+            }
+            if (! empty($profile->chronic_conditions)) {
+                $lines[] = 'Chronic conditions: '.implode(', ', $profile->chronic_conditions);
+            }
+            if ($profile->medications_affecting_diet) {
+                $lines[] = "Medications affecting diet: {$profile->medications_affecting_diet}";
+            }
+            if ($profile->smoking_status) {
+                $lines[] = 'Smoking: '.($profile->smoking_status->value ?? $profile->smoking_status);
+            }
+            if ($profile->alcohol_status) {
+                $lines[] = 'Alcohol: '.($profile->alcohol_status->value ?? $profile->alcohol_status);
+            }
+            if ($profile->activity_level) {
+                $lines[] = 'Activity level: '.($profile->activity_level->value ?? $profile->activity_level);
+            }
+            if ($profile->goal) {
+                $lines[] = 'Goal: '.($profile->goal->value ?? $profile->goal);
+            }
+            if ($profile->target_weight_kg) {
+                $lines[] = "Target weight: {$profile->target_weight_kg} kg";
+            }
+            if ($profile->notes) {
+                $lines[] = "Profile notes: {$profile->notes}";
+            }
+        }
+
+        $measurements = $client->nutritionBodyMetrics()->limit(5)->get();
+        if ($measurements->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = 'Recent body-composition measurements (most recent first):';
+            foreach ($measurements as $measurement) {
+                $parts = ["{$measurement->recorded_at->toDateString()}:"];
+                if ($measurement->weight_kg) {
+                    $parts[] = "weight {$measurement->weight_kg}kg";
+                }
+                if ($measurement->bmi) {
+                    $parts[] = "BMI {$measurement->bmi}";
+                }
+                if ($measurement->body_fat_percent) {
+                    $parts[] = "body fat {$measurement->body_fat_percent}%";
+                }
+                if ($measurement->muscle_mass_kg) {
+                    $parts[] = "muscle mass {$measurement->muscle_mass_kg}kg";
+                }
+                if ($measurement->waist_cm) {
+                    $parts[] = "waist {$measurement->waist_cm}cm";
+                }
+                $lines[] = '- '.implode(', ', $parts);
+            }
+
+            if ($measurements->count() > 1) {
+                $latest = $measurements->first();
+                $oldest = $measurements->last();
+                $daysBetween = $oldest->recorded_at->diffInDays($latest->recorded_at);
+                $lines[] = '';
+                $lines[] = "{$daysBetween} days between the oldest and newest measurement shown above.";
+                if ($latest->weight_kg && $oldest->weight_kg) {
+                    $delta = round((float) $latest->weight_kg - (float) $oldest->weight_kg, 1);
+                    $direction = $delta < 0 ? 'lost' : ($delta > 0 ? 'gained' : 'unchanged');
+                    $lines[] = "Weight change over that period: {$direction} ".abs($delta).' kg.';
+                }
+            }
+        }
+
+        return $lines
+            ? "Nutrition profile and measurement history:\n".implode("\n", $lines)
+            : "Nutrition profile and measurement history: none recorded yet.";
+    }
+
     protected function recentImageUrls(Client $client): ?array
     {
+        // Inline base64 data URIs, not a Storage::url()/signed route -- same
+        // reasoning and same pattern as AnalyzeXrayImageJob: X-ray images
+        // live on the private disk (KVKK Faz 0), and a plain
+        // Storage::disk('public')->url() here built a URL for a file that no
+        // longer exists there (OpenAI's vision API 404'd fetching it). A
+        // *signed* private-disk URL is itself fetchable (verified directly
+        // -- 200, real image bytes) but OpenAI's own fetcher still couldn't
+        // reach it in practice; a data URI sidesteps needing OpenAI to fetch
+        // anything from this host at all, and as a bonus never expires, so
+        // it stays valid even when this same value is resent verbatim on
+        // later turns of a long-running conversation (unlike a temporary
+        // signed URL, which would start failing again after 60 minutes).
         $urls = $client->xrayImages()
             ->latest()
             ->limit(self::MAX_IMAGES)
-            ->pluck('image_path')
-            ->map(fn (string $path) => Storage::disk('public')->url($path))
+            ->get()
+            ->map(function ($xrayImage) {
+                $binary = Storage::disk('local')->get($xrayImage->image_path);
+
+                if ($binary === null) {
+                    return null;
+                }
+
+                $mimeType = Storage::disk('local')->mimeType($xrayImage->image_path) ?: 'image/jpeg';
+
+                return 'data:'.$mimeType.';base64,'.base64_encode($binary);
+            })
+            ->filter()
             ->values()
             ->all();
 
