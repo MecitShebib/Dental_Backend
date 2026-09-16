@@ -48,11 +48,25 @@ class NutritionCarePlanService
         $specialty = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
         $label = self::TREATMENT_LABELS[$treatmentCode];
 
+        // The "cycle" record for the periodic follow-up loop (see
+        // docs/superpowers/specs/2026-09-15-nutrition-specialty-expansion-design.md
+        // section 6): whatever measurement was most recent at confirmation
+        // time becomes this program's baseline. No new table -- it rides on
+        // the same clinical_data JSON convention program_session_type/
+        // session_count/session_number already use. AiConversationService
+        // reads this back to compare a later measurement against it.
+        $baselineMetric = $client->nutritionBodyMetrics()->first();
+
         $milestones = [[
             'day_offset' => 0,
             'title' => 'Initial Nutrition Consultation',
             'catalog_code' => 'nutrition_consultation',
-            'clinical_data' => ['program_session_type' => $label, 'session_count' => $sessionCount],
+            'clinical_data' => [
+                'program_session_type' => $label,
+                'session_count' => $sessionCount,
+                'baseline_metric_id' => $baselineMetric?->id,
+                'baseline_recorded_at' => $baselineMetric?->recorded_at?->toDateString(),
+            ],
         ]];
 
         for ($session = 1; $session <= $sessionCount; $session++) {

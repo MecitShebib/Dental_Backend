@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\AiConversation;
 use App\Models\AiConversationMessage;
+use App\Models\CarePlan;
 use App\Models\Client;
+use App\Models\NutritionBodyMetric;
 use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -286,11 +288,76 @@ class AiConversationService
                     $lines[] = "Weight change over that period: {$direction} ".abs($delta).' kg.';
                 }
             }
+
+            $cycleLines = $this->buildActiveFollowUpCycleLines($client, $measurements->first());
+            if ($cycleLines) {
+                $lines[] = '';
+                $lines = [...$lines, ...$cycleLines];
+            }
         }
 
         return $lines
             ? "Nutrition profile and measurement history:\n".implode("\n", $lines)
             : "Nutrition profile and measurement history: none recorded yet.";
+    }
+
+    /**
+     * Periodic follow-up loop (spec section 6): if the client has a
+     * confirmed nutrition follow-up program whose baseline measurement
+     * (stamped by NutritionCarePlanService::confirmPlan() into the initial
+     * consultation session's clinical_data) is older than their latest
+     * measurement, surface the comparison so the AI can judge whether
+     * enough time has passed to refresh the plan for the next period --
+     * rather than the backend forcing a new plan automatically.
+     */
+    protected function buildActiveFollowUpCycleLines(Client $client, ?NutritionBodyMetric $latestMeasurement): array
+    {
+        if (! $latestMeasurement) {
+            return [];
+        }
+
+        $cycle = CarePlan::query()
+            ->where('client_id', $client->id)
+            ->where('status', CarePlan::STATUS_CONFIRMED)
+            ->whereHas('specialty', fn ($query) => $query->where('key', Specialty::NUTRITION))
+            ->latest('id')
+            ->first();
+
+        if (! $cycle) {
+            return [];
+        }
+
+        $baselineMetricId = $cycle->sessions()->first()?->clinical_data['baseline_metric_id'] ?? null;
+        if (! $baselineMetricId) {
+            return [];
+        }
+
+        $baseline = NutritionBodyMetric::find($baselineMetricId);
+        if (! $baseline || $baseline->id === $latestMeasurement->id) {
+            return [];
+        }
+
+        $daysSinceBaseline = $baseline->recorded_at->diffInDays($latestMeasurement->recorded_at);
+
+        $lines = [
+            "Active follow-up program \"{$cycle->title}\" started with a baseline measurement on {$baseline->recorded_at->toDateString()}.",
+            "{$daysSinceBaseline} days have passed since that baseline (compared to the latest measurement above).",
+        ];
+
+        if ($baseline->weight_kg && $latestMeasurement->weight_kg) {
+            $delta = round((float) $latestMeasurement->weight_kg - (float) $baseline->weight_kg, 1);
+            $direction = $delta < 0 ? 'lost' : ($delta > 0 ? 'gained' : 'unchanged');
+            $lines[] = "Weight since baseline: {$direction} ".abs($delta).' kg.';
+        }
+
+        if ($baseline->body_fat_percent && $latestMeasurement->body_fat_percent) {
+            $deltaFat = round((float) $latestMeasurement->body_fat_percent - (float) $baseline->body_fat_percent, 1);
+            $lines[] = 'Body fat % change since baseline: '.($deltaFat >= 0 ? '+' : '').$deltaFat.'%.';
+        }
+
+        $lines[] = 'Consider whether enough time has passed and progress warrants building a new plan for the next period.';
+
+        return $lines;
     }
 
     protected function recentImageUrls(Client $client): ?array
