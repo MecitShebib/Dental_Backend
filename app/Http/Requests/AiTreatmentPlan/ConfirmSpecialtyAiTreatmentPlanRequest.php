@@ -22,6 +22,10 @@ class ConfirmSpecialtyAiTreatmentPlanRequest extends FormRequest
     {
         return [
             'doctor_id' => ['nullable', 'integer'],
+            // Nutrition-only in practice (other 3 specialties never send
+            // these) -- see SpecialtyAiTreatmentPlanService::confirm().
+            'diet_plan' => ['nullable', 'string', 'max:20000'],
+            'exercise_plan' => ['nullable', 'string', 'max:20000'],
             'sessions' => ['required', 'array', 'min:1', 'max:8'],
             'sessions.*.date' => ['required', 'date'],
             'sessions.*.start_time' => ['required', 'date_format:H:i'],

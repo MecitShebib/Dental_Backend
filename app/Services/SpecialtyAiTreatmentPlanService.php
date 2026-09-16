@@ -5,11 +5,11 @@ namespace App\Services;
 use App\Enums\AppointmentStatus;
 use App\Enums\AppointmentType;
 use App\Models\Appointment;
+use App\Models\CarePlan;
 use App\Models\Client;
 use App\Models\Specialty;
 use App\Models\TreatmentCharge;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -67,21 +67,37 @@ class SpecialtyAiTreatmentPlanService
             'additionalProperties' => false,
         ];
 
+        $properties = [
+            'diagnosis_summary' => ['type' => 'string'],
+            'sessions' => [
+                'type' => 'array',
+                'items' => $sessionSchema,
+                'minItems' => 1,
+                'maxItems' => 8,
+            ],
+        ];
+        $required = ['diagnosis_summary', 'sessions'];
+
+        // Nutrition-only, per docs/superpowers/specs/2026-09-15-nutrition-specialty-expansion-design.md's
+        // follow-up scope: the AI produces a written diet plan and exercise
+        // plan alongside the scheduled sessions, not just appointments.
+        // additionalProperties=false means every OTHER specialty must NOT
+        // declare these two -- OpenAI's strict structured-output mode
+        // rejects a schema/response mismatch, so this stays conditional.
+        if ($specialty->key === Specialty::NUTRITION) {
+            $properties['diet_plan'] = ['type' => 'string'];
+            $properties['exercise_plan'] = ['type' => 'string'];
+            $required[] = 'diet_plan';
+            $required[] = 'exercise_plan';
+        }
+
         return [
             'name' => 'specialty_treatment_plan',
             'strict' => true,
             'schema' => [
                 'type' => 'object',
-                'properties' => [
-                    'diagnosis_summary' => ['type' => 'string'],
-                    'sessions' => [
-                        'type' => 'array',
-                        'items' => $sessionSchema,
-                        'minItems' => 1,
-                        'maxItems' => 8,
-                    ],
-                ],
-                'required' => ['diagnosis_summary', 'sessions'],
+                'properties' => $properties,
+                'required' => $required,
                 'additionalProperties' => false,
             ],
         ];
@@ -161,6 +177,8 @@ class SpecialtyAiTreatmentPlanService
         return [
             'diagnosis_summary' => $result['diagnosis_summary'],
             'sessions' => $sessions,
+            'diet_plan' => $result['diet_plan'] ?? null,
+            'exercise_plan' => $result['exercise_plan'] ?? null,
             'usage' => $response['usage'],
         ];
     }
@@ -171,9 +189,18 @@ class SpecialtyAiTreatmentPlanService
      * planned_notes (free text) -- there's no structured viewer for
      * "procedures" the way there is for teeth, so planned_summary stays
      * null.
+     *
+     * @return array{appointments: \Illuminate\Support\Collection, care_plan: ?CarePlan}
      */
-    public function confirm(Client $client, mixed $doctor, array $sessions, int $userId): Collection
-    {
+    public function confirm(
+        Client $client,
+        mixed $doctor,
+        Specialty $specialty,
+        array $sessions,
+        int $userId,
+        ?string $dietPlan = null,
+        ?string $exercisePlan = null,
+    ): array {
         $this->assertNoIntraBatchOverlap($sessions);
 
         foreach ($sessions as $session) {
@@ -181,10 +208,10 @@ class SpecialtyAiTreatmentPlanService
             $this->conflicts->assertNoConflict($doctor->id, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
         }
 
-        return DB::transaction(function () use ($client, $doctor, $sessions, $userId) {
+        return DB::transaction(function () use ($client, $doctor, $specialty, $sessions, $userId, $dietPlan, $exercisePlan) {
             $this->enrollment->ensureEnrolled($client, $doctor);
 
-            return collect($sessions)->map(function (array $session) use ($client, $doctor, $userId) {
+            $appointments = collect($sessions)->map(function (array $session) use ($client, $doctor, $userId) {
                 $appointment = Appointment::create([
                     'client_id' => $client->id,
                     'doctor_id' => $doctor->id,
@@ -208,6 +235,28 @@ class SpecialtyAiTreatmentPlanService
 
                 return $appointment->fresh();
             });
+
+            // A CarePlan row only gets created when there's a diet/exercise
+            // plan to hang it on (nutrition, in practice) -- the other 3
+            // non-dental specialties keep behaving exactly as before
+            // (appointments only, no CarePlan row), since confirm() is
+            // shared across all 4 and dietPlan/exercisePlan are null there.
+            $carePlan = null;
+            if ($dietPlan || $exercisePlan) {
+                $carePlan = CarePlan::create([
+                    'company_id' => $client->company_id,
+                    'specialty_id' => $specialty->id,
+                    'client_id' => $client->id,
+                    'doctor_id' => $doctor->id,
+                    'created_by' => $userId,
+                    'title' => 'AI Follow-up Plan '.now()->toDateString(),
+                    'diet_plan' => $dietPlan,
+                    'exercise_plan' => $exercisePlan,
+                    'status' => CarePlan::STATUS_CONFIRMED,
+                ]);
+            }
+
+            return ['appointments' => $appointments, 'care_plan' => $carePlan];
         });
     }
 

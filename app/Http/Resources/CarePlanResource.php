@@ -18,6 +18,8 @@ class CarePlanResource extends JsonResource
             'doctor_name' => optional($this->whenLoaded('doctor'))->name,
             'title' => $this->title,
             'summary' => $this->summary,
+            'diet_plan' => $this->diet_plan,
+            'exercise_plan' => $this->exercise_plan,
             'status' => $this->status,
             'sessions' => $this->whenLoaded('sessions', fn () => CarePlanSessionResource::collection($this->sessions)),
         ];

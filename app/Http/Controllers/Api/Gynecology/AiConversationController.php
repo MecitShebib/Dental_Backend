@@ -94,9 +94,9 @@ class AiConversationController extends Controller
 
         $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null, 'Please select a doctor to schedule this treatment plan under.');
 
-        $appointments = $this->plans->confirm($client, $treatingDoctor, $request->validated('sessions'), $actingUser->id);
+        $result = $this->plans->confirm($client, $treatingDoctor, $this->specialty(), $request->validated('sessions'), $actingUser->id);
 
-        return $this->success(AppointmentResource::collection($appointments), 'Treatment plan confirmed and appointments created.', 201);
+        return $this->success(AppointmentResource::collection($result['appointments']), 'Treatment plan confirmed and appointments created.', 201);
     }
 
     protected function assertCanUseAiAssistant(User $user): void

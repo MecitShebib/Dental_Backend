@@ -129,6 +129,43 @@ class SpecialtyAiProfiles
 
             Keep plans realistic: most cases need between 1 and 4 sessions. Never propose
             more than 8 sessions.
+            PROMPT.self::nutritionPlanAddendum($specialtyKey);
+    }
+
+    /**
+     * Nutrition-only: the AI also writes a diet_plan and exercise_plan for
+     * the doctor to review, grounded in whatever profile/body-metric
+     * context AiConversationService::buildNutritionContextText() already
+     * folded into the conversation (height, allergies, goal, recent
+     * measurements, and -- if a follow-up program is open -- the
+     * baseline comparison). See
+     * docs/superpowers/specs/2026-09-15-nutrition-specialty-expansion-design.md.
+     */
+    protected static function nutritionPlanAddendum(string $specialtyKey): string
+    {
+        if ($specialtyKey !== Specialty::NUTRITION) {
+            return '';
+        }
+
+        return "\n\n".<<<'PROMPT'
+            Also write two more fields, both in the same language the doctor used, both
+            addressed to the PATIENT (not the doctor) since they may be shown directly to
+            them:
+
+            diet_plan: a concrete meal/diet plan grounded in the patient's profile
+            (dietary type, allergies, chronic conditions, goal) and recent body-metric
+            trend already given to you above. Structure it clearly (e.g. a short intro
+            plus a day-by-day or meal-by-meal breakdown) using plain text with line
+            breaks -- no markdown tables. If a follow-up program is already open and a
+            baseline comparison was given to you, adjust this plan for the next period
+            based on that progress rather than starting from scratch.
+
+            exercise_plan: a realistic weekly exercise plan matching the patient's
+            activity level and goal (e.g. which days, what type of exercise, how long),
+            plain text with line breaks, same language.
+
+            Both fields are required and must not be empty, even for a very short
+            consultation-only plan -- give at least brief, sensible guidance in each.
             PROMPT;
     }
 

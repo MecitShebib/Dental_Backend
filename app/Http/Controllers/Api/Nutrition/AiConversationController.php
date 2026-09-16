@@ -10,6 +10,7 @@ use App\Http\Requests\AiTreatmentPlan\SendAiConversationMessageRequest;
 use App\Http\Requests\AiTreatmentPlan\TranscribeAiTreatmentPlanAudioRequest;
 use App\Http\Resources\AiConversationMessageResource;
 use App\Http\Resources\AppointmentResource;
+use App\Http\Resources\CarePlanResource;
 use App\Models\Client;
 use App\Models\Specialty;
 use App\Models\User;
@@ -72,6 +73,8 @@ class AiConversationController extends Controller
         return $this->success([
             'diagnosis_summary' => $result['plan']['diagnosis_summary'],
             'sessions' => $result['plan']['sessions'],
+            'diet_plan' => $result['plan']['diet_plan'] ?? null,
+            'exercise_plan' => $result['plan']['exercise_plan'] ?? null,
             'user_message' => AiConversationMessageResource::make($result['user_message']),
             'assistant_message' => AiConversationMessageResource::make($result['assistant_message']),
         ], 'AI treatment plan generated successfully.');
@@ -93,9 +96,20 @@ class AiConversationController extends Controller
 
         $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null, 'Please select a doctor to schedule this treatment plan under.');
 
-        $appointments = $this->plans->confirm($client, $treatingDoctor, $request->validated('sessions'), $actingUser->id);
+        $result = $this->plans->confirm(
+            $client,
+            $treatingDoctor,
+            $this->specialty(),
+            $request->validated('sessions'),
+            $actingUser->id,
+            $request->validated('diet_plan'),
+            $request->validated('exercise_plan'),
+        );
 
-        return $this->success(AppointmentResource::collection($appointments), 'Treatment plan confirmed and appointments created.', 201);
+        return $this->success([
+            'appointments' => AppointmentResource::collection($result['appointments']),
+            'care_plan' => $result['care_plan'] ? CarePlanResource::make($result['care_plan']) : null,
+        ], 'Treatment plan confirmed and appointments created.', 201);
     }
 
     protected function assertCanUseAiAssistant(User $user): void

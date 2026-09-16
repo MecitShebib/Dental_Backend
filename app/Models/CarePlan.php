@@ -38,6 +38,8 @@ class CarePlan extends Model
         'created_by',
         'title',
         'summary',
+        'diet_plan',
+        'exercise_plan',
         'status',
     ];
 
