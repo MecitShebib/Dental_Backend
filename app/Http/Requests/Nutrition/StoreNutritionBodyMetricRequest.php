@@ -28,6 +28,9 @@ class StoreNutritionBodyMetricRequest extends FormRequest
             'visit_id' => ['nullable', 'integer', 'exists:visits,id'],
             'appointment_id' => ['nullable', 'integer', 'exists:appointments,id'],
             'report' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:20480'],
+            // Set by the frontend when this save follows the AI-extraction
+            // path (BodyMetricController::extract()) -- defaults to manual.
+            'source' => ['nullable', 'in:manual,device_import'],
         ];
     }
 }

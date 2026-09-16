@@ -4,16 +4,24 @@ namespace App\Http\Controllers\Api\Nutrition;
 
 use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Nutrition\ExtractNutritionBodyMetricRequest;
 use App\Http\Requests\Nutrition\StoreNutritionBodyMetricRequest;
 use App\Http\Resources\NutritionBodyMetricResource;
 use App\Models\Client;
 use App\Models\NutritionBodyMetric;
+use App\Services\AiTokenUsageService;
+use App\Services\OpenAiClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class BodyMetricController extends Controller
 {
     use AuthorizesOwnDoctorRecords;
+
+    public function __construct(
+        protected OpenAiClient $openAi,
+        protected AiTokenUsageService $aiTokenUsage,
+    ) {}
 
     public function index(Request $request, Client $client)
     {
@@ -55,8 +63,8 @@ class BodyMetricController extends Controller
         }
 
         $metric = $client->nutritionBodyMetrics()->create([
-            ...collect($data)->except(['report'])->all(),
-            'source' => NutritionBodyMetric::SOURCE_MANUAL,
+            ...collect($data)->except(['report', 'source'])->all(),
+            'source' => $data['source'] ?? NutritionBodyMetric::SOURCE_MANUAL,
             'bmi' => $bmi,
             'report_path' => $reportPath,
             'report_original_filename' => $reportOriginalFilename,
@@ -66,6 +74,95 @@ class BodyMetricController extends Controller
         ]);
 
         return $this->success(NutritionBodyMetricResource::make($metric), 'Measurement recorded successfully.', 201);
+    }
+
+    /**
+     * Reads a photo of a body-composition device's printed/on-screen report
+     * (InBody, Tanita, etc.) via OpenAI vision and returns the extracted
+     * values for the frontend to pre-fill the same manual-entry form with --
+     * nothing is persisted here, the doctor still reviews/edits and hits
+     * Save (store() above) same as the fully-manual path. Same
+     * base64-data-URI pattern as AiTreatmentPlanService::analyzeXrayImage()
+     * (the private disk isn't involved at all here -- the upload is read
+     * straight from the request, never written to storage unless/until the
+     * doctor actually saves it via store()).
+     */
+    public function extract(ExtractNutritionBodyMetricRequest $request, Client $client)
+    {
+        $this->assertActingDoctorOwnsClient($request, $client);
+        $this->aiTokenUsage->assertCanUseAiTokens($request->user()->company);
+
+        $file = $request->file('report');
+        $mimeType = $file->getMimeType() ?: 'image/jpeg';
+        $dataUri = 'data:'.$mimeType.';base64,'.base64_encode(file_get_contents($file->getRealPath()));
+
+        $messages = [
+            ['role' => 'system', 'content' => $this->buildExtractionSystemPrompt()],
+            ['role' => 'user', 'content' => [
+                ['type' => 'text', 'text' => 'Extract the body composition values from this report.'],
+                ['type' => 'image_url', 'image_url' => ['url' => $dataUri]],
+            ]],
+        ];
+
+        $response = $this->openAi->chatCompletionJson($messages, $this->extractionJsonSchema());
+
+        $this->aiTokenUsage->recordUsage(
+            $request->user()->company,
+            $request->user(),
+            $client,
+            'nutrition_body_metric_extraction',
+            (string) config('services.openai.chat_model', 'gpt-4o-mini'),
+            (int) $response['usage']['prompt_tokens'],
+            (int) $response['usage']['completion_tokens'],
+        );
+
+        return $this->success($response['content']);
+    }
+
+    protected function buildExtractionSystemPrompt(): string
+    {
+        return <<<'PROMPT'
+            You are reading a photo of a body-composition analyzer's printed or
+            on-screen report (e.g. InBody, Tanita, Omron). Extract the values it
+            shows into the given fields. Use standard units: weight in kilograms,
+            muscle/bone mass in kilograms, body fat/water in percent, waist/hip in
+            centimeters, basal metabolic rate in kcal. If a field isn't shown on
+            the report at all, return null for it -- never guess or estimate a
+            value that isn't actually printed on the report. If the report shows a
+            date, return it as recorded_at in YYYY-MM-DD format; otherwise return
+            null for recorded_at (the frontend will default it to today).
+            PROMPT;
+    }
+
+    protected function extractionJsonSchema(): array
+    {
+        $numberOrNull = ['type' => ['number', 'null']];
+
+        return [
+            'name' => 'nutrition_body_metric_extraction',
+            'strict' => true,
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'recorded_at' => ['type' => ['string', 'null']],
+                    'weight_kg' => $numberOrNull,
+                    'body_fat_percent' => $numberOrNull,
+                    'muscle_mass_kg' => $numberOrNull,
+                    'visceral_fat_rating' => $numberOrNull,
+                    'water_percent' => $numberOrNull,
+                    'bone_mass_kg' => $numberOrNull,
+                    'basal_metabolic_rate' => $numberOrNull,
+                    'waist_cm' => $numberOrNull,
+                    'hip_cm' => $numberOrNull,
+                ],
+                'required' => [
+                    'recorded_at', 'weight_kg', 'body_fat_percent', 'muscle_mass_kg',
+                    'visceral_fat_rating', 'water_percent', 'bone_mass_kg',
+                    'basal_metabolic_rate', 'waist_cm', 'hip_cm',
+                ],
+                'additionalProperties' => false,
+            ],
+        ];
     }
 
     public function destroy(Request $request, NutritionBodyMetric $bodyMetric)

@@ -6,10 +6,12 @@ use App\Models\Client;
 use App\Models\ClientSpecialtyRecord;
 use App\Models\Company;
 use App\Models\Specialty;
+use App\Models\Subscription;
 use App\Models\User;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -21,6 +23,11 @@ class BodyMetricTest extends TestCase
     {
         parent::setUp();
         $this->seed(SpecialtySeeder::class);
+
+        config([
+            'services.openai.api_key' => 'test-key',
+            'services.openai.chat_model' => 'gpt-4o-mini',
+        ]);
     }
 
     private function makeNutritionDoctorAndClient(Company $company): array
@@ -192,6 +199,54 @@ class BodyMetricTest extends TestCase
         $latest = $client->nutritionBodyMetrics()->first();
 
         $this->assertSame('actual afternoon entry', $latest->notes);
+    }
+
+    public function test_extract_returns_ai_read_values_without_persisting_anything(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+        Subscription::create([
+            'company_id' => $company->id,
+            'plan_name' => 'Test Plan',
+            'status' => 'active',
+            'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10,
+            'max_ai_tokens' => null,
+            'ai_tokens_used' => 0,
+        ]);
+        $this->signKvkkConsent($client);
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode([
+                        'recorded_at' => '2026-09-16',
+                        'weight_kg' => 78.5,
+                        'body_fat_percent' => 23.0,
+                        'muscle_mass_kg' => 46.0,
+                        'visceral_fat_rating' => 8.0,
+                        'water_percent' => 53.0,
+                        'bone_mass_kg' => 3.0,
+                        'basal_metabolic_rate' => 1650,
+                        'waist_cm' => 82.0,
+                        'hip_cm' => 98.0,
+                    ])]],
+                ],
+                'usage' => ['prompt_tokens' => 200, 'completion_tokens' => 40, 'total_tokens' => 240],
+            ], 200),
+        ]);
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->post("/api/nutrition/clients/{$client->id}/body-metrics/extract", [
+            'report' => UploadedFile::fake()->image('inbody-report.jpg'),
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.weight_kg', 78.5);
+        $response->assertJsonPath('data.body_fat_percent', 23);
+        $response->assertJsonPath('data.recorded_at', '2026-09-16');
+        $this->assertDatabaseCount('nutrition_body_metrics', 0);
     }
 
     public function test_a_doctor_from_another_specialty_cannot_access_body_metrics(): void

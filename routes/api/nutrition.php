@@ -24,5 +24,6 @@ Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic'])->group
         Route::post('clients/{client}/ai-treatment-plan/transcribe', [AiConversationController::class, 'transcribe'])->name('nutrition.ai.transcribe');
         Route::post('clients/{client}/ai-treatment-plan/generate', [AiConversationController::class, 'generatePlan'])->name('nutrition.ai.generate');
         Route::post('clients/{client}/ai-treatment-plan/confirm', [AiConversationController::class, 'confirm'])->name('nutrition.ai.confirm');
+        Route::post('clients/{client}/body-metrics/extract', [BodyMetricController::class, 'extract'])->name('nutrition.body-metrics.extract');
     });
 });
