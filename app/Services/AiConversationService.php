@@ -283,9 +283,7 @@ class AiConversationService
                 $lines[] = '';
                 $lines[] = "{$daysBetween} days between the oldest and newest measurement shown above.";
                 if ($latest->weight_kg && $oldest->weight_kg) {
-                    $delta = round((float) $latest->weight_kg - (float) $oldest->weight_kg, 1);
-                    $direction = $delta < 0 ? 'lost' : ($delta > 0 ? 'gained' : 'unchanged');
-                    $lines[] = "Weight change over that period: {$direction} ".abs($delta).' kg.';
+                    $lines[] = $this->formatWeightDeltaLine('Weight change over that period', (float) $oldest->weight_kg, (float) $latest->weight_kg);
                 }
             }
 
@@ -299,6 +297,14 @@ class AiConversationService
         return $lines
             ? "Nutrition profile and measurement history:\n".implode("\n", $lines)
             : "Nutrition profile and measurement history: none recorded yet.";
+    }
+
+    protected function formatWeightDeltaLine(string $label, float $from, float $to): string
+    {
+        $delta = round($to - $from, 1);
+        $direction = $delta < 0 ? 'lost' : ($delta > 0 ? 'gained' : 'unchanged');
+
+        return "{$label}: {$direction} ".abs($delta).' kg.';
     }
 
     /**
@@ -316,8 +322,7 @@ class AiConversationService
             return [];
         }
 
-        $cycle = CarePlan::query()
-            ->where('client_id', $client->id)
+        $cycle = $client->carePlans()
             ->where('status', CarePlan::STATUS_CONFIRMED)
             ->whereHas('specialty', fn ($query) => $query->where('key', Specialty::NUTRITION))
             ->latest('id')
@@ -345,9 +350,7 @@ class AiConversationService
         ];
 
         if ($baseline->weight_kg && $latestMeasurement->weight_kg) {
-            $delta = round((float) $latestMeasurement->weight_kg - (float) $baseline->weight_kg, 1);
-            $direction = $delta < 0 ? 'lost' : ($delta > 0 ? 'gained' : 'unchanged');
-            $lines[] = "Weight since baseline: {$direction} ".abs($delta).' kg.';
+            $lines[] = $this->formatWeightDeltaLine('Weight since baseline', (float) $baseline->weight_kg, (float) $latestMeasurement->weight_kg);
         }
 
         if ($baseline->body_fat_percent && $latestMeasurement->body_fat_percent) {

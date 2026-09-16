@@ -133,6 +133,67 @@ class BodyMetricTest extends TestCase
         $this->assertDatabaseMissing('nutrition_body_metrics', ['uuid' => $created['uuid']]);
     }
 
+    public function test_a_doctor_cannot_delete_another_companys_measurement(): void
+    {
+        $companyA = Company::factory()->create();
+        [, $clientA] = $this->makeNutritionDoctorAndClient($companyA);
+        $companyB = Company::factory()->create();
+        [$doctorB] = $this->makeNutritionDoctorAndClient($companyB);
+
+        $metric = $clientA->nutritionBodyMetrics()->create([
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 80,
+        ]);
+
+        Sanctum::actingAs($doctorB);
+
+        $response = $this->deleteJson("/api/nutrition/body-metrics/{$metric->uuid}");
+
+        $response->assertStatus(404);
+        $this->assertDatabaseHas('nutrition_body_metrics', ['id' => $metric->id]);
+    }
+
+    public function test_bmi_is_computed_when_weight_is_zero_and_left_null_without_a_profile(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        // No profile/height on file yet -- bmi must be null, not a crash.
+        $response = $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 0,
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.bmi', null);
+    }
+
+    public function test_the_most_recent_of_two_same_day_measurements_is_used_as_latest(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 90,
+            'notes' => 'backfilled morning entry',
+        ])->assertCreated();
+
+        $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 88,
+            'notes' => 'actual afternoon entry',
+        ])->assertCreated();
+
+        $latest = $client->nutritionBodyMetrics()->first();
+
+        $this->assertSame('actual afternoon entry', $latest->notes);
+    }
+
     public function test_a_doctor_from_another_specialty_cannot_access_body_metrics(): void
     {
         $company = Company::factory()->create();

@@ -65,7 +65,13 @@ class Client extends Model
 
     public function nutritionBodyMetrics(): HasMany
     {
-        return $this->hasMany(NutritionBodyMetric::class)->orderByDesc('recorded_at');
+        // recorded_at is a date column, so a same-day backfill and a
+        // same-day fresh entry can tie -- id as a secondary sort makes
+        // "most recent" deterministic (the later insert wins), which matters
+        // for NutritionCarePlanService's baseline stamp and
+        // AiConversationService's context injection, both of which rely on
+        // ->first() meaning "the latest measurement".
+        return $this->hasMany(NutritionBodyMetric::class)->orderByDesc('recorded_at')->orderByDesc('id');
     }
 
     public function visits(): HasMany

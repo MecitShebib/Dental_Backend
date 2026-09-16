@@ -65,7 +65,6 @@ class NutritionCarePlanService
                 'program_session_type' => $label,
                 'session_count' => $sessionCount,
                 'baseline_metric_id' => $baselineMetric?->id,
-                'baseline_recorded_at' => $baselineMetric?->recorded_at?->toDateString(),
             ],
         ]];
 

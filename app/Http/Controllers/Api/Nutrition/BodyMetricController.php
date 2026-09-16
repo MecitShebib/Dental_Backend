@@ -32,9 +32,19 @@ class BodyMetricController extends Controller
 
         $weight = $data['weight_kg'] ?? null;
         $heightCm = $client->nutritionProfile?->height_cm;
-        $bmi = ($weight && $heightCm)
+        // !== null / > 0, not a truthy check -- weight_kg=0 is a legal
+        // (if clinically meaningless) value per StoreNutritionBodyMetricRequest's
+        // 'min:0' rule, and a truthy check would silently skip computing BMI
+        // for it. The >= 1000 guard keeps an extreme height/weight
+        // combination from overflowing the bmi column's decimal(4,1) range
+        // (max 999.9) and throwing an unhandled QueryException instead of
+        // just leaving bmi null.
+        $bmi = ($weight !== null && $heightCm !== null && (float) $heightCm > 0)
             ? round((float) $weight / (((float) $heightCm / 100) ** 2), 1)
             : null;
+        if ($bmi !== null && $bmi >= 1000) {
+            $bmi = null;
+        }
 
         $reportPath = null;
         $reportOriginalFilename = null;
