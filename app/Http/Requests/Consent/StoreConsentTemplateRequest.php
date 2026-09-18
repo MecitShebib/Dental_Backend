@@ -16,6 +16,7 @@ class StoreConsentTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
             'sections' => ['nullable', 'array'],

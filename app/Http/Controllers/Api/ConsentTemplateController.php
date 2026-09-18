@@ -15,7 +15,7 @@ class ConsentTemplateController extends Controller
     public function index()
     {
         return $this->success(ConsentTemplateResource::collection(
-            ConsentTemplate::query()->orderBy('title')->get()
+            ConsentTemplate::query()->with('branch')->orderBy('title')->get()
         ));
     }
 
@@ -29,7 +29,7 @@ class ConsentTemplateController extends Controller
             'is_active' => $request->validated('is_active') ?? true,
         ]);
 
-        return $this->success(ConsentTemplateResource::make($template), 'Consent template created successfully.', 201);
+        return $this->success(ConsentTemplateResource::make($template->load('branch')), 'Consent template created successfully.', 201);
     }
 
     public function update(UpdateConsentTemplateRequest $request, ConsentTemplate $template)
@@ -38,7 +38,7 @@ class ConsentTemplateController extends Controller
 
         $template->update($request->validated());
 
-        return $this->success(ConsentTemplateResource::make($template), 'Consent template updated successfully.');
+        return $this->success(ConsentTemplateResource::make($template->load('branch')), 'Consent template updated successfully.');
     }
 
     public function destroy(Request $request, ConsentTemplate $template)

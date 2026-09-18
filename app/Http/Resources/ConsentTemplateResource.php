@@ -12,6 +12,8 @@ class ConsentTemplateResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
+            'branch_id' => $this->branch_id,
+            'branch_name' => $this->whenLoaded('branch', fn () => $this->branch?->name),
             'title' => $this->title,
             'body' => $this->body,
             'sections' => $this->sections ?? [],
