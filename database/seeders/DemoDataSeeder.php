@@ -240,7 +240,7 @@ class DemoDataSeeder extends Seeder
         }
 
         $this->seedAccounting($company, $doctors[Specialty::DENTAL], $systemManager->id);
-        $this->seedInventory($company, $branchMain);
+        $this->seedInventory($company, $branchMain, $doctors[Specialty::DENTAL]->specialty_id);
 
         // forgetGuards() (not setUser(null), which the guard's type signature
         // rejects) forces a fresh re-resolution next time anything calls
@@ -632,6 +632,8 @@ class DemoDataSeeder extends Seeder
         if (! Expense::where('company_id', $company->id)->exists()) {
             $expense = Expense::create([
                 'uuid' => (string) Str::uuid(),
+                'branch_id' => $dentalDoctor->branch_id,
+                'specialty_id' => $dentalDoctor->specialty_id,
                 'category' => ExpenseCategory::DentalSupplies->value,
                 'vendor_name' => 'Demo Dental Supply Co.',
                 'amount' => 1200,
@@ -655,6 +657,8 @@ class DemoDataSeeder extends Seeder
         if (! CapitalTransaction::where('company_id', $company->id)->exists()) {
             $capital = CapitalTransaction::create([
                 'uuid' => (string) Str::uuid(),
+                'branch_id' => $dentalDoctor->branch_id,
+                'specialty_id' => $dentalDoctor->specialty_id,
                 'type' => CapitalTransactionType::Injection->value,
                 'amount' => 50000,
                 'party_name' => 'Company Owner',
@@ -726,11 +730,11 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    protected function seedInventory(Company $company, Branch $branch): void
+    protected function seedInventory(Company $company, Branch $branch, ?int $specialtyId): void
     {
         InventoryItem::firstOrCreate(
             ['company_id' => $company->id, 'name' => 'Disposable Gloves (Box)'],
-            ['branch_id' => $branch->id, 'unit' => 'box', 'quantity_on_hand' => 50, 'reorder_threshold' => 10, 'unit_cost' => 25, 'status' => 'active'],
+            ['branch_id' => $branch->id, 'specialty_id' => $specialtyId, 'unit' => 'box', 'quantity_on_hand' => 50, 'reorder_threshold' => 10, 'unit_cost' => 25, 'status' => 'active'],
         );
     }
 
