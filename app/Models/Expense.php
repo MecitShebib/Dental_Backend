@@ -17,6 +17,8 @@ class Expense extends Model
     protected $fillable = [
         'uuid',
         'company_id',
+        'branch_id',
+        'specialty_id',
         'category',
         'vendor_name',
         'invoice_number',
@@ -40,5 +42,15 @@ class Expense extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 }

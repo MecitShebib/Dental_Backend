@@ -16,6 +16,8 @@ class StoreCapitalTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id'],
             'type' => ['required', Rule::enum(CapitalTransactionType::class)],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'party_name' => ['nullable', 'string', 'max:255'],

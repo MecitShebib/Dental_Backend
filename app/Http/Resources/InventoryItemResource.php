@@ -14,6 +14,8 @@ class InventoryItemResource extends JsonResource
             'uuid' => $this->uuid,
             'branch_id' => $this->branch_id,
             'branch_name' => $this->whenLoaded('branch', fn () => $this->branch?->name),
+            'specialty_id' => $this->specialty_id,
+            'specialty_name' => $this->whenLoaded('specialty', fn () => $this->specialty?->brand_name),
             'name' => $this->name,
             'unit' => $this->unit,
             'quantity_on_hand' => (float) $this->quantity_on_hand,

@@ -16,6 +16,7 @@ class StoreInventoryItemRequest extends FormRequest
     {
         return [
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
+            'specialty_id' => ['nullable', 'integer', Rule::exists('specialties', 'id')],
             'name' => ['required', 'string', 'max:255'],
             'unit' => ['nullable', 'string', 'max:50'],
             'quantity_on_hand' => ['nullable', 'numeric', 'min:0'],

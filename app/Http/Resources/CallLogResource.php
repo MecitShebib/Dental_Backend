@@ -14,6 +14,8 @@ class CallLogResource extends JsonResource
             'uuid' => $this->uuid,
             'client_id' => $this->client_id,
             'client_name' => $this->client?->name,
+            'branch_id' => $this->branch_id,
+            'specialty_id' => $this->specialty_id,
             'phone_number' => $this->phone_number,
             'direction' => $this->direction,
             'status' => $this->status,

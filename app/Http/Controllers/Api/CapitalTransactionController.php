@@ -10,6 +10,7 @@ use App\Http\Requests\CapitalTransaction\UpdateCapitalTransactionRequest;
 use App\Http\Resources\CapitalTransactionResource;
 use App\Models\CapitalTransaction;
 use App\Models\FundTransaction;
+use App\Models\Specialty;
 use App\Services\FundTransactionService;
 use Illuminate\Http\Request;
 
@@ -23,8 +24,19 @@ class CapitalTransactionController extends Controller
     {
         $this->assertHasAccountingAccess($request);
 
-        $transactions = $request->user()->company->capitalTransactions()
+        $actingUser = $request->user();
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id ? $actingUser->branch_id : $request->query('branch_id');
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
+        $transactions = $actingUser->company->capitalTransactions()
             ->when($request->query('type'), fn ($q, $type) => $q->where('type', $type))
+            // A transaction with no branch_id/specialty_id assigned yet
+            // (pre-dates this scoping) stays visible from every branch/
+            // specialty rather than silently disappearing.
+            ->when($branchId, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id')))
+            ->when($specialtyId, fn ($q) => $q->where(fn ($q2) => $q2->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
             ->latest('transaction_date')
             ->paginate($request->has('per_page') ? (int) $request->query('per_page') : null);
 
@@ -37,10 +49,17 @@ class CapitalTransactionController extends Controller
     {
         $this->assertHasAccountingAccess($request);
 
+        $actingUser = $request->user();
         $data = $request->validated();
-        $transaction = $request->user()->company->capitalTransactions()->create([
+
+        $branchId = $actingUser->branch_id ?: ($data['branch_id'] ?? null);
+        $specialtyId = $actingUser->is_doctor ? $actingUser->specialty_id : ($data['specialty_id'] ?? null);
+
+        $transaction = $actingUser->company->capitalTransactions()->create([
             ...$data,
-            'created_by' => $request->user()->id,
+            'branch_id' => $branchId,
+            'specialty_id' => $specialtyId,
+            'created_by' => $actingUser->id,
         ]);
 
         $this->fundTransactions->post(

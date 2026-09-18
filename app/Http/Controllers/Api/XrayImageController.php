@@ -8,6 +8,7 @@ use App\Http\Requests\XrayImage\UpdateXrayImageRequest;
 use App\Http\Resources\XrayImageResource;
 use App\Jobs\AnalyzeXrayImageJob;
 use App\Models\Client;
+use App\Models\Specialty;
 use App\Models\XrayImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -23,10 +24,21 @@ class XrayImageController extends Controller
      */
     public function index(Request $request)
     {
-        $images = $request->user()->company->xrayImages()
+        $actingUser = $request->user();
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id ? $actingUser->branch_id : $request->query('branch_id');
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
+        $images = $actingUser->company->xrayImages()
             ->with('client')
             ->when($request->query('client_id'), fn ($q, $clientId) => $q->where('client_id', $clientId))
             ->when($request->boolean('unlinked'), fn ($q) => $q->whereNull('client_id'))
+            // An image with no branch_id/specialty_id assigned yet (pre-dates
+            // this scoping) stays visible from every branch/specialty rather
+            // than silently disappearing.
+            ->when($branchId, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id')))
+            ->when($specialtyId, fn ($q) => $q->where(fn ($q2) => $q2->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
             ->latest()
             ->paginate($request->has('per_page') ? (int) $request->query('per_page') : null);
 
@@ -37,12 +49,25 @@ class XrayImageController extends Controller
 
     public function store(StoreXrayImageRequest $request)
     {
+        $actingUser = $request->user();
         $data = $request->validated();
         $clientId = $this->resolveClientId($data['client_id'] ?? null);
 
-        $images = collect($request->file('images'))->map(function ($file) use ($request, $data, $clientId) {
+        // Same rule as everywhere else: a user with their own branch_id/
+        // specialty_id (doctor) always uploads into their own scope,
+        // overriding whatever the request sent. Otherwise falls back to
+        // whatever the request/frontend (its currently active branch/
+        // specialty) explicitly provided.
+        $branchId = $actingUser->branch_id ?: ($data['branch_id'] ?? null);
+        $specialtyId = $actingUser->is_doctor
+            ? $actingUser->specialty_id
+            : ($data['specialty_id'] ?? null);
+
+        $images = collect($request->file('images'))->map(function ($file) use ($request, $data, $clientId, $branchId, $specialtyId) {
             $image = $request->user()->company->xrayImages()->create([
                 'client_id' => $clientId,
+                'branch_id' => $branchId,
+                'specialty_id' => $specialtyId,
                 'image_path' => $file->store('xray-images', 'local'),
                 'original_filename' => $file->getClientOriginalName(),
                 'notes' => $data['notes'] ?? null,

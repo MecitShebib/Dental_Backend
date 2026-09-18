@@ -16,6 +16,8 @@ class CallLog extends Model
         'uuid',
         'company_id',
         'client_id',
+        'branch_id',
+        'specialty_id',
         'phone_number',
         'direction',
         'status',
@@ -45,6 +47,16 @@ class CallLog extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 
     public function creator(): BelongsTo

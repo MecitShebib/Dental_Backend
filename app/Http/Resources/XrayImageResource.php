@@ -15,6 +15,8 @@ class XrayImageResource extends JsonResource
             'uuid' => $this->uuid,
             'client_id' => $this->client_id,
             'client_name' => $this->whenLoaded('client', fn () => $this->client?->name),
+            'branch_id' => $this->branch_id,
+            'specialty_id' => $this->specialty_id,
             // Signed rather than a plain Storage URL -- the file lives on
             // the private disk (KVKK: no unauthenticated access to X-rays).
             // 60 minutes balances a stale-tab <img> not breaking against

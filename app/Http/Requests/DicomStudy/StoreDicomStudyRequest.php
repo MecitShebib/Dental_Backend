@@ -24,6 +24,8 @@ class StoreDicomStudyRequest extends FormRequest
             'files' => ['required_without:archive', 'array', 'min:1'],
             'files.*' => ['file', 'max:1048576'],
             'client_id' => ['nullable', 'integer', 'exists:clients,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id'],
         ];
     }
 }

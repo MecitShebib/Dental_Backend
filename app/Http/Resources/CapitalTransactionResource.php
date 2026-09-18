@@ -12,6 +12,8 @@ class CapitalTransactionResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
+            'branch_id' => $this->branch_id,
+            'specialty_id' => $this->specialty_id,
             'type' => $this->type?->value,
             'amount' => (float) $this->amount,
             'party_name' => $this->party_name,

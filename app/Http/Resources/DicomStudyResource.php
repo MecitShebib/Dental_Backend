@@ -14,6 +14,8 @@ class DicomStudyResource extends JsonResource
             'uuid' => $this->uuid,
             'client_id' => $this->client_id,
             'client_name' => $this->whenLoaded('client', fn () => $this->client?->name),
+            'branch_id' => $this->branch_id,
+            'specialty_id' => $this->specialty_id,
             'modality' => $this->modality,
             'study_date' => $this->study_date?->toDateString(),
             'description' => $this->description,

@@ -17,6 +17,8 @@ class XrayImage extends Model
         'uuid',
         'company_id',
         'client_id',
+        'branch_id',
+        'specialty_id',
         'image_path',
         'original_filename',
         'notes',
@@ -33,6 +35,16 @@ class XrayImage extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 
     public function uploader(): BelongsTo

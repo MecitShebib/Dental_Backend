@@ -12,6 +12,7 @@ use App\Http\Resources\ExpenseResource;
 use App\Models\CariTransaction;
 use App\Models\Expense;
 use App\Models\FundTransaction;
+use App\Models\Specialty;
 use App\Services\CariLedgerService;
 use App\Services\FundTransactionService;
 use Illuminate\Http\Request;
@@ -30,10 +31,21 @@ class ExpenseController extends Controller
     {
         $this->assertHasAccountingAccess($request);
 
-        $expenses = $request->user()->company->expenses()
+        $actingUser = $request->user();
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id ? $actingUser->branch_id : $request->query('branch_id');
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
+        $expenses = $actingUser->company->expenses()
             ->when($request->query('category'), fn ($q, $category) => $q->where('category', $category))
             ->when($request->query('from'), fn ($q, $from) => $q->whereDate('expense_date', '>=', $from))
             ->when($request->query('to'), fn ($q, $to) => $q->whereDate('expense_date', '<=', $to))
+            // An expense with no branch_id/specialty_id assigned yet
+            // (pre-dates this scoping) stays visible from every branch/
+            // specialty rather than silently disappearing.
+            ->when($branchId, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id')))
+            ->when($specialtyId, fn ($q) => $q->where(fn ($q2) => $q2->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
             ->latest('expense_date')
             ->paginate($request->has('per_page') ? (int) $request->query('per_page') : null);
 
@@ -46,16 +58,25 @@ class ExpenseController extends Controller
     {
         $this->assertHasAccountingAccess($request);
 
+        $actingUser = $request->user();
         $data = $request->validated();
         $cari = $this->extractCariInput($data);
         $data['attachment_path'] = $request->hasFile('attachment')
             ? $request->file('attachment')->store('expense-attachments', 'local')
             : null;
 
-        $expense = $request->user()->company->expenses()->create([
+        // Same rule as everywhere else: a user with their own branch_id/
+        // specialty_id (doctor) always creates records there, overriding
+        // whatever the request sent.
+        $branchId = $actingUser->branch_id ?: ($data['branch_id'] ?? null);
+        $specialtyId = $actingUser->is_doctor ? $actingUser->specialty_id : ($data['specialty_id'] ?? null);
+
+        $expense = $actingUser->company->expenses()->create([
             ...$data,
-            'created_by' => $request->user()->id,
-            'updated_by' => $request->user()->id,
+            'branch_id' => $branchId,
+            'specialty_id' => $specialtyId,
+            'created_by' => $actingUser->id,
+            'updated_by' => $actingUser->id,
         ]);
 
         $this->fundTransactions->post(

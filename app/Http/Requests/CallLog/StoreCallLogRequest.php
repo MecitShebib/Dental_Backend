@@ -22,6 +22,8 @@ class StoreCallLogRequest extends FormRequest
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
             'occurred_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id'],
         ];
     }
 }

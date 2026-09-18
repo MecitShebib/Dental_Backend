@@ -9,6 +9,7 @@ use App\Http\Requests\Inventory\UpdateInventoryItemRequest;
 use App\Http\Resources\InventoryItemResource;
 use App\Http\Resources\InventoryTransactionResource;
 use App\Models\InventoryItem;
+use App\Models\Specialty;
 use App\Services\InventoryService;
 use Illuminate\Http\Request;
 
@@ -16,11 +17,17 @@ class InventoryItemController extends Controller
 {
     public function index(Request $request)
     {
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
         $items = InventoryItem::query()
-            ->with('branch')
-            // An item with no branch_id assigned yet (pre-dates branch scoping)
-            // stays visible from every branch rather than silently disappearing.
+            ->with(['branch', 'specialty'])
+            // An item with no branch_id/specialty_id assigned yet (pre-dates
+            // this scoping) stays visible from every branch/specialty rather
+            // than silently disappearing.
             ->when($request->filled('branch_id'), fn ($query) => $query->where(fn ($q) => $q->where('branch_id', $request->integer('branch_id'))->orWhereNull('branch_id')))
+            ->when($specialtyId, fn ($query) => $query->where(fn ($q) => $q->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->boolean('low_stock'), fn ($query) => $query->whereNotNull('reorder_threshold')->whereColumn('quantity_on_hand', '<=', 'reorder_threshold'))
             ->when($request->filled('name'), fn ($query) => $query->where('name', 'like', '%'.$request->string('name').'%'))
@@ -32,10 +39,25 @@ class InventoryItemController extends Controller
 
     public function store(StoreInventoryItemRequest $request)
     {
+        $actingUser = $request->user();
+        $data = $request->validated();
+
+        // Same rule as everywhere else: a user with their own branch_id/
+        // specialty_id (doctor, or staff assigned to one branch) always
+        // creates records there, overriding whatever the request sent.
+        // Otherwise falls back to whatever the request/frontend (its
+        // currently active branch/specialty) explicitly provided.
+        $branchId = $actingUser->branch_id ?: ($data['branch_id'] ?? null);
+        $specialtyId = $actingUser->is_doctor
+            ? $actingUser->specialty_id
+            : ($data['specialty_id'] ?? null);
+
         $item = InventoryItem::create([
-            ...$request->validated(),
-            'company_id' => $request->user()->company_id,
-            'status' => $request->validated('status') ?? 'active',
+            ...$data,
+            'branch_id' => $branchId,
+            'specialty_id' => $specialtyId,
+            'company_id' => $actingUser->company_id,
+            'status' => $data['status'] ?? 'active',
         ]);
 
         return $this->success(InventoryItemResource::make($item), 'Inventory item created successfully.', 201);

@@ -9,6 +9,7 @@ use App\Http\Resources\DicomStudyResource;
 use App\Models\Client;
 use App\Models\DicomSeries;
 use App\Models\DicomStudy;
+use App\Models\Specialty;
 use App\Services\DicomFrameExtractor;
 use App\Services\DicomTagReader;
 use Illuminate\Http\Request;
@@ -28,10 +29,21 @@ class DicomStudyController extends Controller
 
     public function index(Request $request)
     {
-        $studies = $request->user()->company->dicomStudies()
+        $actingUser = $request->user();
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id ? $actingUser->branch_id : $request->query('branch_id');
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
+        $studies = $actingUser->company->dicomStudies()
             ->with(['client', 'series'])
             ->when($request->query('client_id'), fn ($q, $clientId) => $q->where('client_id', $clientId))
             ->when($request->boolean('unlinked'), fn ($q) => $q->whereNull('client_id'))
+            // A study with no branch_id/specialty_id assigned yet (pre-dates
+            // this scoping) stays visible from every branch/specialty rather
+            // than silently disappearing.
+            ->when($branchId, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id')))
+            ->when($specialtyId, fn ($q) => $q->where(fn ($q2) => $q2->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
             ->latest()
             ->get();
 
@@ -59,8 +71,17 @@ class DicomStudyController extends Controller
         set_time_limit(300);
 
         try {
+            $actingUser = $request->user();
             $data = $request->validated();
             $clientId = $this->resolveClientId($data['client_id'] ?? null);
+
+            // Same rule as everywhere else: a user with their own branch_id/
+            // specialty_id (doctor) always uploads into their own scope,
+            // overriding whatever the request sent.
+            $branchId = $actingUser->branch_id ?: ($data['branch_id'] ?? null);
+            $specialtyId = $actingUser->is_doctor
+                ? $actingUser->specialty_id
+                : ($data['specialty_id'] ?? null);
 
             if (isset($data['archive'])) {
                 $extractDir = storage_path('app/dicom-uploads/'.uniqid());
@@ -90,6 +111,8 @@ class DicomStudyController extends Controller
 
             $study = $request->user()->company->dicomStudies()->create([
                 'client_id' => $clientId,
+                'branch_id' => $branchId,
+                'specialty_id' => $specialtyId,
                 'uploaded_by' => $request->user()->id,
                 'modality' => reset($bySeriesUid)['tags']['modality'] ?? null,
                 'study_date' => reset($bySeriesUid)['tags']['study_date'] ?? null,

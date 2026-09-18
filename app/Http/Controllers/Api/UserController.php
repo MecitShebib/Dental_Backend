@@ -8,6 +8,7 @@ use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Specialty;
 use App\Models\User;
 use App\Services\CompanyUserLimitService;
 use Illuminate\Http\Request;
@@ -21,11 +22,17 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $branchId = $request->integer('branch_id') ?: null;
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
 
-        $users = User::with(['roles', 'permissions', 'company', 'branch'])
-            // A user with no branch_id assigned yet (pre-dates branch scoping)
-            // stays visible from every branch rather than silently disappearing.
+        $users = User::with(['roles', 'permissions', 'company', 'branch', 'specialty'])
+            // A user with no branch_id/specialty_id assigned yet stays
+            // visible from every branch/specialty rather than silently
+            // disappearing -- specialty_id in particular is only ever set
+            // for a doctor; staff (null) work across every specialty.
             ->when($branchId, fn ($query) => $query->where(fn ($q) => $q->where('branch_id', $branchId)->orWhereNull('branch_id')))
+            ->when($specialtyId, fn ($query) => $query->where(fn ($q) => $q->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
             ->latest()
             ->paginate();
 

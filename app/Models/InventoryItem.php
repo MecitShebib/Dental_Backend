@@ -18,6 +18,7 @@ class InventoryItem extends Model
         'uuid',
         'company_id',
         'branch_id',
+        'specialty_id',
         'name',
         'unit',
         'quantity_on_hand',
@@ -50,6 +51,11 @@ class InventoryItem extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 
     public function transactions(): HasMany

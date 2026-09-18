@@ -11,12 +11,19 @@ class CallLogService
     /**
      * @param  array{phone_number: string, direction: string, status: string, duration_seconds?: ?int, occurred_at: string, notes?: ?string}  $data
      */
-    public function log(Company $company, array $data, ?int $createdBy): CallLog
+    public function log(Company $company, array $data, ?int $createdBy, ?int $branchId = null, ?int $specialtyId = null): CallLog
     {
+        $client = $this->matchClient($company, $data['phone_number']);
+
         return CallLog::create([
             ...$data,
             'company_id' => $company->id,
-            'client_id' => $this->matchClient($company, $data['phone_number'])?->id,
+            'client_id' => $client?->id,
+            // Falls back to the matched client's own branch when the acting
+            // user has no fixed branch of their own (e.g. a company-wide
+            // manager logging a call for a specific patient).
+            'branch_id' => $branchId ?? $client?->branch_id,
+            'specialty_id' => $specialtyId,
             'created_by' => $createdBy,
         ]);
     }

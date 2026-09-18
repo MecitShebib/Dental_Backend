@@ -17,6 +17,8 @@ class CapitalTransaction extends Model
     protected $fillable = [
         'uuid',
         'company_id',
+        'branch_id',
+        'specialty_id',
         'type',
         'amount',
         'party_name',
@@ -37,5 +39,15 @@ class CapitalTransaction extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 }

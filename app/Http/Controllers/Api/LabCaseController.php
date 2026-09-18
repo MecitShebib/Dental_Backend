@@ -47,11 +47,25 @@ class LabCaseController extends Controller
         $actingUser = $request->user();
         $doctorId = $actingUser->is_doctor ? $actingUser->id : $request->query('doctor_id');
 
+        // Same rule as everywhere else: a doctor with their own branch_id is
+        // hard-scoped to it, overriding whatever branch_id the request asked
+        // for. Specialty/branch are both derived here (doctor_id ->
+        // specialty_id, client_id -> branch_id), since LabCase has neither
+        // column directly.
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id
+            ? $actingUser->branch_id
+            : $request->query('branch_id');
+        $specialtyId = $request->filled('specialty')
+            ? \App\Models\Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
         $labCases = LabCase::query()
             ->whereHas('client', fn ($q) => $q->where('company_id', $actingUser->company_id))
             ->with(['client', 'doctor', 'labPartner', 'appointment'])
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
+            ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id'))))
+            ->when($specialtyId, fn ($q) => $q->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId)))
             ->latest('sent_date')
             ->paginate($request->has('per_page') ? (int) $request->query('per_page') : null);
 

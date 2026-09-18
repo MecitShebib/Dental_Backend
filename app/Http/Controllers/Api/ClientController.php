@@ -49,8 +49,17 @@ class ClientController extends Controller
 
         $actingUser = $request->user();
 
+        // A user with their own branch_id set always creates records in
+        // that branch -- overrides whatever branch_id the request sent,
+        // the same rule doctors' specialty_id already gets everywhere else.
+        // Only a user with no fixed branch (branch_id null, e.g. a
+        // company-wide manager) falls back to whatever the request/frontend
+        // (its own currently active branch) explicitly provided.
+        $branchId = $actingUser->branch_id ?: ($data['branch_id'] ?? null);
+
         $client = Client::create([
             ...$data,
+            'branch_id' => $branchId,
             'client_code' => $data['client_code'] ?? 'CL-'.strtoupper(Str::random(8)),
             'created_by' => $actingUser->id,
             'updated_by' => $actingUser->id,

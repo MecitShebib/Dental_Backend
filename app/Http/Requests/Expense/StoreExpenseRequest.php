@@ -17,6 +17,8 @@ class StoreExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id'],
             'category' => ['required', Rule::enum(ExpenseCategory::class)],
             'vendor_name' => ['nullable', 'string', 'max:255'],
             'invoice_number' => ['nullable', 'string', 'max:255'],

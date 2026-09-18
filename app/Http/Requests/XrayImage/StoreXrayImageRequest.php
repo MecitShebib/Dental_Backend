@@ -22,6 +22,8 @@ class StoreXrayImageRequest extends FormRequest
             // already knows one. Almost always omitted -- images normally
             // land unlinked and get attached later from the picker.
             'client_id' => ['nullable', 'integer', 'exists:clients,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id'],
             'notes' => ['nullable', 'string', 'max:255'],
         ];
     }
