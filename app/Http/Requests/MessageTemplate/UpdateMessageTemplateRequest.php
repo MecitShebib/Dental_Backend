@@ -16,6 +16,7 @@ class UpdateMessageTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
             'key' => ['required', Rule::in(['appointment_reminder', 'patient_recall', 'booking_confirmation', 'satisfaction_survey'])],
             'channel' => ['required', Rule::in(['sms', 'email'])],
             'language' => ['required', Rule::enum(ClientLanguage::class)],

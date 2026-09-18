@@ -30,8 +30,10 @@ class MessageTemplateController extends Controller
         $this->assertHasAccountingAccess($request);
 
         $company = $request->user()->company;
+        $branchId = $request->integer('branch_id') ?: null;
         $custom = MessageTemplate::query()
             ->where('company_id', $company->id)
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId), fn ($query) => $query->whereNull('branch_id'))
             ->get()
             ->keyBy(fn (MessageTemplate $template) => "{$template->key}|{$template->channel}|{$template->language}");
 
@@ -66,12 +68,14 @@ class MessageTemplateController extends Controller
 
         $data = $request->validated();
         $company = $request->user()->company;
+        $branchId = $data['branch_id'] ?? null;
 
         $subject = $data['subject'] ?? null;
         $body = $data['body'] ?? null;
 
         $existing = MessageTemplate::query()
             ->where('company_id', $company->id)
+            ->where('branch_id', $branchId)
             ->where('key', $data['key'])
             ->where('channel', $data['channel'])
             ->where('language', $data['language']);
@@ -91,6 +95,7 @@ class MessageTemplateController extends Controller
         } else {
             $template = MessageTemplate::create([
                 'company_id' => $company->id,
+                'branch_id' => $branchId,
                 'key' => $data['key'],
                 'channel' => $data['channel'],
                 'language' => $data['language'],
@@ -100,6 +105,7 @@ class MessageTemplateController extends Controller
         }
 
         return $this->success([
+            'branch_id' => $template->branch_id,
             'key' => $template->key,
             'channel' => $template->channel,
             'language' => $template->language,

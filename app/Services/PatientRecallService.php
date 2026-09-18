@@ -160,6 +160,7 @@ class PatientRecallService
                 'client_name' => $client->name,
                 'company_name' => $client->company->name,
             ],
+            $client->branch_id,
         );
     }
 }

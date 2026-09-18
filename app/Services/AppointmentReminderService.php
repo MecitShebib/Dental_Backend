@@ -116,6 +116,7 @@ class AppointmentReminderService
             $channel,
             $this->languageFor($appointment),
             $this->variables($appointment),
+            $appointment->client?->branch_id,
         );
     }
 
