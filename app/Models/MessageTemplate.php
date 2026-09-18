@@ -15,7 +15,7 @@ class MessageTemplate extends Model
     protected $fillable = [
         'uuid',
         'company_id',
-        'branch_id',
+        'specialty_id',
         'key',
         'channel',
         'language',
@@ -28,8 +28,8 @@ class MessageTemplate extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function branch(): BelongsTo
+    public function specialty(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Specialty::class);
     }
 }

@@ -41,7 +41,7 @@ class SatisfactionSurveyService
             'client_name' => $client->name,
             'company_name' => $client->company->name,
             'survey_link' => url('/survey/'.$survey->token),
-        ], $client->branch_id);
+        ], $survey->visit?->doctor?->specialty_id);
     }
 
     public function languageFor(SatisfactionSurvey $survey): ClientLanguage

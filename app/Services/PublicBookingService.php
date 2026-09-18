@@ -142,7 +142,7 @@ class PublicBookingService
                 'company_name' => $company->name,
                 'date' => $appointment->date->format('d/m/Y'),
                 'time' => substr($appointment->start_time, 0, 5),
-            ], $client->branch_id);
+            ], $doctor->specialty_id);
 
             $this->messaging->send($company, $client->phone, $rendered['body']);
         }

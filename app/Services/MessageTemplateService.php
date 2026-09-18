@@ -20,7 +20,7 @@ class MessageTemplateService
      * @param  array<string, string>  $variables
      * @return array{subject: ?string, body: string}
      */
-    public function render(Company $company, string $key, string $channel, ClientLanguage $language, array $variables, ?int $branchId = null): array
+    public function render(Company $company, string $key, string $channel, ClientLanguage $language, array $variables, ?int $specialtyId = null): array
     {
         $default = MessageTemplateDefaults::all()[$key][$channel][$language->value] ?? ['body' => ''];
 
@@ -30,9 +30,9 @@ class MessageTemplateService
             ->where('channel', $channel)
             ->where('language', $language->value);
 
-        // A branch-specific override wins over a company-wide one, which wins over the built-in default.
-        $custom = $branchId ? (clone $query)->where('branch_id', $branchId)->first() : null;
-        $custom ??= (clone $query)->whereNull('branch_id')->first();
+        // A specialty-specific override wins over a company-wide one, which wins over the built-in default.
+        $custom = $specialtyId ? (clone $query)->where('specialty_id', $specialtyId)->first() : null;
+        $custom ??= (clone $query)->whereNull('specialty_id')->first();
 
         $subject = ($custom?->subject !== null && $custom?->subject !== '') ? $custom->subject : ($default['subject'] ?? null);
         $body = ($custom?->body !== null && $custom?->body !== '') ? $custom->body : $default['body'];

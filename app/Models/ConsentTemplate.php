@@ -25,7 +25,7 @@ class ConsentTemplate extends Model
     protected $fillable = [
         'uuid',
         'company_id',
-        'branch_id',
+        'specialty_id',
         'title',
         'kind',
         'body',
@@ -47,9 +47,9 @@ class ConsentTemplate extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function branch(): BelongsTo
+    public function specialty(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Specialty::class);
     }
 
     public function clientConsents(): HasMany

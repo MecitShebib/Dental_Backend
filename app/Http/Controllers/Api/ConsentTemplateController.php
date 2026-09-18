@@ -7,15 +7,27 @@ use App\Http\Requests\Consent\StoreConsentTemplateRequest;
 use App\Http\Requests\Consent\UpdateConsentTemplateRequest;
 use App\Http\Resources\ConsentTemplateResource;
 use App\Models\ConsentTemplate;
+use App\Models\Specialty;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class ConsentTemplateController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+
         return $this->success(ConsentTemplateResource::collection(
-            ConsentTemplate::query()->with('branch')->orderBy('title')->get()
+            ConsentTemplate::query()
+                ->with('specialty')
+                // A template with no specialty (e.g. the KVKK disclosure/consent
+                // templates, which apply company-wide) stays visible from every
+                // specialty rather than only showing in "all specialties" mode.
+                ->when($specialtyId, fn ($query) => $query->where(fn ($q) => $q->where('specialty_id', $specialtyId)->orWhereNull('specialty_id')))
+                ->orderBy('title')
+                ->get()
         ));
     }
 
@@ -29,7 +41,7 @@ class ConsentTemplateController extends Controller
             'is_active' => $request->validated('is_active') ?? true,
         ]);
 
-        return $this->success(ConsentTemplateResource::make($template->load('branch')), 'Consent template created successfully.', 201);
+        return $this->success(ConsentTemplateResource::make($template->load('specialty')), 'Consent template created successfully.', 201);
     }
 
     public function update(UpdateConsentTemplateRequest $request, ConsentTemplate $template)
@@ -38,7 +50,7 @@ class ConsentTemplateController extends Controller
 
         $template->update($request->validated());
 
-        return $this->success(ConsentTemplateResource::make($template->load('branch')), 'Consent template updated successfully.');
+        return $this->success(ConsentTemplateResource::make($template->load('specialty')), 'Consent template updated successfully.');
     }
 
     public function destroy(Request $request, ConsentTemplate $template)

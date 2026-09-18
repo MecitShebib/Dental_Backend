@@ -16,7 +16,7 @@ class UpdateConsentTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id))],
+            'specialty_id' => ['nullable', 'integer', Rule::exists('specialties', 'id')],
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'body' => ['sometimes', 'required', 'string'],
             'sections' => ['nullable', 'array'],

@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesAccounting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MessageTemplate\UpdateMessageTemplateRequest;
 use App\Models\MessageTemplate;
+use App\Models\Specialty;
 use App\Support\MessageTemplateDefaults;
 use Illuminate\Http\Request;
 
@@ -30,10 +31,12 @@ class MessageTemplateController extends Controller
         $this->assertHasAccountingAccess($request);
 
         $company = $request->user()->company;
-        $branchId = $request->integer('branch_id') ?: null;
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
         $custom = MessageTemplate::query()
             ->where('company_id', $company->id)
-            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId), fn ($query) => $query->whereNull('branch_id'))
+            ->when($specialtyId, fn ($query) => $query->where('specialty_id', $specialtyId), fn ($query) => $query->whereNull('specialty_id'))
             ->get()
             ->keyBy(fn (MessageTemplate $template) => "{$template->key}|{$template->channel}|{$template->language}");
 
@@ -68,14 +71,14 @@ class MessageTemplateController extends Controller
 
         $data = $request->validated();
         $company = $request->user()->company;
-        $branchId = $data['branch_id'] ?? null;
+        $specialtyId = $data['specialty_id'] ?? null;
 
         $subject = $data['subject'] ?? null;
         $body = $data['body'] ?? null;
 
         $existing = MessageTemplate::query()
             ->where('company_id', $company->id)
-            ->where('branch_id', $branchId)
+            ->where('specialty_id', $specialtyId)
             ->where('key', $data['key'])
             ->where('channel', $data['channel'])
             ->where('language', $data['language']);
@@ -95,7 +98,7 @@ class MessageTemplateController extends Controller
         } else {
             $template = MessageTemplate::create([
                 'company_id' => $company->id,
-                'branch_id' => $branchId,
+                'specialty_id' => $specialtyId,
                 'key' => $data['key'],
                 'channel' => $data['channel'],
                 'language' => $data['language'],
@@ -105,7 +108,7 @@ class MessageTemplateController extends Controller
         }
 
         return $this->success([
-            'branch_id' => $template->branch_id,
+            'specialty_id' => $template->specialty_id,
             'key' => $template->key,
             'channel' => $template->channel,
             'language' => $template->language,

@@ -151,6 +151,12 @@ class PatientRecallService
             return ['subject' => null, 'body' => ''];
         }
 
+        $specialtyId = $client->visits()
+            ->where('attendance_status', AttendanceStatus::Attended->value)
+            ->latest('visit_date')
+            ->latest('id')
+            ->first()?->doctor?->specialty_id;
+
         return $this->templates->render(
             $client->company,
             'patient_recall',
@@ -160,7 +166,7 @@ class PatientRecallService
                 'client_name' => $client->name,
                 'company_name' => $client->company->name,
             ],
-            $client->branch_id,
+            $specialtyId,
         );
     }
 }
