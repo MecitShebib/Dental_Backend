@@ -29,7 +29,10 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
-            $table->index(['company_id', 'user_id', 'period_year', 'period_month']);
+            // Explicit short name: the auto-generated one
+            // ("salary_payments_company_id_user_id_period_year_period_month_index",
+            // 65 chars) exceeds MySQL's 64-char identifier limit.
+            $table->index(['company_id', 'user_id', 'period_year', 'period_month'], 'salary_payments_period_index');
         });
     }
 
