@@ -24,6 +24,10 @@ class DashboardStatsService
         // even a mismatched specialty/branch) the request asked for.
         if ($actingUser->is_doctor) {
             $doctorId = $actingUser->id;
+
+            if ($actingUser->branch_id) {
+                $branchId = $actingUser->branch_id;
+            }
         }
 
         $specialtyId = null;
@@ -47,7 +51,7 @@ class DashboardStatsService
             ->when($specialtyFilterRequested, function ($q) use ($specialtyId) {
                 $q->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId));
             })
-            ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where('branch_id', $branchId)));
+            ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id'))));
 
         $total = (clone $apptBase)->count();
         $byStatus = (clone $apptBase)
@@ -80,7 +84,7 @@ class DashboardStatsService
             })
             ->when($branchId, function ($q) use ($branchId) {
                 $q->whereHas('client', function ($cq) use ($branchId) {
-                    $cq->where('branch_id', $branchId);
+                    $cq->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id'));
                 });
             });
 

@@ -16,6 +16,7 @@ class IndexClientRequest extends FormRequest
         return [
             'name' => ['nullable', 'string'],
             'phone' => ['nullable', 'string'],
+            'branch_id' => ['nullable', 'integer'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

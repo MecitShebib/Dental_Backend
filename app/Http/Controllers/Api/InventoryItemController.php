@@ -18,7 +18,9 @@ class InventoryItemController extends Controller
     {
         $items = InventoryItem::query()
             ->with('branch')
-            ->when($request->filled('branch_id'), fn ($query) => $query->where('branch_id', $request->integer('branch_id')))
+            // An item with no branch_id assigned yet (pre-dates branch scoping)
+            // stays visible from every branch rather than silently disappearing.
+            ->when($request->filled('branch_id'), fn ($query) => $query->where(fn ($q) => $q->where('branch_id', $request->integer('branch_id'))->orWhereNull('branch_id')))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->boolean('low_stock'), fn ($query) => $query->whereNotNull('reorder_threshold')->whereColumn('quantity_on_hand', '<=', 'reorder_threshold'))
             ->when($request->filled('name'), fn ($query) => $query->where('name', 'like', '%'.$request->string('name').'%'))

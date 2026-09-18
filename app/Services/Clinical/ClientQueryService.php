@@ -21,10 +21,17 @@ class ClientQueryService
      * @param  string|null  $specialtyKey  Only applied for a non-doctor acting user -- a doctor
      *                                     is always hard-scoped to their own specialty_id
      *                                     (Doctovaria Phase 8), regardless of this value.
-     * @param  array{name?: ?string, phone?: ?string, per_page?: ?int}  $filters
+     * @param  array{name?: ?string, phone?: ?string, branch_id?: ?int, per_page?: ?int}  $filters
      */
     public function list(User $actingUser, ?string $specialtyKey, array $filters): Paginator
     {
+        // Same rule as the specialty scoping above: a doctor with their own
+        // branch_id set is always hard-scoped to it, regardless of what
+        // branch_id the request asked for.
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id
+            ? $actingUser->branch_id
+            : ($filters['branch_id'] ?? null);
+
         return Client::query()
             ->with($this->nextAppointmentEagerLoad())
             ->when($actingUser->is_doctor, fn ($query) => $query->whereHas(
@@ -35,6 +42,9 @@ class ClientQueryService
                 $specialtyId = Specialty::query()->where('key', $specialtyKey)->value('id');
                 $query->whereHas('specialtyRecords', fn ($sq) => $sq->where('specialty_id', $specialtyId));
             })
+            // A client with no branch_id assigned yet (pre-dates branch scoping)
+            // stays visible from every branch rather than silently disappearing.
+            ->when($branchId, fn ($query) => $query->where(fn ($q) => $q->where('branch_id', $branchId)->orWhereNull('branch_id')))
             ->when($filters['name'] ?? null, fn ($query) => $query->where('name', 'like', '%'.$filters['name'].'%'))
             ->when($filters['phone'] ?? null, fn ($query) => $query->where('phone', 'like', '%'.$filters['phone'].'%'))
             ->latest()

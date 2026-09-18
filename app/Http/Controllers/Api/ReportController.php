@@ -38,7 +38,9 @@ class ReportController extends Controller
             : null;
 
         $rows = Client::query()
-            ->when($request->branch_id, fn ($q) => $q->where('branch_id', $request->branch_id))
+            // A client with no branch_id assigned yet (pre-dates branch scoping)
+            // stays visible from every branch rather than silently disappearing.
+            ->when($request->branch_id, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $request->branch_id)->orWhereNull('branch_id')))
             // "this doctor's/specialty's patients" -- same ownership model
             // ClientQueryService uses for the Patients list (primary_doctor_id
             // on the client's specialty enrollment, not just "has ever had a
@@ -94,7 +96,7 @@ class ReportController extends Controller
         $rows = LabPartner::query()
             ->with(['labCases' => function ($query) use ($branchId, $doctorId) {
                 $query->whereNotNull('lab_cost')
-                    ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where('branch_id', $branchId)))
+                    ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id'))))
                     ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId));
             }])
             ->get()
@@ -144,7 +146,9 @@ class ReportController extends Controller
 
         $rows = User::query()
             ->where('status', 'active')
-            ->when($request->branch_id, fn ($q) => $q->where('branch_id', $request->branch_id))
+            // A user with no branch_id assigned yet (pre-dates branch scoping)
+            // stays visible from every branch rather than silently disappearing.
+            ->when($request->branch_id, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $request->branch_id)->orWhereNull('branch_id')))
             ->when($request->doctor_id, fn ($q) => $q->where('id', $request->doctor_id))
             // Non-doctor staff (accountants, secretaries...) have no
             // specialty of their own -- a specialty filter narrows which

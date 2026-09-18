@@ -29,6 +29,13 @@ class AppointmentQueryService
         // ClientQueryService::list() already enforces for patients.
         $doctorId = $actingUser->is_doctor ? $actingUser->id : ($filters['doctor_id'] ?? null);
 
+        // Same rule, for branch: a doctor with their own branch_id set is
+        // always hard-scoped to it, regardless of what branch_id the
+        // request asked for.
+        $branchId = $actingUser->is_doctor && $actingUser->branch_id
+            ? $actingUser->branch_id
+            : ($filters['branch_id'] ?? null);
+
         return Appointment::query()
             ->with(['client', 'doctor'])
             ->when($doctorId, fn ($query) => $query->where('doctor_id', $doctorId))
@@ -36,7 +43,9 @@ class AppointmentQueryService
                 $specialtyId = Specialty::query()->where('key', $filters['specialty'])->value('id');
                 $query->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId));
             })
-            ->when($filters['branch_id'] ?? null, fn ($query) => $query->whereHas('client', fn ($cq) => $cq->where('branch_id', $filters['branch_id'])))
+            // A client with no branch_id assigned yet (pre-dates branch scoping)
+            // stays visible from every branch rather than silently disappearing.
+            ->when($branchId, fn ($query) => $query->whereHas('client', fn ($cq) => $cq->where(fn ($q) => $q->where('branch_id', $branchId)->orWhereNull('branch_id'))))
             ->when($filters['client_id'] ?? null, fn ($query) => $query->where('client_id', $filters['client_id']))
             ->when($filters['status'] ?? null, fn ($query) => $query->where('status', $filters['status']))
             ->when(

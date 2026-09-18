@@ -18,9 +18,16 @@ class UserController extends Controller
 {
     public function __construct(protected CompanyUserLimitService $companyUserLimit) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with(['roles', 'permissions', 'company', 'branch'])->latest()->paginate();
+        $branchId = $request->integer('branch_id') ?: null;
+
+        $users = User::with(['roles', 'permissions', 'company', 'branch'])
+            // A user with no branch_id assigned yet (pre-dates branch scoping)
+            // stays visible from every branch rather than silently disappearing.
+            ->when($branchId, fn ($query) => $query->where(fn ($q) => $q->where('branch_id', $branchId)->orWhereNull('branch_id')))
+            ->latest()
+            ->paginate();
 
         return $this->success(UserResource::collection($users));
     }
