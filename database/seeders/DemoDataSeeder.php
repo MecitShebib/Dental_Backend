@@ -56,20 +56,24 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Local-dev-only convenience seeder: gives every one of the 5 specialties
- * (dental + gynecology/internal_medicine/orthopedics/cosmetic) at least one
+ * Convenience seeder: gives every one of the 6 specialties (dental +
+ * gynecology/internal_medicine/orthopedics/cosmetic/nutrition) at least one
  * real record in every section of the app -- a patient, an upcoming
  * appointment, a past visit with charges, a payment + invoice, a care plan,
  * a lab record, plus one shared set of company-wide accounting records
  * (expense, capital movement, payroll, cari ledger) and settings data
- * (consent template, inventory item, branch). Built so a developer can spin
- * up a fresh local DB and immediately click through every screen this
- * session's Doctovaria work touched, instead of hitting empty states.
+ * (consent template, inventory item, 2 branches with doctors/patients split
+ * across them). Built so a developer can spin up a fresh local DB and
+ * immediately click through every screen this session's Doctovaria work
+ * touched, instead of hitting empty states.
  *
- * DELIBERATELY NOT called from DatabaseSeeder::run() -- that seeder is
- * invoked on every production deploy via public/migrate.php, and this data
- * (fake patients, fake payments, fake payroll) must never reach the live
- * customer-facing database. Run it explicitly and only locally:
+ * DELIBERATELY NOT called from DatabaseSeeder::run() (which every deploy
+ * always runs), but IS called directly, unconditionally, by every deploy via
+ * public/migrate.php's own "Running demo data seeder" step -- at the user's
+ * explicit, repeated request, since production currently has no real
+ * customer data yet. This will need to be removed from migrate.php (and
+ * this seeder stopped being called in production) before this platform
+ * takes on a real paying customer.
  *
  *   php artisan db:seed --class=DemoDataSeeder
  *
@@ -188,13 +192,24 @@ class DemoDataSeeder extends Seeder
             ],
         ];
 
+        // Two branches, distributed across the seeded doctors/clients below --
+        // exercises branch scoping (a doctor locked to their own branch,
+        // patients/users filterable by branch) instead of leaving every
+        // seeded record's branch_id null.
+        [$branchMain, $branchSecond] = $this->ensureBranches($company);
+        $branchesBySpecialty = [];
+
         // Doctors + schedules first (care-plan/appointment creation below
         // needs every doctor's schedule to already exist).
         $doctors = [];
+        $specialtyIndex = 0;
         foreach ($specialtyConfigs as $specialtyKey => $config) {
             $specialty = Specialty::where('key', $specialtyKey)->firstOrFail();
-            $doctors[$specialtyKey] = $this->ensureDoctor($company, $specialty, $doctorRole, $config);
+            $branch = $specialtyIndex % 2 === 0 ? $branchMain : $branchSecond;
+            $branchesBySpecialty[$specialtyKey] = $branch;
+            $doctors[$specialtyKey] = $this->ensureDoctor($company, $specialty, $doctorRole, $config, $branch);
             $this->ensureSchedule($doctors[$specialtyKey]);
+            $specialtyIndex++;
         }
 
         // Dental's own subscription + catalog already exist (DatabaseSeeder
@@ -210,7 +225,7 @@ class DemoDataSeeder extends Seeder
         foreach ($specialtyConfigs as $specialtyKey => $config) {
             $specialty = Specialty::where('key', $specialtyKey)->firstOrFail();
             $doctor = $doctors[$specialtyKey];
-            $client = $this->ensureClient($company, $config);
+            $client = $this->ensureClient($company, $config, $branchesBySpecialty[$specialtyKey]);
 
             if (! $client->wasRecentlyCreated) {
                 continue;
@@ -225,7 +240,7 @@ class DemoDataSeeder extends Seeder
         }
 
         $this->seedAccounting($company, $doctors[Specialty::DENTAL], $systemManager->id);
-        $this->seedInventoryAndBranch($company);
+        $this->seedInventory($company, $branchMain);
 
         // forgetGuards() (not setUser(null), which the guard's type signature
         // rejects) forces a fresh re-resolution next time anything calls
@@ -239,30 +254,41 @@ class DemoDataSeeder extends Seeder
         Auth::forgetGuards();
     }
 
-    protected function ensureDoctor(Company $company, Specialty $specialty, Role $doctorRole, array $config): User
+    protected function ensureDoctor(Company $company, Specialty $specialty, Role $doctorRole, array $config, Branch $branch): User
     {
         $doctor = User::where('email', $config['doctor_email'])->first();
 
         if (! $doctor) {
             $doctor = User::create([
                 'company_id' => $company->id,
+                'branch_id' => $branch->id,
                 'uuid' => (string) Str::uuid(),
                 'name' => $config['doctor_name'],
                 'email' => $config['doctor_email'],
                 'phone' => $config['doctor_phone'],
                 'password' => Hash::make('secret'),
                 'job_title' => 'Doctor',
-                'branch_name' => 'Damascus',
+                'branch_name' => $branch->name,
                 'status' => 'active',
                 'is_project_admin' => false,
                 'is_doctor' => true,
                 'specialty_id' => $specialty->id,
                 'monthly_salary' => 15000,
             ]);
-        } elseif (! $doctor->specialty_id) {
-            // Covers dental's "Dr. Layan" (seeded by DatabaseSeeder before
-            // specialty_id existed on doctors) -- was never backfilled.
-            $doctor->update(['specialty_id' => $specialty->id]);
+        } else {
+            $updates = [];
+            if (! $doctor->specialty_id) {
+                // Covers dental's "Dr. Layan" (seeded by DatabaseSeeder before
+                // specialty_id existed on doctors) -- was never backfilled.
+                $updates['specialty_id'] = $specialty->id;
+            }
+            if (! $doctor->branch_id) {
+                $updates['branch_id'] = $branch->id;
+                $updates['branch_name'] = $branch->name;
+            }
+            if ($updates) {
+                $doctor->update($updates);
+            }
         }
 
         $doctor->roles()->syncWithoutDetaching([$doctorRole->id]);
@@ -299,12 +325,13 @@ class DemoDataSeeder extends Seeder
         );
     }
 
-    protected function ensureClient(Company $company, array $config): Client
+    protected function ensureClient(Company $company, array $config, Branch $branch): Client
     {
-        return Client::firstOrCreate(
+        $client = Client::firstOrCreate(
             ['client_code' => $config['client_code']],
             [
                 'company_id' => $company->id,
+                'branch_id' => $branch->id,
                 'uuid' => (string) Str::uuid(),
                 'name' => $config['client_name'],
                 'phone' => $config['client_phone'],
@@ -313,6 +340,12 @@ class DemoDataSeeder extends Seeder
                 'city' => 'Damascus',
             ],
         );
+
+        if (! $client->wasRecentlyCreated && ! $client->branch_id) {
+            $client->update(['branch_id' => $branch->id]);
+        }
+
+        return $client;
     }
 
     /**
@@ -693,16 +726,29 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    protected function seedInventoryAndBranch(Company $company): void
+    protected function seedInventory(Company $company, Branch $branch): void
     {
         InventoryItem::firstOrCreate(
             ['company_id' => $company->id, 'name' => 'Disposable Gloves (Box)'],
-            ['unit' => 'box', 'quantity_on_hand' => 50, 'reorder_threshold' => 10, 'unit_cost' => 25, 'status' => 'active'],
+            ['branch_id' => $branch->id, 'unit' => 'box', 'quantity_on_hand' => 50, 'reorder_threshold' => 10, 'unit_cost' => 25, 'status' => 'active'],
         );
+    }
 
-        Branch::firstOrCreate(
+    /**
+     * @return array{0: Branch, 1: Branch}
+     */
+    protected function ensureBranches(Company $company): array
+    {
+        $main = Branch::firstOrCreate(
             ['company_id' => $company->id, 'name' => 'Damascus Main Branch'],
             ['address' => 'Damascus, Syria', 'phone' => '+963110000001', 'status' => 'active'],
         );
+
+        $second = Branch::firstOrCreate(
+            ['company_id' => $company->id, 'name' => 'Aleppo Branch'],
+            ['address' => 'Aleppo, Syria', 'phone' => '+963210000002', 'status' => 'active'],
+        );
+
+        return [$main, $second];
     }
 }

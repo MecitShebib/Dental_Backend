@@ -60,8 +60,11 @@ class DemoDataSeederTest extends TestCase
         $this->assertDatabaseCount('cari_parties', 1);
         $this->assertDatabaseCount('cari_transactions', 1);
         $this->assertDatabaseCount('inventory_items', 1);
-        $this->assertDatabaseCount('branches', 1);
-        $this->assertDatabaseCount('consent_templates', 1);
+        $this->assertDatabaseCount('branches', 2);
+        // 1 clinical template from DemoDataSeeder itself, + 2 KVKK templates
+        // (Aydınlatma Metni + Açık Rıza Beyanı) that KvkkConsentTemplateSeeder
+        // now backfills onto every company via DatabaseSeeder's blanket call.
+        $this->assertDatabaseCount('consent_templates', 3);
 
         // Every specialty's own gynecology/internal_medicine/orthopedics/cosmetic/
         // nutrition treatment catalog must actually exist now (the real bug this
@@ -84,7 +87,7 @@ class DemoDataSeederTest extends TestCase
         $this->assertDatabaseCount('cari_parties', 1);
         $this->assertDatabaseCount('cari_transactions', 1);
         $this->assertDatabaseCount('inventory_items', 1);
-        $this->assertDatabaseCount('branches', 1);
+        $this->assertDatabaseCount('branches', 2);
         $this->assertDatabaseCount('subscriptions', 6);
 
         $gynClient = Client::query()->where('client_code', 'DEMO-GYN-001')->firstOrFail();

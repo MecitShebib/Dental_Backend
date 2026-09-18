@@ -15,10 +15,12 @@ $kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
 /**
- * Same isolated-step pattern as setup.php, but this script only ever runs
- * `migrate` (applies pending migrations, keeps existing data) -- never
- * `migrate:fresh`. Use this for every deploy after the first one; reserve
- * setup.php for the initial, empty-database setup only.
+ * Same isolated-step pattern as setup.php. Normally this script only ever
+ * runs `migrate` (applies pending migrations, keeps existing data) -- never
+ * `migrate:fresh`. The one exception is the explicit, hard-to-hit-by-accident
+ * `?wipe_and_reseed=yes-i-am-sure-wipe-everything` opt-in below, which does
+ * run `migrate:fresh`. Use this for every deploy after the first one;
+ * reserve setup.php for the initial, empty-database setup only.
  */
 function migrateStep(string $label, Closure $step): void
 {
@@ -31,6 +33,22 @@ function migrateStep(string $label, Closure $step): void
     }
 
     echo '<br>';
+}
+
+// Explicit, deliberately hard-to-hit-by-accident opt-in: visiting this file
+// normally (or with any other query string) never wipes anything -- only
+// this exact confirmation phrase does. Requested once, at the user's
+// explicit instruction, to reset production to a clean, branch-distributed
+// demo dataset before real customer data exists. DELETE THIS BLOCK once
+// that reset has actually been run -- it must not linger as a standing way
+// to wipe production.
+$wipeAndReseedConfirmed = ($_GET['wipe_and_reseed'] ?? '') === 'yes-i-am-sure-wipe-everything';
+
+if ($wipeAndReseedConfirmed) {
+    migrateStep('WIPING THE ENTIRE DATABASE (every company, patient, appointment, payment -- everything) and rebuilding the schema from scratch...', function () use ($kernel) {
+        $kernel->call('migrate:fresh', ['--force' => true]);
+        echo nl2br($kernel->output());
+    });
 }
 
 echo 'Running pending migrations...<br><br>';
@@ -78,6 +96,10 @@ migrateStep('Clearing and rebuilding cache...', function () use ($kernel) {
     }
 });
 
-echo '<hr><strong>DONE.</strong> Existing clients, visits, appointments, and everything else were left untouched -- only new migrations ran.<br>';
+if ($wipeAndReseedConfirmed) {
+    echo '<hr><strong>DONE.</strong> The database was wiped and rebuilt from scratch, then reseeded with the demo dataset (2 branches, distributed doctors/patients).<br>';
+} else {
+    echo '<hr><strong>DONE.</strong> Existing clients, visits, appointments, and everything else were left untouched -- only new migrations ran.<br>';
+}
 echo '<strong style="color:red">Delete this file (public/migrate.php) or password-protect it once you\'re done deploying for the day.</strong> '
     .'It has no authentication and runs migrations on every request.';
