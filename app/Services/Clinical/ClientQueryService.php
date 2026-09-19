@@ -33,7 +33,7 @@ class ClientQueryService
             : ($filters['branch_id'] ?? null);
 
         return Client::query()
-            ->with($this->nextAppointmentEagerLoad())
+            ->with(['branch', ...$this->nextAppointmentEagerLoad()])
             ->when($actingUser->is_doctor, fn ($query) => $query->whereHas(
                 'specialtyRecords',
                 fn ($sq) => $sq->where('specialty_id', $actingUser->specialty_id)->where('primary_doctor_id', $actingUser->id)

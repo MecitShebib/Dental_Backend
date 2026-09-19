@@ -18,6 +18,8 @@ class ClientListResource extends JsonResource
             'name' => $this->name,
             'phone' => $this->phone,
             'city' => $this->city,
+            'branch_id' => $this->branch_id,
+            'branch_name' => $this->whenLoaded('branch', fn () => $this->branch?->name),
             'status' => $this->status?->value ?? $this->status,
             'last_visit_at' => optional($this->last_visit_at)->toDateTimeString(),
             'next_appointment' => $nextAppointment ? AppointmentResource::make($nextAppointment) : null,

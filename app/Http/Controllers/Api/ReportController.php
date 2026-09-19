@@ -88,16 +88,21 @@ class ReportController extends Controller
         $request->validate([
             'branch_id' => ['nullable', 'exists:branches,id'],
             'doctor_id' => ['nullable', 'exists:users,id'],
+            'specialty' => ['nullable', 'string', 'exists:specialties,key'],
         ]);
 
         $branchId = $request->branch_id;
         $doctorId = $request->doctor_id;
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
 
         $rows = LabPartner::query()
-            ->with(['labCases' => function ($query) use ($branchId, $doctorId) {
+            ->with(['labCases' => function ($query) use ($branchId, $doctorId, $specialtyId) {
                 $query->whereNotNull('lab_cost')
                     ->when($branchId, fn ($q) => $q->whereHas('client', fn ($cq) => $cq->where(fn ($q2) => $q2->where('branch_id', $branchId)->orWhereNull('branch_id'))))
-                    ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId));
+                    ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
+                    ->when($specialtyId, fn ($q) => $q->whereHas('doctor', fn ($dq) => $dq->where('specialty_id', $specialtyId)));
             }])
             ->get()
             ->map(function (LabPartner $labPartner) {
