@@ -27,6 +27,7 @@ class BranchController extends Controller
 
         $branches = Branch::query()
             ->withCount(['users', 'clients'])
+            ->with('specialties')
             ->orderBy('name')
             ->get();
 
@@ -40,22 +41,38 @@ class BranchController extends Controller
         $company = $request->user()->company;
         $this->branchLimit->assertCanHaveAnotherBranch($company);
 
+        $data = $request->validated();
+        $specialtyIds = $data['specialty_ids'] ?? [];
+        unset($data['specialty_ids']);
+
         $branch = Branch::create([
-            ...$request->validated(),
+            ...$data,
             'company_id' => $company->id,
-            'status' => $request->validated('status') ?? 'active',
+            'status' => $data['status'] ?? 'active',
         ]);
 
-        return $this->success(BranchResource::make($branch), 'Branch created successfully.', 201);
+        $branch->specialties()->sync($specialtyIds);
+
+        return $this->success(BranchResource::make($branch->load('specialties')), 'Branch created successfully.', 201);
     }
 
     public function update(UpdateBranchRequest $request, Branch $branch)
     {
         $this->assertHasAccountingAccess($request);
 
-        $branch->update($request->validated());
+        $data = $request->validated();
 
-        return $this->success(BranchResource::make($branch), 'Branch updated successfully.');
+        // Only touch the specialty associations when the request actually
+        // sent the field -- an update that's just renaming the branch (and
+        // so omits specialty_ids entirely) must not wipe them.
+        if ($request->has('specialty_ids')) {
+            $branch->specialties()->sync($data['specialty_ids'] ?? []);
+        }
+        unset($data['specialty_ids']);
+
+        $branch->update($data);
+
+        return $this->success(BranchResource::make($branch->load('specialties')), 'Branch updated successfully.');
     }
 
     public function destroy(Request $request, Branch $branch)

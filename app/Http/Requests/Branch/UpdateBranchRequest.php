@@ -19,6 +19,8 @@ class UpdateBranchRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'specialty_ids' => ['nullable', 'array'],
+            'specialty_ids.*' => ['integer', Rule::exists('specialties', 'id')],
         ];
     }
 }

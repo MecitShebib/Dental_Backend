@@ -7,6 +7,7 @@ use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Branch extends Model
@@ -35,5 +36,15 @@ class Branch extends Model
     public function clients(): HasMany
     {
         return $this->hasMany(Client::class);
+    }
+
+    /**
+     * Which specialties this branch operates -- no rows at all means
+     * unrestricted (offered from every specialty), see the branch_specialty
+     * migration's docblock.
+     */
+    public function specialties(): BelongsToMany
+    {
+        return $this->belongsToMany(Specialty::class);
     }
 }

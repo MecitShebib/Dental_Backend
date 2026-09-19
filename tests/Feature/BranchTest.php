@@ -126,6 +126,70 @@ class BranchTest extends TestCase
             ->assertJsonPath('data.clients_count', 1);
     }
 
+    public function test_a_branch_can_be_created_with_specific_specialties(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        Sanctum::actingAs($manager);
+
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->value('id');
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->value('id');
+
+        $response = $this->postJson('/api/branches', [
+            'name' => 'Downtown',
+            'specialty_ids' => [$dental, $gynecology],
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.specialty_ids', [$dental, $gynecology]);
+        $this->assertDatabaseCount('branch_specialty', 2);
+    }
+
+    public function test_a_branch_with_no_specialties_is_unrestricted(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        Sanctum::actingAs($manager);
+
+        $response = $this->postJson('/api/branches', ['name' => 'Downtown']);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.specialty_ids', []);
+    }
+
+    public function test_updating_a_branchs_specialties_replaces_the_previous_set(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        Sanctum::actingAs($manager);
+
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->value('id');
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->value('id');
+
+        $branchId = $this->postJson('/api/branches', ['name' => 'Downtown', 'specialty_ids' => [$dental]])->json('data.id');
+
+        $response = $this->putJson("/api/branches/{$branchId}", ['specialty_ids' => [$nutrition]]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.specialty_ids', [$nutrition]);
+        $this->assertDatabaseCount('branch_specialty', 1);
+    }
+
+    public function test_updating_a_branch_without_sending_specialty_ids_leaves_them_untouched(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        Sanctum::actingAs($manager);
+
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->value('id');
+        $branchId = $this->postJson('/api/branches', ['name' => 'Downtown', 'specialty_ids' => [$dental]])->json('data.id');
+
+        $response = $this->putJson("/api/branches/{$branchId}", ['name' => 'Downtown Renamed']);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.specialty_ids', [$dental]);
+    }
+
     public function test_subscription_creation_requires_max_branches(): void
     {
         $company = Company::factory()->create();
