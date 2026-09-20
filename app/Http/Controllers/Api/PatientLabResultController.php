@@ -95,15 +95,11 @@ class PatientLabResultController extends Controller
         $this->assertActingDoctorOwnsClient($request, $client);
         $this->aiTokenUsage->assertCanUseAiTokens($request->user()->company);
 
-        $file = $request->file('report');
-        $mimeType = $file->getMimeType() ?: 'image/jpeg';
-        $dataUri = 'data:'.$mimeType.';base64,'.base64_encode(file_get_contents($file->getRealPath()));
-
         $messages = [
             ['role' => 'system', 'content' => $this->buildExtractionSystemPrompt()],
             ['role' => 'user', 'content' => [
                 ['type' => 'text', 'text' => 'Extract every individual test result from this lab/analysis report.'],
-                ['type' => 'image_url', 'image_url' => ['url' => $dataUri]],
+                $this->openAi->buildVisionContentBlock($request->file('report')),
             ]],
         ];
 

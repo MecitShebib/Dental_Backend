@@ -37,6 +37,33 @@ class OpenAiClient
         ];
     }
 
+    /**
+     * A vision-turn content block for an uploaded report file -- an actual
+     * image goes in as image_url (the original path), while a PDF goes in
+     * as a file content block (filename + base64 file_data): the Chat
+     * Completions API accepts PDFs directly for vision-capable models like
+     * gpt-4o/gpt-4o-mini, rendering each page as an image internally, so no
+     * server-side PDF-to-image rasterization is needed (this host has
+     * neither Imagick nor Ghostscript available).
+     */
+    public function buildVisionContentBlock(UploadedFile $file): array
+    {
+        $mimeType = $file->getMimeType() ?: 'image/jpeg';
+        $dataUri = 'data:'.$mimeType.';base64,'.base64_encode(file_get_contents($file->getRealPath()));
+
+        if ($mimeType === 'application/pdf') {
+            return [
+                'type' => 'file',
+                'file' => [
+                    'filename' => $file->getClientOriginalName() ?: 'report.pdf',
+                    'file_data' => $dataUri,
+                ],
+            ];
+        }
+
+        return ['type' => 'image_url', 'image_url' => ['url' => $dataUri]];
+    }
+
     public function transcribe(UploadedFile $audio): string
     {
         $apiKey = (string) config('services.openai.api_key');

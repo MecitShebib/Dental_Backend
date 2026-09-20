@@ -77,30 +77,26 @@ class BodyMetricController extends Controller
     }
 
     /**
-     * Reads a photo of a body-composition device's printed/on-screen report
-     * (InBody, Tanita, etc.) via OpenAI vision and returns the extracted
-     * values for the frontend to pre-fill the same manual-entry form with --
-     * nothing is persisted here, the doctor still reviews/edits and hits
-     * Save (store() above) same as the fully-manual path. Same
-     * base64-data-URI pattern as AiTreatmentPlanService::analyzeXrayImage()
-     * (the private disk isn't involved at all here -- the upload is read
-     * straight from the request, never written to storage unless/until the
-     * doctor actually saves it via store()).
+     * Reads a photo or PDF of a body-composition device's printed/on-screen
+     * report (InBody, Tanita, etc.) via OpenAI vision and returns the
+     * extracted values for the frontend to pre-fill the same manual-entry
+     * form with -- nothing is persisted here, the doctor still reviews/edits
+     * and hits Save (store() above) same as the fully-manual path. See
+     * OpenAiClient::buildVisionContentBlock() for the image-vs-PDF content
+     * block split (the private disk isn't involved at all here -- the
+     * upload is read straight from the request, never written to storage
+     * unless/until the doctor actually saves it via store()).
      */
     public function extract(ExtractNutritionBodyMetricRequest $request, Client $client)
     {
         $this->assertActingDoctorOwnsClient($request, $client);
         $this->aiTokenUsage->assertCanUseAiTokens($request->user()->company);
 
-        $file = $request->file('report');
-        $mimeType = $file->getMimeType() ?: 'image/jpeg';
-        $dataUri = 'data:'.$mimeType.';base64,'.base64_encode(file_get_contents($file->getRealPath()));
-
         $messages = [
             ['role' => 'system', 'content' => $this->buildExtractionSystemPrompt()],
             ['role' => 'user', 'content' => [
                 ['type' => 'text', 'text' => 'Extract the body composition values from this report.'],
-                ['type' => 'image_url', 'image_url' => ['url' => $dataUri]],
+                $this->openAi->buildVisionContentBlock($request->file('report')),
             ]],
         ];
 

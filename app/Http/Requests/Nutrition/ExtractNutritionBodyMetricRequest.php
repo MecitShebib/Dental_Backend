@@ -14,11 +14,11 @@ class ExtractNutritionBodyMetricRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Image only, not PDF -- OpenAI's vision API takes an
-            // image_url/data-URI, the same constraint AnalyzeXrayImageJob
-            // already works under. A PDF report still works fine through
-            // the plain manual-entry path.
-            'report' => ['required', 'image', 'max:20480'],
+            // Image or PDF -- OpenAiClient::buildVisionContentBlock() sends an
+            // image straight through as image_url, and a PDF as a file content
+            // block (the Chat Completions API accepts both for vision-capable
+            // models).
+            'report' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:20480'],
         ];
     }
 }

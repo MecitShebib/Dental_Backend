@@ -266,4 +266,47 @@ class PatientLabResultTest extends TestCase
         $response->assertJsonPath('data.results.1.test_name', 'Fasting Glucose');
         $this->assertDatabaseCount('patient_lab_results', 0);
     }
+
+    public function test_analyze_accepts_a_pdf_report_and_sends_it_as_a_file_content_block(): void
+    {
+        $company = Company::factory()->create();
+        Subscription::create([
+            'company_id' => $company->id,
+            'plan_name' => 'Test Plan',
+            'status' => 'active',
+            'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10,
+            'max_ai_tokens' => null,
+            'ai_tokens_used' => 0,
+        ]);
+        $doctor = $this->makeDoctor($company, Specialty::INTERNAL_MEDICINE);
+        $client = $this->makeClient($company);
+        $this->enrollClient($client, $doctor);
+        Sanctum::actingAs($doctor);
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode(['results' => []])]],
+                ],
+                'usage' => ['prompt_tokens' => 100, 'completion_tokens' => 10, 'total_tokens' => 110],
+            ], 200),
+        ]);
+
+        $response = $this->postJson("/api/clients/{$client->id}/lab-results/analyze", [
+            'report' => UploadedFile::fake()->create('panel-report.pdf', 100, 'application/pdf'),
+        ]);
+
+        $response->assertOk();
+
+        Http::assertSent(function ($request) {
+            $body = $request->data();
+            $userContent = collect($body['messages'])->firstWhere('role', 'user')['content'] ?? [];
+            $fileBlock = collect($userContent)->firstWhere('type', 'file');
+
+            return $fileBlock
+                && $fileBlock['file']['filename'] === 'panel-report.pdf'
+                && str_starts_with($fileBlock['file']['file_data'], 'data:application/pdf;base64,');
+        });
+    }
 }
