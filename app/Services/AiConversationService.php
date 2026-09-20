@@ -294,9 +294,87 @@ class AiConversationService
             }
         }
 
-        return $lines
+        $text = $lines
             ? "Nutrition profile and measurement history:\n".implode("\n", $lines)
             : "Nutrition profile and measurement history: none recorded yet.";
+
+        $priorPlanText = $this->buildPriorCarePlanText($client);
+        if ($priorPlanText) {
+            $text .= "\n\n".$priorPlanText;
+        }
+
+        $labResultsText = $this->buildLabResultsText($client);
+        if ($labResultsText) {
+            $text .= "\n\n".$labResultsText;
+        }
+
+        return $text;
+    }
+
+    /**
+     * The most recently confirmed diet/exercise plan this client already has
+     * on file (see CarePlan.diet_plan/exercise_plan, authored by
+     * SpecialtyAiTreatmentPlanService::confirm()) -- so a follow-up plan
+     * builds on what the patient was already given instead of starting from
+     * nothing, and the AI can judge whether it's still working.
+     */
+    protected function buildPriorCarePlanText(Client $client): ?string
+    {
+        $plan = $client->carePlans()
+            ->where('status', CarePlan::STATUS_CONFIRMED)
+            ->whereHas('specialty', fn ($query) => $query->where('key', Specialty::NUTRITION))
+            ->where(fn ($query) => $query->whereNotNull('diet_plan')->orWhereNotNull('exercise_plan'))
+            ->latest('id')
+            ->first();
+
+        if (! $plan) {
+            return null;
+        }
+
+        $lines = ["Existing plan on file (\"{$plan->title}\"):"];
+
+        if ($plan->diet_plan) {
+            $lines[] = "Diet plan:\n{$plan->diet_plan}";
+        }
+
+        if ($plan->exercise_plan) {
+            $lines[] = "Exercise plan:\n{$plan->exercise_plan}";
+        }
+
+        return implode("\n\n", $lines);
+    }
+
+    /**
+     * Every lab/analysis result on file for this client (not specialty-
+     * filtered -- a nutrition patient's bloodwork ordered by any doctor is
+     * still clinically relevant here), most recent first, capped for the
+     * same cost/context-size reason the measurement history above is.
+     */
+    protected function buildLabResultsText(Client $client): ?string
+    {
+        $results = $client->labResults()->latest('test_date')->limit(10)->get();
+
+        if ($results->isEmpty()) {
+            return null;
+        }
+
+        $lines = ['Lab/analysis results on file (most recent first):'];
+
+        foreach ($results as $result) {
+            $parts = ["{$result->test_date->toDateString()}: {$result->test_name}"];
+            if ($result->result_value) {
+                $parts[] = $result->result_value.($result->unit ? " {$result->unit}" : '');
+            }
+            if ($result->reference_range) {
+                $parts[] = "reference {$result->reference_range}";
+            }
+            if ($result->is_abnormal !== null) {
+                $parts[] = $result->is_abnormal ? 'flagged abnormal' : 'normal';
+            }
+            $lines[] = '- '.implode(', ', $parts);
+        }
+
+        return implode("\n", $lines);
     }
 
     protected function formatWeightDeltaLine(string $label, float $from, float $to): string
