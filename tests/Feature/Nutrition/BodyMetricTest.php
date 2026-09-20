@@ -170,6 +170,57 @@ class BodyMetricTest extends TestCase
         $this->assertDatabaseMissing('nutrition_body_metrics', ['uuid' => $created['uuid']]);
     }
 
+    public function test_update_persists_changed_values_and_recomputes_bmi(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        $this->putJson("/api/nutrition/clients/{$client->id}/profile", ['height_cm' => 170]);
+
+        $created = $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 79,
+            'right_arm_muscle_kg' => 3.0,
+        ])->json('data');
+
+        $response = $this->putJson("/api/nutrition/body-metrics/{$created['uuid']}", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 82,
+            'right_arm_muscle_kg' => 3.4,
+        ]);
+
+        $response->assertOk();
+        // 82 / (1.70^2) = 28.4
+        $response->assertJsonPath('data.weight_kg', '82.0');
+        $response->assertJsonPath('data.bmi', '28.4');
+        $response->assertJsonPath('data.right_arm_muscle_kg', '3.4');
+    }
+
+    public function test_a_doctor_cannot_update_another_companys_measurement(): void
+    {
+        $companyA = Company::factory()->create();
+        [, $clientA] = $this->makeNutritionDoctorAndClient($companyA);
+        $companyB = Company::factory()->create();
+        [$doctorB] = $this->makeNutritionDoctorAndClient($companyB);
+
+        $metric = $clientA->nutritionBodyMetrics()->create([
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 80,
+        ]);
+
+        Sanctum::actingAs($doctorB);
+
+        $response = $this->putJson("/api/nutrition/body-metrics/{$metric->uuid}", [
+            'recorded_at' => '2026-09-16',
+            'weight_kg' => 90,
+        ]);
+
+        $response->assertStatus(404);
+        $this->assertDatabaseHas('nutrition_body_metrics', ['id' => $metric->id, 'weight_kg' => 80]);
+    }
+
     public function test_a_doctor_cannot_delete_another_companys_measurement(): void
     {
         $companyA = Company::factory()->create();

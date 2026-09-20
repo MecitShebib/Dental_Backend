@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Nutrition\ExtractNutritionBodyMetricRequest;
 use App\Http\Requests\Nutrition\StoreNutritionBodyMetricRequest;
+use App\Http\Requests\Nutrition\UpdateNutritionBodyMetricRequest;
 use App\Http\Resources\NutritionBodyMetricResource;
 use App\Models\Client;
 use App\Models\NutritionBodyMetric;
@@ -38,21 +39,7 @@ class BodyMetricController extends Controller
 
         $data = $request->validated();
 
-        $weight = $data['weight_kg'] ?? null;
-        $heightCm = $client->nutritionProfile?->height_cm;
-        // !== null / > 0, not a truthy check -- weight_kg=0 is a legal
-        // (if clinically meaningless) value per StoreNutritionBodyMetricRequest's
-        // 'min:0' rule, and a truthy check would silently skip computing BMI
-        // for it. The >= 1000 guard keeps an extreme height/weight
-        // combination from overflowing the bmi column's decimal(4,1) range
-        // (max 999.9) and throwing an unhandled QueryException instead of
-        // just leaving bmi null.
-        $bmi = ($weight !== null && $heightCm !== null && (float) $heightCm > 0)
-            ? round((float) $weight / (((float) $heightCm / 100) ** 2), 1)
-            : null;
-        if ($bmi !== null && $bmi >= 1000) {
-            $bmi = null;
-        }
+        $bmi = $this->computeBmi($data['weight_kg'] ?? null, $client->nutritionProfile?->height_cm);
 
         $reportPath = null;
         $reportOriginalFilename = null;
@@ -74,6 +61,36 @@ class BodyMetricController extends Controller
         ]);
 
         return $this->success(NutritionBodyMetricResource::make($metric), 'Measurement recorded successfully.', 201);
+    }
+
+    public function update(UpdateNutritionBodyMetricRequest $request, NutritionBodyMetric $bodyMetric)
+    {
+        $this->assertActingDoctorOwnsClient($request, $bodyMetric->client);
+
+        $data = $request->validated();
+
+        $bmi = $this->computeBmi($data['weight_kg'] ?? null, $bodyMetric->client->nutritionProfile?->height_cm);
+
+        $reportPath = $bodyMetric->report_path;
+        $reportOriginalFilename = $bodyMetric->report_original_filename;
+        if ($request->hasFile('report')) {
+            if ($reportPath) {
+                Storage::disk('local')->delete($reportPath);
+            }
+            $file = $request->file('report');
+            $reportPath = $file->store('nutrition-body-metric-reports', 'local');
+            $reportOriginalFilename = $file->getClientOriginalName();
+        }
+
+        $bodyMetric->update([
+            ...collect($data)->except('report')->all(),
+            'bmi' => $bmi,
+            'report_path' => $reportPath,
+            'report_original_filename' => $reportOriginalFilename,
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return $this->success(NutritionBodyMetricResource::make($bodyMetric->fresh()), 'Measurement updated successfully.');
     }
 
     /**
@@ -199,5 +216,25 @@ class BodyMetricController extends Controller
         abort_unless($bodyMetric->report_path, 404);
 
         return Storage::disk('local')->response($bodyMetric->report_path, $bodyMetric->report_original_filename);
+    }
+
+    /**
+     * weight_kg=0 is a legal (if clinically meaningless) value per
+     * Store/UpdateNutritionBodyMetricRequest's 'min:0' rule, so this checks
+     * !== null rather than a truthy check, which would silently skip
+     * computing BMI for it. The >= 1000 guard keeps an extreme
+     * height/weight combination from overflowing the bmi column's
+     * decimal(4,1) range (max 999.9) and throwing an unhandled
+     * QueryException instead of just leaving bmi null.
+     */
+    protected function computeBmi(?float $weightKg, ?string $heightCm): ?float
+    {
+        if ($weightKg === null || $heightCm === null || (float) $heightCm <= 0) {
+            return null;
+        }
+
+        $bmi = round($weightKg / (((float) $heightCm / 100) ** 2), 1);
+
+        return $bmi >= 1000 ? null : $bmi;
     }
 }
