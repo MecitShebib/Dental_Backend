@@ -6,9 +6,12 @@ use App\Models\Client;
 use App\Models\ClientSpecialtyRecord;
 use App\Models\Company;
 use App\Models\Specialty;
+use App\Models\Subscription;
 use App\Models\User;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -205,6 +208,62 @@ class PatientLabResultTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('client');
+        $this->assertDatabaseCount('patient_lab_results', 0);
+    }
+
+    public function test_analyze_returns_every_result_the_ai_reads_off_a_report_without_persisting_anything(): void
+    {
+        $company = Company::factory()->create();
+        Subscription::create([
+            'company_id' => $company->id,
+            'plan_name' => 'Test Plan',
+            'status' => 'active',
+            'starts_at' => now()->subDay()->toDateString(),
+            'max_users' => 10,
+            'max_ai_tokens' => null,
+            'ai_tokens_used' => 0,
+        ]);
+        $doctor = $this->makeDoctor($company, Specialty::INTERNAL_MEDICINE);
+        $client = $this->makeClient($company);
+        $this->enrollClient($client, $doctor);
+        Sanctum::actingAs($doctor);
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => json_encode([
+                        'results' => [
+                            [
+                                'test_name' => 'Hemoglobin A1c',
+                                'result_value' => '7.2',
+                                'unit' => '%',
+                                'reference_range' => '4.0-5.6',
+                                'is_abnormal' => true,
+                                'test_date' => '2026-09-01',
+                            ],
+                            [
+                                'test_name' => 'Fasting Glucose',
+                                'result_value' => '110',
+                                'unit' => 'mg/dL',
+                                'reference_range' => '70-100',
+                                'is_abnormal' => true,
+                                'test_date' => '2026-09-01',
+                            ],
+                        ],
+                    ])]],
+                ],
+                'usage' => ['prompt_tokens' => 300, 'completion_tokens' => 60, 'total_tokens' => 360],
+            ], 200),
+        ]);
+
+        $response = $this->postJson("/api/clients/{$client->id}/lab-results/analyze", [
+            'report' => UploadedFile::fake()->image('panel-report.jpg'),
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data.results');
+        $response->assertJsonPath('data.results.0.test_name', 'Hemoglobin A1c');
+        $response->assertJsonPath('data.results.1.test_name', 'Fasting Glucose');
         $this->assertDatabaseCount('patient_lab_results', 0);
     }
 }

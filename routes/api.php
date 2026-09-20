@@ -213,6 +213,7 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
 
     Route::get('clients/{client}/lab-results', [PatientLabResultController::class, 'index']);
     Route::post('clients/{client}/lab-results', [PatientLabResultController::class, 'store']);
+    Route::post('clients/{client}/lab-results/analyze', [PatientLabResultController::class, 'analyze']);
     Route::put('lab-results/{labResult}', [PatientLabResultController::class, 'update']);
     Route::delete('lab-results/{labResult}', [PatientLabResultController::class, 'destroy']);
 
