@@ -84,6 +84,36 @@ class BodyMetricTest extends TestCase
         ]);
     }
 
+    public function test_store_persists_segmental_arm_and_leg_fields(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'right_arm_muscle_kg' => 3.4,
+            'left_arm_muscle_kg' => 3.3,
+            'right_arm_fat_percent' => 18.2,
+            'left_arm_fat_percent' => 18.5,
+            'right_leg_muscle_kg' => 9.1,
+            'left_leg_muscle_kg' => 9.0,
+            'right_leg_fat_percent' => 22.1,
+            'left_leg_fat_percent' => 22.4,
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.right_arm_muscle_kg', '3.4');
+        $response->assertJsonPath('data.left_arm_muscle_kg', '3.3');
+        $response->assertJsonPath('data.right_arm_fat_percent', '18.2');
+        $response->assertJsonPath('data.left_arm_fat_percent', '18.5');
+        $response->assertJsonPath('data.right_leg_muscle_kg', '9.1');
+        $response->assertJsonPath('data.left_leg_muscle_kg', '9.0');
+        $response->assertJsonPath('data.right_leg_fat_percent', '22.1');
+        $response->assertJsonPath('data.left_leg_fat_percent', '22.4');
+    }
+
     public function test_index_lists_measurements_newest_first(): void
     {
         $company = Company::factory()->create();
