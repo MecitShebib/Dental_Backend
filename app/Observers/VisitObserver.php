@@ -9,11 +9,16 @@ use App\Services\SatisfactionSurveyService;
 
 /**
  * The moment a visit's attendance_status becomes "attended" (whether set at
- * creation or via a later update, e.g. check-in), queue a one-time
+ * creation or via a later update, e.g. check-in), send a one-time
  * satisfaction survey invite -- see SatisfactionSurveyService/
  * SendSatisfactionSurveyJob. SatisfactionSurveyService::createForVisit()
  * itself is idempotent (unique visit_id), so a duplicate observer firing
  * (e.g. two saves) can't create two surveys for the same visit.
+ *
+ * dispatchSync(), not dispatch(): this host has no queue worker process, so
+ * anything sent through ::dispatch() sits in the `jobs` table untouched
+ * forever (same reasoning as AnalyzeXrayImageJob -- confirmed via
+ * production diagnostics that invites were never actually being sent).
  */
 class VisitObserver
 {
@@ -38,7 +43,7 @@ class VisitObserver
         $survey = app(SatisfactionSurveyService::class)->createForVisit($visit);
 
         if ($survey) {
-            SendSatisfactionSurveyJob::dispatch($survey);
+            SendSatisfactionSurveyJob::dispatchSync($survey);
         }
     }
 }
