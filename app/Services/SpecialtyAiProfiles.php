@@ -69,7 +69,15 @@ class SpecialtyAiProfiles
         return array_column(self::procedureVocabulary($specialtyKey), 'code');
     }
 
-    public static function chatSystemPrompt(string $specialtyKey): string
+    /**
+     * $languageName is the conversation's pinned language ("English"/"Arabic"/
+     * "Turkish"), resolved once per thread by
+     * AiConversationService::resolveConversationLanguage(). It is stated
+     * explicitly instead of letting the model re-infer the language from the
+     * latest message every turn, which made threads flip language halfway
+     * through (QA audit 2026-09-22, reproduced in nutrition and dental alike).
+     */
+    public static function chatSystemPrompt(string $specialtyKey, string $languageName): string
     {
         $domain = self::domainLabel($specialtyKey);
 
@@ -78,16 +86,21 @@ class SpecialtyAiProfiles
             record system, chatting with the treating doctor about one specific patient.
             You may be shown the patient's basic info and the conversation so far. Discuss
             the case naturally: answer questions, help the doctor reason through diagnosis
-            and treatment options. Reply in the same language the doctor is writing in.
+            and treatment options.
+
+            This conversation is conducted in {$languageName}. Write every reply, and
+            every answer choice in `options`, in {$languageName} for the whole
+            conversation -- never switch to another language, even if an individual
+            message you receive happens to be written in a different one.
 
             If you are missing a specific piece of clinical information you would need to
             build a good treatment plan (e.g. a symptom's duration or severity, an
             examination finding), ask the doctor ONE focused question at a time in
             `reply`. When that question has a small set of likely answers, put 2-4 short
-            answer choices in `options` (in the doctor's own language) so the doctor can
-            tap one after examining the patient instead of typing it out. Leave `options`
-            empty for open-ended questions or whenever you are not asking a question that
-            has discrete answers.
+            answer choices in `options` so the doctor can tap one after examining the
+            patient instead of typing it out. Leave `options` empty for open-ended
+            questions or whenever you are not asking a question that has discrete
+            answers.
 
             Once you have enough information to build a solid plan, set `ready_for_plan`
             to true and end `reply` with a short sentence telling the doctor they can now
@@ -102,7 +115,7 @@ class SpecialtyAiProfiles
             PROMPT;
     }
 
-    public static function planSystemPrompt(string $specialtyKey): string
+    public static function planSystemPrompt(string $specialtyKey, string $languageName): string
     {
         $domain = self::domainLabel($specialtyKey);
         $procedures = implode(', ', array_column(self::procedureVocabulary($specialtyKey), 'code'));
@@ -115,12 +128,15 @@ class SpecialtyAiProfiles
             build the plan, or both). Use all of this context together, not just the
             final message alone.
 
+            This case has been discussed in {$languageName}: write session_description
+            and every other free-text field you produce in {$languageName}, regardless of
+            what language any individual message happens to be written in.
+
             Produce a treatment plan made of one or more future sessions (visits), each
             separated by a number of days from the previous one (day_offset; use 0 for
             the very first session, meaning "as soon as possible"). For each session,
             decide a realistic appointment duration (30, 60, or 90 minutes) and describe
-            in session_description, in the same language the doctor used, what the doctor
-            will do during that specific session.
+            in session_description what the doctor will do during that specific session.
 
             For each session, list the procedures involved using ONLY these allowed
             procedure codes: {$procedures}. If nothing in this list fits a session, leave
@@ -129,7 +145,7 @@ class SpecialtyAiProfiles
 
             Keep plans realistic: most cases need between 1 and 4 sessions. Never propose
             more than 8 sessions.
-            PROMPT.self::nutritionPlanAddendum($specialtyKey);
+            PROMPT.self::nutritionPlanAddendum($specialtyKey, $languageName);
     }
 
     /**
@@ -141,16 +157,15 @@ class SpecialtyAiProfiles
      * baseline comparison). See
      * docs/superpowers/specs/2026-09-15-nutrition-specialty-expansion-design.md.
      */
-    protected static function nutritionPlanAddendum(string $specialtyKey): string
+    protected static function nutritionPlanAddendum(string $specialtyKey, string $languageName): string
     {
         if ($specialtyKey !== Specialty::NUTRITION) {
             return '';
         }
 
-        return "\n\n".<<<'PROMPT'
-            Also write two more fields, both in the same language the doctor used, both
-            addressed to the PATIENT (not the doctor) since they may be shown directly to
-            them:
+        return "\n\n".<<<PROMPT
+            Also write two more fields, both in {$languageName}, both addressed to the
+            PATIENT (not the doctor) since they may be shown directly to them:
 
             diet_plan: a concrete meal/diet plan grounded in the patient's profile
             (dietary type, allergies, chronic conditions, goal) and recent body-metric
@@ -162,7 +177,7 @@ class SpecialtyAiProfiles
 
             exercise_plan: a realistic weekly exercise plan matching the patient's
             activity level and goal (e.g. which days, what type of exercise, how long),
-            plain text with line breaks, same language.
+            plain text with line breaks, also in {$languageName}.
 
             Both fields are required and must not be empty, even for a very short
             consultation-only plan -- give at least brief, sensible guidance in each.

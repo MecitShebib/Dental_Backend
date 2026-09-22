@@ -460,9 +460,16 @@ class AiTreatmentPlanService
         ];
     }
 
-    public function buildSystemPrompt(): string
+    /**
+     * $languageName is the pinned language of the conversation this plan is
+     * built from ("English"/"Arabic"/"Turkish", resolved once per thread by
+     * AiConversationService::resolveConversationLanguage()). Stated
+     * explicitly so the plan's own prose follows the conversation rather than
+     * whatever language the final trigger message happened to be in.
+     */
+    public function buildSystemPrompt(string $languageName): string
     {
-        return <<<'PROMPT'
+        return <<<PROMPT
             You are a dental treatment planning assistant used inside a clinic's patient
             record system. You will receive the patient's basic info, possibly one or
             more dental/X-ray images, and possibly a prior conversation between you and
@@ -472,12 +479,15 @@ class AiTreatmentPlanService
             free text may name one or more tooth numbers (FDI notation, 11-85) and
             symptoms.
 
+            This case has been discussed in {$languageName}: write session_description
+            and every other free-text field you produce in {$languageName}, regardless of
+            what language any individual message happens to be written in.
+
             Produce a treatment plan made of one or more future sessions (visits), each
             separated by a number of days from the previous one (day_offset; use 0 for
             the very first session, meaning "as soon as possible"). For each session,
             decide a realistic appointment duration (30, 60, or 90 minutes) and describe
-            in session_description, in the same language the doctor used, what the
-            doctor will do during that specific session.
+            in session_description what the doctor will do during that specific session.
 
             For each session, list the teeth involved and their condition/treatment
             using only the allowed vocabulary provided by the schema. If a tooth's

@@ -12,10 +12,18 @@ class AiConversation extends Model
 {
     use BelongsToCompanyViaClient, HasUuid;
 
+    /**
+     * `language` is the one language ('en'/'ar'/'tr', same vocabulary as
+     * clients.preferred_language) this whole thread is conducted in. It is
+     * resolved once, when the conversation is first created, and never
+     * re-derived per message -- see
+     * AiConversationService::resolveConversationLanguage() for why.
+     */
     protected $fillable = [
         'uuid',
         'client_id',
         'specialty_id',
+        'language',
     ];
 
     public function client(): BelongsTo

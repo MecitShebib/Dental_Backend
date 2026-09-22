@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\AiTreatmentPlan;
 
+use App\Models\AiConversation;
 use App\Models\AiConversationMessage;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\XrayImage;
@@ -29,6 +31,11 @@ class AiConversationTest extends TestCase
             'services.openai.api_key' => 'test-key',
             'services.openai.chat_model' => 'gpt-4o-mini',
         ]);
+
+        // X-ray images are read straight off the private disk and inlined as
+        // base64 (see AiConversationService::recentImageUrls()) -- fake it
+        // so makeXrayImage()'s rows have real bytes behind them.
+        Storage::fake('local');
     }
 
     protected function fakeChatReply(
@@ -69,7 +76,7 @@ class AiConversationTest extends TestCase
         return $doctor;
     }
 
-    protected function makeClient(Company $company): Client
+    protected function makeClient(Company $company, array $attributes = []): Client
     {
         $client = Client::create([
             'company_id' => $company->id,
@@ -78,20 +85,59 @@ class AiConversationTest extends TestCase
             'phone' => fake()->unique()->e164PhoneNumber(),
             'gender' => 'male',
             'status' => 'new',
+            ...$attributes,
         ]);
         $this->signKvkkConsent($client);
 
         return $client;
     }
 
+    /**
+     * The system prompt of the most recent OpenAI call (the fake records every
+     * request, and the closure runs against all of them, so $captured ends up
+     * holding the last one).
+     */
+    protected function systemPromptFromLastRequest(): string
+    {
+        $captured = null;
+
+        Http::assertSent(function ($request) use (&$captured) {
+            $captured = collect($request->data()['messages'])->firstWhere('role', 'system')['content'] ?? '';
+
+            return true;
+        });
+
+        return (string) $captured;
+    }
+
+    protected function doctorWithFullWeekSchedule(): User
+    {
+        $doctor = $this->activeDoctor();
+        $schedule = $doctor->doctorSchedule()->create(['start_time' => '09:00:00', 'end_time' => '17:00:00', 'slot_minutes' => 30]);
+        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as $day) {
+            $schedule->workingDays()->create(['weekday' => $day]);
+        }
+
+        return $doctor;
+    }
+
     protected function makeXrayImage(Client $client, string $path): XrayImage
     {
+        Storage::disk('local')->put($path, 'fake-image-bytes-for-'.$path);
+
         return XrayImage::create([
             'company_id' => $client->company_id,
             'client_id' => $client->id,
             'image_path' => $path,
             'original_filename' => basename($path),
         ]);
+    }
+
+    protected function dataUriFor(string $path): string
+    {
+        $mimeType = Storage::disk('local')->mimeType($path) ?: 'image/jpeg';
+
+        return 'data:'.$mimeType.';base64,'.base64_encode(Storage::disk('local')->get($path));
     }
 
     public function test_sending_a_message_persists_both_messages_and_returns_the_ai_reply(): void
@@ -159,16 +205,19 @@ class AiConversationTest extends TestCase
         $doctor = $this->activeDoctor();
         Sanctum::actingAs($doctor);
         $client = $this->makeClient($doctor->company);
-        $this->makeXrayImage($client, 'xray-images/one.jpg');
-        $this->makeXrayImage($client, 'xray-images/two.jpg');
+        $imageOne = $this->makeXrayImage($client, 'xray-images/one.jpg');
+        $imageTwo = $this->makeXrayImage($client, 'xray-images/two.jpg');
         $this->fakeChatReply();
 
         $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", [
             'text' => 'Here is the case.',
         ])->assertOk();
 
-        $expectedUrlOne = Storage::disk('public')->url('xray-images/one.jpg');
-        $expectedUrlTwo = Storage::disk('public')->url('xray-images/two.jpg');
+        // X-ray images live on the private disk (KVKK Faz 0) and are sent to
+        // OpenAI as inline base64 data URIs, not a fetchable URL -- see
+        // AiConversationService::recentImageUrls().
+        $expectedUrlOne = $this->dataUriFor($imageOne->image_path);
+        $expectedUrlTwo = $this->dataUriFor($imageTwo->image_path);
 
         $this->assertDatabaseHas('ai_conversation_messages', [
             'role' => 'user',
@@ -192,13 +241,13 @@ class AiConversationTest extends TestCase
         $doctor = $this->activeDoctor();
         Sanctum::actingAs($doctor);
         $client = $this->makeClient($doctor->company);
-        $this->makeXrayImage($client, 'xray-images/one.jpg');
+        $image = $this->makeXrayImage($client, 'xray-images/one.jpg');
         $this->fakeChatReply();
 
         $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", ['text' => 'First message.'])->assertOk();
         $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", ['text' => 'Second message.'])->assertOk();
 
-        $expectedUrl = Storage::disk('public')->url('xray-images/one.jpg');
+        $expectedUrl = $this->dataUriFor($image->image_path);
 
         // The second request is the one with 4 messages (system, first user
         // w/ image, first assistant, second user) -- the first request (2
@@ -358,5 +407,158 @@ class AiConversationTest extends TestCase
             ->assertJsonValidationErrors('ai_tokens');
 
         Http::assertNothingSent();
+    }
+
+    /**
+     * The conversation's language is resolved once and then stated outright in
+     * every system prompt, instead of the model re-inferring it per turn from
+     * the latest message -- which is what let a fully English thread answer in
+     * Arabic halfway through (QA audit 2026-09-22 section 2.2).
+     */
+    public function test_conversation_language_is_pinned_and_named_explicitly_in_the_system_prompt(): void
+    {
+        $doctor = $this->activeDoctor();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company);
+        $this->fakeChatReply();
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", [
+            'text' => 'What do you think about tooth 26?',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'en']);
+
+        $prompt = $this->systemPromptFromLastRequest();
+        $this->assertStringContainsString('This conversation is conducted in English.', $prompt);
+        $this->assertStringContainsString('never switch to another language', $prompt);
+        $this->assertStringNotContainsString('same language the doctor is writing in', $prompt);
+    }
+
+    public function test_conversation_language_falls_back_to_the_clients_preferred_language(): void
+    {
+        $doctor = $this->activeDoctor();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'tr']);
+        $this->fakeChatReply();
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", [
+            'text' => 'Tooth 26.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'tr']);
+        $this->assertStringContainsString('This conversation is conducted in Turkish.', $this->systemPromptFromLastRequest());
+    }
+
+    public function test_the_language_the_doctor_opens_the_thread_in_wins_over_the_patient_record(): void
+    {
+        $doctor = $this->activeDoctor();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'en']);
+        $this->fakeChatReply();
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", [
+            'text' => 'المريض يشكو من ألم في الضرس 26',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'ar']);
+        $this->assertStringContainsString('This conversation is conducted in Arabic.', $this->systemPromptFromLastRequest());
+    }
+
+    /**
+     * The reproduced bug in one assertion: a doctor writing Latin script must
+     * never have the thread pinned to Arabic, whatever the patient record's
+     * own preferred_language happens to say.
+     */
+    public function test_a_latin_script_conversation_is_never_pinned_to_arabic(): void
+    {
+        $doctor = $this->activeDoctor();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'ar']);
+        $this->fakeChatReply();
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", [
+            'text' => 'Deep decay on tooth 26, sensitive to cold.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'en']);
+        $this->assertStringContainsString('This conversation is conducted in English.', $this->systemPromptFromLastRequest());
+    }
+
+    public function test_the_pinned_language_stays_fixed_for_later_turns(): void
+    {
+        $doctor = $this->activeDoctor();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'en']);
+        $this->fakeChatReply();
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", ['text' => 'First message.'])->assertOk();
+
+        // Whatever happens to the patient record afterwards, the thread keeps
+        // the language it was started in.
+        $client->update(['preferred_language' => 'ar']);
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", ['text' => 'Second message.'])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'en']);
+        $this->assertStringContainsString('This conversation is conducted in English.', $this->systemPromptFromLastRequest());
+    }
+
+    public function test_a_legacy_conversation_without_a_language_is_backfilled_from_its_own_first_message(): void
+    {
+        $doctor = $this->activeDoctor();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'en']);
+
+        // A row from before the language column existed: started in Arabic.
+        $conversation = AiConversation::create([
+            'client_id' => $client->id,
+            'specialty_id' => Specialty::query()->where('key', Specialty::DENTAL)->value('id'),
+        ]);
+        $conversation->messages()->create([
+            'role' => AiConversationMessage::ROLE_USER,
+            'content' => 'المريض يشكو من ألم في الضرس 26',
+            'created_by' => $doctor->id,
+        ]);
+
+        $this->assertNull($conversation->fresh()->language);
+
+        $this->fakeChatReply();
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", ['text' => 'And now?'])->assertOk();
+
+        $this->assertSame('ar', $conversation->fresh()->language);
+        $this->assertStringContainsString('This conversation is conducted in Arabic.', $this->systemPromptFromLastRequest());
+    }
+
+    public function test_plan_generation_prompt_names_the_conversations_pinned_language(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'tr']);
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => json_encode([
+                    'diagnosis_summary' => '26 numarali disde derin curuk.',
+                    'sessions' => [[
+                        'day_offset' => 0,
+                        'duration_minutes' => 30,
+                        'session_description' => 'Dolgu.',
+                        'teeth' => [],
+                    ]],
+                ])]]],
+                'usage' => ['prompt_tokens' => 90, 'completion_tokens' => 40, 'total_tokens' => 130],
+            ], 200),
+        ]);
+
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Build the plan.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'tr']);
+
+        $prompt = $this->systemPromptFromLastRequest();
+        $this->assertStringContainsString('This case has been discussed in Turkish', $prompt);
+        $this->assertStringContainsString('free-text field you produce in Turkish, regardless of', $prompt);
+        $this->assertStringNotContainsString('same language the doctor used', $prompt);
     }
 }

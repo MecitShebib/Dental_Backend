@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AppointmentStatus;
+use App\Enums\ClientLanguage;
 use App\Models\AiConversation;
 use App\Models\AiConversationMessage;
 use App\Models\CarePlan;
@@ -57,12 +58,14 @@ class AiConversationService
      */
     public function sendMessage(Client $client, User $actingUser, string $text, Specialty $specialty): array
     {
-        $conversation = $this->conversationFor($client, $specialty);
+        $conversation = $this->conversationFor($client, $specialty, $text);
         $userMessage = $this->appendUserMessage($conversation, $client, $actingUser, $text);
 
+        $languageName = $this->languageName($conversation->language);
+
         $systemPrompt = $specialty->key === Specialty::DENTAL
-            ? $this->buildChatSystemPrompt()
-            : SpecialtyAiProfiles::chatSystemPrompt($specialty->key);
+            ? $this->buildChatSystemPrompt($languageName)
+            : SpecialtyAiProfiles::chatSystemPrompt($specialty->key, $languageName);
         $messages = $this->buildOpenAiMessages($client, $conversation->messages()->get(), $systemPrompt, $specialty);
         $response = $this->openAi->chatCompletionJson($messages, $this->buildChatResponseSchema());
 
@@ -93,14 +96,22 @@ class AiConversationService
      */
     public function generatePlan(Client $client, User $actingUser, mixed $treatingDoctor, ?string $triggerText, Specialty $specialty): array
     {
-        $conversation = $this->conversationFor($client, $specialty);
+        // Only the doctor's own trigger text can seed the language of a
+        // brand-new conversation -- the synthesized fallback below is written
+        // by us, in English, and says nothing about what language the doctor
+        // works in.
+        $conversation = $this->conversationFor($client, $specialty, $triggerText);
         $text = trim((string) $triggerText) !== ''
             ? $triggerText
             : 'Please build a treatment plan based on our conversation so far.';
         $userMessage = $this->appendUserMessage($conversation, $client, $actingUser, $text);
 
+        $languageName = $this->languageName($conversation->language);
+
         $isDental = $specialty->key === Specialty::DENTAL;
-        $systemPrompt = $isDental ? $this->plans->buildSystemPrompt() : SpecialtyAiProfiles::planSystemPrompt($specialty->key);
+        $systemPrompt = $isDental
+            ? $this->plans->buildSystemPrompt($languageName)
+            : SpecialtyAiProfiles::planSystemPrompt($specialty->key, $languageName);
         $messages = $this->buildOpenAiMessages($client, $conversation->messages()->get(), $systemPrompt, $specialty);
         $plan = $isDental
             ? $this->plans->generatePlanFromMessages($treatingDoctor, $actingUser, $client, $messages)
@@ -125,9 +136,127 @@ class AiConversationService
         ];
     }
 
-    protected function conversationFor(Client $client, Specialty $specialty): AiConversation
+    /**
+     * The conversation's language is resolved and stored exactly once, when
+     * the thread is first created, and is never re-derived afterwards -- an
+     * interpreter who starts an appointment in one language keeps speaking it
+     * to the end rather than switching halfway through.
+     *
+     * $openingText is the doctor's very first message (it does not exist yet
+     * as a row at this point, which is why it is passed in). Threads created
+     * before the `language` column existed are back-filled lazily from their
+     * own first message, so an old conversation keeps the language it was
+     * actually started in instead of being re-judged by today's message.
+     */
+    protected function conversationFor(Client $client, Specialty $specialty, ?string $openingText = null): AiConversation
     {
-        return AiConversation::firstOrCreate(['client_id' => $client->id, 'specialty_id' => $specialty->id]);
+        $conversation = AiConversation::firstOrCreate(
+            ['client_id' => $client->id, 'specialty_id' => $specialty->id],
+            ['language' => $this->resolveConversationLanguage($client, $openingText)],
+        );
+
+        if (! $conversation->language) {
+            $firstMessage = $conversation->messages()
+                ->where('role', AiConversationMessage::ROLE_USER)
+                ->first();
+
+            $conversation->update([
+                'language' => $this->resolveConversationLanguage($client, $firstMessage?->content ?? $openingText),
+            ]);
+        }
+
+        return $conversation;
+    }
+
+    /**
+     * Which of the app's three languages (the same en/ar/tr vocabulary as
+     * clients.preferred_language) this conversation is conducted in.
+     *
+     * Order of preference:
+     *   1. The language the doctor actually opened the thread in, where that
+     *      is detectable from the text itself. This chat is doctor-facing
+     *      (they read the replies and tap the `options` chips), so their own
+     *      writing is the strongest signal there is.
+     *   2. The patient record's preferred_language -- the column this codebase
+     *      already uses for "what language should communication about this
+     *      patient be in" (reminders, surveys, recalls) -- except when the
+     *      doctor is demonstrably writing in Latin script and that column says
+     *      Arabic. Answering an English/Turkish thread in Arabic because of a
+     *      patient-record setting is the exact bug this all exists to fix.
+     *   3. The app locale, if it is one of the three (today always the config
+     *      default; this is the hook if a request-locale middleware is ever
+     *      added, since there is no per-user UI-language column to read).
+     *   4. English.
+     */
+    protected function resolveConversationLanguage(Client $client, ?string $openingText): string
+    {
+        $text = trim((string) $openingText);
+
+        if ($this->containsArabicScript($text)) {
+            return ClientLanguage::Arabic->value;
+        }
+
+        if ($this->looksTurkish($text)) {
+            return ClientLanguage::Turkish->value;
+        }
+
+        // Reaching here with a non-empty message means it held no Arabic
+        // characters at all, i.e. the doctor is writing in Latin script.
+        $writtenInLatinScript = $text !== '';
+
+        $candidates = [
+            $client->preferred_language instanceof ClientLanguage
+                ? $client->preferred_language->value
+                : $client->preferred_language,
+            app()->getLocale(),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (! is_string($candidate) || ClientLanguage::tryFrom($candidate) === null) {
+                continue;
+            }
+
+            if ($writtenInLatinScript && $candidate === ClientLanguage::Arabic->value) {
+                continue;
+            }
+
+            return $candidate;
+        }
+
+        return ClientLanguage::English->value;
+    }
+
+    protected function containsArabicScript(string $text): bool
+    {
+        return (bool) preg_match('/\p{Arabic}/u', $text);
+    }
+
+    /**
+     * Turkish-specific letters settle it outright. The word list is the
+     * fallback for diacritic-free typing (very common on a non-Turkish
+     * keyboard layout) and is deliberately limited to words that simply do
+     * not occur in English clinical notes -- a false positive here would pin
+     * an English thread to Turkish, which is the same class of bug as the one
+     * being fixed.
+     */
+    protected function looksTurkish(string $text): bool
+    {
+        if (preg_match('/[ğĞışŞİçÇöÖüÜ]/u', $text)) {
+            return true;
+        }
+
+        $turkishWords = 've|bir|var|yok|icin|hasta|hastada|hastanin|agri|agrisi|curuk|tedavi|muayene|sikayet|degil|gun|sonra|lutfen|yapilacak';
+
+        return (bool) preg_match('/(?:^|[\s.,!?;:])(?:'.$turkishWords.')(?=[\s.,!?;:]|$)/iu', $text);
+    }
+
+    protected function languageName(?string $language): string
+    {
+        return match ($language) {
+            ClientLanguage::Arabic->value => 'Arabic',
+            ClientLanguage::Turkish->value => 'Turkish',
+            default => 'English',
+        };
     }
 
     protected function appendUserMessage(AiConversation $conversation, Client $client, User $actingUser, string $text): AiConversationMessage
@@ -694,24 +823,35 @@ class AiConversationService
         ];
     }
 
-    protected function buildChatSystemPrompt(): string
+    /**
+     * $languageName is the conversation's pinned language ("English"/"Arabic"/
+     * "Turkish", see resolveConversationLanguage()), stated explicitly rather
+     * than left for the model to re-infer per turn -- soft inference is what
+     * made fully English threads flip into Arabic mid-conversation.
+     */
+    protected function buildChatSystemPrompt(string $languageName): string
     {
-        return <<<'PROMPT'
+        return <<<PROMPT
             You are a knowledgeable dental assistant AI embedded in a clinic's patient
             record system, chatting with the treating doctor about one specific patient.
             You may be shown the patient's basic info, dental/X-ray images on file, and
             the conversation so far. Discuss the case naturally: answer questions, help
             the doctor reason through diagnosis and treatment options, and reference the
-            images when relevant. Reply in the same language the doctor is writing in.
+            images when relevant.
+
+            This conversation is conducted in {$languageName}. Write every reply, and
+            every answer choice in `options`, in {$languageName} for the whole
+            conversation -- never switch to another language, even if an individual
+            message you receive happens to be written in a different one.
 
             If you are missing a specific piece of clinical information you would need to
             build a good treatment plan (e.g. which tooth, a symptom's duration or
             severity, an examination finding), ask the doctor ONE focused question at a
             time in `reply`. When that question has a small set of likely answers, put
-            2-4 short answer choices in `options` (in the doctor's own language) so the
-            doctor can tap one after examining the patient instead of typing it out.
-            Leave `options` empty for open-ended questions or whenever you are not asking
-            a question that has discrete answers.
+            2-4 short answer choices in `options` so the doctor can tap one after
+            examining the patient instead of typing it out. Leave `options` empty for
+            open-ended questions or whenever you are not asking a question that has
+            discrete answers.
 
             Once you have enough information to build a solid plan -- from the doctor's
             diagnosis, this conversation, and/or the images -- set `ready_for_plan` to

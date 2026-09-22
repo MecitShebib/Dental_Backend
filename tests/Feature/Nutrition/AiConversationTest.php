@@ -80,7 +80,7 @@ class AiConversationTest extends TestCase
         return $doctor;
     }
 
-    protected function makeClient(Company $company): Client
+    protected function makeClient(Company $company, array $attributes = []): Client
     {
         $client = Client::create([
             'company_id' => $company->id,
@@ -89,10 +89,24 @@ class AiConversationTest extends TestCase
             'phone' => fake()->unique()->e164PhoneNumber(),
             'gender' => 'female',
             'status' => 'new',
+            ...$attributes,
         ]);
         $this->signKvkkConsent($client);
 
         return $client;
+    }
+
+    protected function systemPromptFromLastRequest(): string
+    {
+        $captured = null;
+
+        Http::assertSent(function ($request) use (&$captured) {
+            $captured = collect($request->data()['messages'])->firstWhere('role', 'system')['content'] ?? '';
+
+            return true;
+        });
+
+        return (string) $captured;
     }
 
     public function test_it_generates_a_plan_using_the_procedure_vocabulary_not_teeth(): void
@@ -141,5 +155,59 @@ class AiConversationTest extends TestCase
             'client_id' => $client->id,
             'specialty_id' => Specialty::query()->where('key', Specialty::NUTRITION)->value('id'),
         ]);
+    }
+
+    /**
+     * The mid-conversation language flip (QA audit 2026-09-22 section 2.2) was
+     * reproduced here as well as in dental, i.e. it was the shared
+     * soft-inference prompt pattern, not one specialty's wording -- so the
+     * non-dental prompts (SpecialtyAiProfiles) get the same explicit pin.
+     */
+    public function test_chat_prompt_pins_the_conversation_language_explicitly(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'tr']);
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => json_encode([
+                    'reply' => 'Anlasildi.',
+                    'options' => [],
+                    'ready_for_plan' => false,
+                ])]]],
+                'usage' => ['prompt_tokens' => 50, 'completion_tokens' => 10, 'total_tokens' => 60],
+            ], 200),
+        ]);
+
+        $this->postJson("/api/nutrition/clients/{$client->id}/ai-conversation/messages", [
+            'text' => 'The client wants to lose weight.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'tr']);
+
+        $prompt = $this->systemPromptFromLastRequest();
+        $this->assertStringContainsString('This conversation is conducted in Turkish.', $prompt);
+        $this->assertStringContainsString('never switch to another language', $prompt);
+        $this->assertStringNotContainsString('same language the doctor is writing in', $prompt);
+    }
+
+    public function test_plan_prompt_including_the_diet_addendum_names_the_pinned_language(): void
+    {
+        $doctor = $this->doctorWithFullWeekSchedule();
+        Sanctum::actingAs($doctor);
+        $client = $this->makeClient($doctor->company, ['preferred_language' => 'tr']);
+        $this->fakeOpenAiResponse();
+
+        $this->postJson("/api/nutrition/clients/{$client->id}/ai-treatment-plan/generate", [
+            'text' => 'Build the plan.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('ai_conversations', ['client_id' => $client->id, 'language' => 'tr']);
+
+        $prompt = $this->systemPromptFromLastRequest();
+        $this->assertStringContainsString('This case has been discussed in Turkish', $prompt);
+        $this->assertStringContainsString('Also write two more fields, both in Turkish', $prompt);
+        $this->assertStringNotContainsString('same language the doctor used', $prompt);
     }
 }
