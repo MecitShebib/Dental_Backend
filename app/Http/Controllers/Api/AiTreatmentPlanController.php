@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Concerns\ResolvesTreatingDoctor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiTreatmentPlan\AddAiTreatmentPlanChargeRequest;
@@ -20,11 +21,12 @@ use App\Services\AiTokenUsageService;
 use App\Services\AiTreatmentPlanService;
 use App\Services\ClientFinancialSummaryService;
 use App\Services\OpenAiClient;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class AiTreatmentPlanController extends Controller
 {
-    use ResolvesTreatingDoctor;
+    use AuthorizesOwnDoctorRecords, ResolvesTreatingDoctor;
 
     public function __construct(
         protected AiTreatmentPlanService $plans,
@@ -33,9 +35,10 @@ class AiTreatmentPlanController extends Controller
         protected AiTokenUsageService $aiTokenUsage,
     ) {}
 
-    public function conversationHistory(Client $client)
+    public function conversationHistory(Request $request, Client $client)
     {
-        $this->assertCanUseAiAssistant(request()->user());
+        $this->assertCanUseAiAssistant($request->user());
+        $this->assertActingDoctorOwnsClient($request, $client);
 
         return $this->success(AiConversationMessageResource::collection($this->conversations->history($client, $this->dentalSpecialty())));
     }
@@ -44,6 +47,7 @@ class AiTreatmentPlanController extends Controller
     {
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
+        $this->assertActingDoctorOwnsClient($request, $client);
         $this->aiTokenUsage->assertCanUseAiTokens($actingUser->company);
 
         [$userMessage, $assistantMessage] = $this->conversations->sendMessage($client, $actingUser, $request->validated('text'), $this->dentalSpecialty());
@@ -58,6 +62,7 @@ class AiTreatmentPlanController extends Controller
     {
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
+        $this->assertActingDoctorOwnsClient($request, $client);
         $this->aiTokenUsage->assertCanUseAiTokens($actingUser->company);
 
         $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null, 'Please select a doctor to schedule this treatment plan under.');
@@ -82,6 +87,7 @@ class AiTreatmentPlanController extends Controller
     public function transcribe(TranscribeAiTreatmentPlanAudioRequest $request, Client $client)
     {
         $this->assertCanUseAiAssistant($request->user());
+        $this->assertActingDoctorOwnsClient($request, $client);
 
         $description = $this->openAi->transcribe($request->file('audio'));
 
@@ -92,6 +98,7 @@ class AiTreatmentPlanController extends Controller
     {
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
+        $this->assertActingDoctorOwnsClient($request, $client);
 
         $treatingDoctor = $this->resolveTreatingDoctor($actingUser, $request->integer('doctor_id') ?: null, 'Please select a doctor to schedule this treatment plan under.');
 
@@ -104,6 +111,7 @@ class AiTreatmentPlanController extends Controller
     {
         $actingUser = $request->user();
         $this->assertCanUseAiAssistant($actingUser);
+        $this->assertActingDoctorOwnsClient($request, $client);
 
         // Unlike syncItems() (used for a visit/appointment/session's own line
         // items, always a full replace of that source's charges), this screen

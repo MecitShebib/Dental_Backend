@@ -17,7 +17,12 @@ class StoreAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['nullable', 'integer', 'exists:clients,id', Rule::requiredIf(fn () => $this->input('type') === AppointmentType::Booked->value)],
+            // Scoped to the acting company: a plain exists:clients,id runs
+            // straight against the table and so bypasses Client's
+            // BelongsToCompany global scope, letting another company's
+            // client_id validate (and then blow up as a TypeError downstream,
+            // after the broken row was already written).
+            'client_id' => ['nullable', 'integer', Rule::exists('clients', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id)->whereNull('deleted_at')), Rule::requiredIf(fn () => $this->input('type') === AppointmentType::Booked->value)],
             'doctor_id' => ['required', 'integer', 'exists:users,id'],
             'type' => ['required', Rule::enum(AppointmentType::class)],
             'status' => ['nullable', Rule::enum(AppointmentStatus::class)],

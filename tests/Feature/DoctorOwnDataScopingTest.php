@@ -2,17 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Weekday;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\ClientSpecialtyRecord;
 use App\Models\Company;
+use App\Models\Invoice;
 use App\Models\LabCase;
+use App\Models\LabPayment;
 use App\Models\PatientLabResult;
+use App\Models\Payment;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Models\Visit;
+use App\Services\ClientSpecialtyEnrollmentService;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -241,6 +247,276 @@ class DoctorOwnDataScopingTest extends TestCase
 
         $response = $this->getJson('/api/lab-cases')->assertOk();
         $response->assertJsonCount(0, 'data');
+    }
+
+    // -- Nested patient reads that had no gate at all (2026-09-22 audit) ----
+
+    public function test_a_doctor_cannot_list_another_doctors_patients_appointments(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        $this->makeAppointment($company, $ownerDoctor, $client);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->getJson("/api/clients/{$client->id}/appointments")->assertStatus(422);
+
+        Sanctum::actingAs($ownerDoctor);
+        $this->getJson("/api/clients/{$client->id}/appointments")
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_a_doctor_cannot_read_create_update_or_delete_another_doctors_patients_payments(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        $payment = Payment::create([
+            'client_id' => $client->id,
+            'payment_date' => '2026-09-01',
+            'amount' => 500,
+            'payment_method' => 'cash',
+        ]);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->getJson("/api/clients/{$client->id}/payments")->assertStatus(422);
+        $this->postJson("/api/clients/{$client->id}/payments", [
+            'payment_date' => '2026-09-02',
+            'amount' => 100,
+            'payment_method' => 'cash',
+        ])->assertStatus(422);
+        $this->putJson("/api/payments/{$payment->id}", ['amount' => 1])->assertStatus(422);
+        $this->deleteJson("/api/payments/{$payment->id}")->assertStatus(422);
+
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseHas('payments', ['id' => $payment->id, 'amount' => 500, 'deleted_at' => null]);
+    }
+
+    public function test_a_doctor_cannot_view_another_doctors_patients_invoice(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        $payment = Payment::create([
+            'client_id' => $client->id,
+            'payment_date' => '2026-09-01',
+            'amount' => 750,
+            'payment_method' => 'cash',
+        ]);
+        $invoice = Invoice::create([
+            'company_id' => $company->id,
+            'client_id' => $client->id,
+            'payment_id' => $payment->id,
+            'invoice_number' => 1,
+            'amount' => 750,
+            'issued_date' => '2026-09-01',
+        ]);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->getJson("/api/invoices/{$invoice->id}")->assertStatus(422);
+
+        Sanctum::actingAs($ownerDoctor);
+        $this->getJson("/api/invoices/{$invoice->id}")->assertOk();
+    }
+
+    public function test_a_doctor_cannot_use_the_ai_assistant_on_another_doctors_patient(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->getJson("/api/clients/{$client->id}/ai-conversation")->assertStatus(422);
+        $this->postJson("/api/clients/{$client->id}/ai-treatment-plan/charge", [
+            'charge_items' => [['description' => 'Injected fee', 'amount' => 9999]],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseCount('treatment_charges', 0);
+    }
+
+    public function test_a_doctor_cannot_list_add_or_delete_payments_on_another_doctors_lab_case(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $labCase = LabCase::create([
+            'client_id' => $client->id,
+            'doctor_id' => $ownerDoctor->id,
+            'work_type' => 'crown',
+            'sent_date' => '2026-09-01',
+            'lab_cost' => 1000,
+        ]);
+        $labPayment = LabPayment::create([
+            'lab_case_id' => $labCase->id,
+            'payment_date' => '2026-09-02',
+            'amount' => 400,
+            'payment_method' => 'cash',
+        ]);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->getJson("/api/lab-cases/{$labCase->id}/payments")->assertStatus(422);
+        $this->postJson("/api/lab-cases/{$labCase->id}/payments", [
+            'payment_date' => '2026-09-03',
+            'amount' => 100,
+            'payment_method' => 'cash',
+        ])->assertStatus(422);
+        $this->deleteJson("/api/lab-payments/{$labPayment->id}")->assertStatus(422);
+
+        $this->assertDatabaseCount('lab_payments', 1);
+        $this->assertDatabaseHas('lab_payments', ['id' => $labPayment->id, 'deleted_at' => null]);
+    }
+
+    // -- Write paths: naming yourself as doctor_id was the only check -------
+
+    public function test_a_doctor_cannot_create_an_appointment_for_another_doctors_patient(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $otherDoctor->doctorSchedule()->create(['start_time' => '09:00:00', 'end_time' => '17:00:00', 'slot_minutes' => 30])
+            ->workingDays()->createMany(collect(Weekday::cases())->map(fn ($d) => ['weekday' => $d->value])->all());
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->postJson('/api/appointments', [
+            'client_id' => $client->id,
+            'doctor_id' => $otherDoctor->id,
+            'type' => 'booked',
+            'date' => now()->addDay()->toDateString(),
+            'start_time' => '10:00',
+            'duration_minutes' => 30,
+            'charge_items' => [['description' => 'Injected fee', 'amount' => 5000]],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseCount('appointments', 0);
+        $this->assertDatabaseCount('treatment_charges', 0);
+    }
+
+    public function test_a_doctor_cannot_create_a_visit_for_another_doctors_patient(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->postJson("/api/clients/{$client->id}/visits", [
+            'doctor_id' => $otherDoctor->id,
+            'visit_date' => now()->toDateString(),
+            'notes' => 'injected',
+            'charge_items' => [['description' => 'Injected fee', 'amount' => 5000]],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseCount('visits', 0);
+        $this->assertDatabaseCount('treatment_charges', 0);
+    }
+
+    public function test_an_appointment_cannot_be_booked_for_another_companys_client(): void
+    {
+        $company = Company::factory()->create();
+        $otherCompany = Company::factory()->create();
+        $doctor = $this->makeDoctor($company);
+        $doctor->doctorSchedule()->create(['start_time' => '09:00:00', 'end_time' => '17:00:00', 'slot_minutes' => 30])
+            ->workingDays()->createMany(collect(Weekday::cases())->map(fn ($d) => ['weekday' => $d->value])->all());
+        $foreignClient = $this->makeClient($otherCompany);
+        Sanctum::actingAs($doctor);
+
+        $this->postJson('/api/appointments', [
+            'client_id' => $foreignClient->id,
+            'doctor_id' => $doctor->id,
+            'type' => 'booked',
+            'date' => now()->addDay()->toDateString(),
+            'start_time' => '10:00',
+            'duration_minutes' => 30,
+        ])->assertStatus(422)->assertJsonValidationErrors('client_id');
+
+        $this->assertDatabaseCount('appointments', 0);
+    }
+
+    // -- Enrollment service (defense in depth behind the controllers) ------
+
+    public function test_enrolling_a_doctor_onto_a_colleagues_patient_is_refused(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $otherDoctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        Sanctum::actingAs($otherDoctor);
+
+        $this->expectException(ValidationException::class);
+
+        try {
+            app(ClientSpecialtyEnrollmentService::class)->ensureEnrolled($client, $otherDoctor);
+        } finally {
+            $this->assertDatabaseHas('client_specialty_records', [
+                'client_id' => $client->id,
+                'primary_doctor_id' => $ownerDoctor->id,
+            ]);
+        }
+    }
+
+    public function test_enrolling_stays_a_silent_no_op_for_an_unclaimed_or_already_owned_patient(): void
+    {
+        $company = Company::factory()->create();
+        $doctor = $this->makeDoctor($company);
+        $unclaimed = $this->makeClient($company);
+        $own = $this->makeClient($company);
+        $this->enroll($company, $own, $doctor);
+        Sanctum::actingAs($doctor);
+
+        $service = app(ClientSpecialtyEnrollmentService::class);
+        $service->ensureEnrolled($unclaimed, $doctor);
+        $service->ensureEnrolled($own, $doctor);
+
+        $this->assertDatabaseHas('client_specialty_records', [
+            'client_id' => $unclaimed->id,
+            'primary_doctor_id' => $doctor->id,
+        ]);
+        $this->assertDatabaseHas('client_specialty_records', [
+            'client_id' => $own->id,
+            'primary_doctor_id' => $doctor->id,
+        ]);
+    }
+
+    public function test_a_non_doctor_can_still_book_any_doctor_for_any_patient(): void
+    {
+        $company = Company::factory()->create();
+        $ownerDoctor = $this->makeDoctor($company);
+        $secondDoctor = $this->makeDoctor($company);
+        $secondDoctor->doctorSchedule()->create(['start_time' => '09:00:00', 'end_time' => '17:00:00', 'slot_minutes' => 30])
+            ->workingDays()->createMany(collect(Weekday::cases())->map(fn ($d) => ['weekday' => $d->value])->all());
+        $client = $this->makeClient($company);
+        $this->enroll($company, $client, $ownerDoctor);
+        $manager = User::factory()->create(['company_id' => $company->id, 'is_doctor' => false]);
+        Sanctum::actingAs($manager);
+
+        $this->postJson('/api/appointments', [
+            'client_id' => $client->id,
+            'doctor_id' => $secondDoctor->id,
+            'type' => 'booked',
+            'date' => now()->addDay()->toDateString(),
+            'start_time' => '10:00',
+            'duration_minutes' => 30,
+        ])->assertCreated();
+
+        // ...and the second doctor still doesn't steal the patient.
+        $this->assertDatabaseHas('client_specialty_records', [
+            'client_id' => $client->id,
+            'primary_doctor_id' => $ownerDoctor->id,
+        ]);
     }
 
     // -- Patient lab results (non-dental specialties) -----------------------

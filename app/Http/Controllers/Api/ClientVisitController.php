@@ -48,6 +48,12 @@ class ClientVisitController extends Controller
         unset($data['charge_items']);
 
         $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
+        // Naming yourself as doctor_id isn't enough -- without this a doctor
+        // could record a walk-in visit (clinical notes + charges) onto a
+        // patient another doctor has claimed. Not the full-ownership check,
+        // since this endpoint is also how an unclaimed walk-in first gets
+        // claimed, via ensureEnrolled() below.
+        $this->assertClientNotClaimedByAnotherDoctor($request, $client);
 
         $visit = $client->visits()->create([
             ...$data,
@@ -67,6 +73,7 @@ class ClientVisitController extends Controller
     public function update(UpdateVisitRequest $request, Visit $visit)
     {
         $this->assertActingDoctorOwnsDoctorId($request, $visit->doctor_id);
+        $this->assertClientNotClaimedByAnotherDoctor($request, $visit->client);
 
         $data = $request->validated();
         $chargeItems = $data['charge_items'] ?? [];

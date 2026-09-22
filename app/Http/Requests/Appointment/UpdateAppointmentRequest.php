@@ -17,7 +17,9 @@ class UpdateAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['nullable', 'integer', 'exists:clients,id'],
+            // Company-scoped -- see StoreAppointmentRequest for why a plain
+            // exists:clients,id isn't enough here.
+            'client_id' => ['nullable', 'integer', Rule::exists('clients', 'id')->where(fn ($query) => $query->where('company_id', $this->user()?->company_id)->whereNull('deleted_at'))],
             'doctor_id' => ['sometimes', 'required', 'integer', 'exists:users,id'],
             'type' => ['sometimes', 'required', Rule::enum(AppointmentType::class)],
             'status' => ['nullable', Rule::enum(AppointmentStatus::class)],

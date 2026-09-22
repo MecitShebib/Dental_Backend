@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesOwnDoctorRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\StorePaymentRequest;
 use App\Http\Requests\Payment\UpdatePaymentRequest;
@@ -11,16 +12,21 @@ use App\Models\FundTransaction;
 use App\Models\Payment;
 use App\Services\FundTransactionService;
 use App\Services\InvoiceService;
+use Illuminate\Http\Request;
 
 class ClientPaymentController extends Controller
 {
+    use AuthorizesOwnDoctorRecords;
+
     public function __construct(
         protected FundTransactionService $fundTransactions,
         protected InvoiceService $invoices,
     ) {}
 
-    public function index(Client $client)
+    public function index(Request $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $payments = $client->payments()->with('invoice')->latest('payment_date')->paginate();
 
         return $this->success(PaymentResource::collection($payments));
@@ -28,6 +34,8 @@ class ClientPaymentController extends Controller
 
     public function store(StorePaymentRequest $request, Client $client)
     {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
         $payment = $client->payments()->create([
             ...$request->validated(),
             'created_by' => $request->user()->id,
@@ -51,6 +59,8 @@ class ClientPaymentController extends Controller
 
     public function update(UpdatePaymentRequest $request, Payment $payment)
     {
+        $this->assertActingDoctorOwnsClient($request, $payment->client);
+
         $payment->update([
             ...$request->validated(),
             'updated_by' => $request->user()->id,
@@ -69,8 +79,10 @@ class ClientPaymentController extends Controller
         return $this->success(PaymentResource::make($payment->load('invoice')), 'Payment updated successfully.');
     }
 
-    public function destroy(Payment $payment)
+    public function destroy(Request $request, Payment $payment)
     {
+        $this->assertActingDoctorOwnsClient($request, $payment->client);
+
         $payment->delete();
         $this->fundTransactions->deleteForSource(FundTransaction::SOURCE_PAYMENT, $payment->id);
         $this->invoices->deleteForPayment($payment);

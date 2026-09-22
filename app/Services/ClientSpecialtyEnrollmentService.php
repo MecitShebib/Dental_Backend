@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\ClientSpecialtyRecord;
 use App\Models\Specialty;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Keeps client_specialty_records ("this client is a patient of this
@@ -37,6 +38,8 @@ class ClientSpecialtyEnrollmentService
             'specialty_id' => $doctor->specialty_id,
         ]);
 
+        $this->assertNotAnotherDoctorsPatient($record, $doctor);
+
         if (! $record->exists) {
             $record->company_id = $client->company_id;
             $record->primary_doctor_id = $doctor->id;
@@ -48,6 +51,42 @@ class ClientSpecialtyEnrollmentService
         }
 
         return $record;
+    }
+
+    /**
+     * Defense-in-depth behind AuthorizesOwnDoctorRecords: every write path
+     * that lands here (appointment, visit, care plan, prescription, lab
+     * result, AI-confirmed plan) is now gated at the controller, so reaching
+     * this with someone else's patient means a gate was missed. Silently
+     * no-op'ing there was how a doctor could still leave records attached to
+     * a colleague's patient.
+     *
+     * Only a DOCTOR acting on their own behalf is blocked. A non-doctor (a
+     * receptionist booking any patient with any doctor), a public online
+     * booking, a seeder, or an artisan command legitimately connects a
+     * patient to a doctor who isn't the record's owner -- auth('sanctum') is
+     * null or non-doctor for all of those, matching the trait's own rule that
+     * these checks are a no-op for non-doctor actors.
+     */
+    protected function assertNotAnotherDoctorsPatient(ClientSpecialtyRecord $record, User $doctor): void
+    {
+        if (! $record->exists || $record->primary_doctor_id === null) {
+            return;
+        }
+
+        if ((int) $record->primary_doctor_id === (int) $doctor->id) {
+            return;
+        }
+
+        $actingUser = auth('sanctum')->user();
+
+        if (! $actingUser || ! $actingUser->is_doctor || (int) $actingUser->id !== (int) $doctor->id) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'client' => ["You are not authorized to access this patient's record."],
+        ]);
     }
 
     /**

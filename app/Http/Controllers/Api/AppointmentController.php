@@ -10,6 +10,7 @@ use App\Http\Requests\Appointment\StoreAppointmentRequest;
 use App\Http\Requests\Appointment\UpdateAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\Client;
 use App\Models\TreatmentCharge;
 use App\Models\User;
 use App\Services\AppointmentConflictService;
@@ -46,6 +47,12 @@ class AppointmentController extends Controller
         $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
         $doctor = User::findOrFail($data['doctor_id']);
         $this->assertClientRules($data);
+        // Naming yourself as doctor_id isn't enough: without this a doctor
+        // could book (and bill + write clinical notes on) a patient another
+        // doctor has claimed. Deliberately the "not someone else's" check
+        // rather than full ownership -- this endpoint is also how an
+        // unclaimed patient first gets claimed, via ensureEnrolled() below.
+        $this->assertClientNotClaimedByAnotherDoctor($request, $this->resolveClient($data['client_id'] ?? null));
         $this->conflicts->assertWithinSchedule($doctor, $data['date'], $data['start_time'], (int) $data['duration_minutes']);
         $this->conflicts->assertNoConflict($doctor->id, $data['date'], $data['start_time'], (int) $data['duration_minutes']);
 
@@ -76,6 +83,7 @@ class AppointmentController extends Controller
     public function update(UpdateAppointmentRequest $request, Appointment $appointment)
     {
         $this->assertActingDoctorOwnsDoctorId($request, $appointment->doctor_id);
+        $this->assertClientNotClaimedByAnotherDoctor($request, $appointment->client);
 
         $validated = $request->validated();
         $chargeItemsProvided = array_key_exists('charge_items', $validated);
@@ -90,6 +98,9 @@ class AppointmentController extends Controller
         $this->assertActingDoctorOwnsDoctorId($request, $data['doctor_id']);
         $doctor = User::findOrFail($data['doctor_id']);
         $this->assertClientRules($data);
+        // Re-checked against the incoming client_id too, so an appointment
+        // can't be re-pointed at a colleague's patient.
+        $this->assertClientNotClaimedByAnotherDoctor($request, $this->resolveClient($data['client_id'] ?? null));
         $this->conflicts->assertWithinSchedule($doctor, $data['date'], $data['start_time'], (int) $data['duration_minutes']);
         $this->conflicts->assertNoConflict($doctor->id, $data['date'], $data['start_time'], (int) $data['duration_minutes'], $appointment->id);
 
@@ -122,6 +133,16 @@ class AppointmentController extends Controller
         $appointment->delete();
 
         return $this->success(null, 'Appointment deleted successfully.');
+    }
+
+    /**
+     * find() (not exists:clients,id) so Client's BelongsToCompany global scope
+     * applies -- a client_id belonging to another company resolves to null
+     * here rather than sailing through as a valid patient.
+     */
+    protected function resolveClient(?int $clientId): ?Client
+    {
+        return $clientId ? Client::query()->find($clientId) : null;
     }
 
     protected function assertClientRules(array $data): void
