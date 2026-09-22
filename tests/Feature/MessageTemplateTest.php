@@ -63,13 +63,38 @@ class MessageTemplateTest extends TestCase
         $this->assertContains('doctor_name', $smsReminder['placeholders']);
     }
 
-    public function test_message_templates_are_forbidden_without_accounting_access(): void
+    public function test_message_templates_are_forbidden_without_company_settings_access(): void
     {
         $company = Company::factory()->create();
         $regularUser = User::factory()->create(['company_id' => $company->id]);
         Sanctum::actingAs($regularUser);
 
         $this->getJson('/api/settings/message-templates')->assertStatus(422);
+    }
+
+    /**
+     * Message templates are a company-settings screen, not an accounting one:
+     * an accountant-only account (which passes the accounting gate these
+     * endpoints used to share) has no business rewording the clinic's
+     * automated patient SMS/email.
+     */
+    public function test_an_accountant_cannot_read_or_change_message_templates(): void
+    {
+        $company = Company::factory()->create();
+        $accountant = User::factory()->create(['company_id' => $company->id]);
+        $accountant->roles()->attach(Role::query()->firstOrCreate(['slug' => 'accountant'], ['name' => 'Accountant']));
+        Sanctum::actingAs($accountant);
+
+        $this->getJson('/api/settings/message-templates')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('user');
+
+        $this->putJson('/api/settings/message-templates', [
+            'key' => 'appointment_reminder',
+            'channel' => 'sms',
+            'language' => 'en',
+            'body' => 'Rewritten by an accountant.',
+        ])->assertStatus(422)->assertJsonValidationErrors('user');
     }
 
     public function test_a_custom_template_can_be_saved_and_is_reflected_in_the_index(): void

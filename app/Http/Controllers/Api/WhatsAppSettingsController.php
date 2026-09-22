@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Concerns\AuthorizesAccounting;
+use App\Http\Controllers\Concerns\AuthorizesCompanySettings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WhatsApp\UpdateWhatsAppIntegrationRequest;
 use App\Http\Resources\WhatsAppIntegrationResource;
@@ -16,11 +16,11 @@ use Illuminate\Http\Request;
  */
 class WhatsAppSettingsController extends Controller
 {
-    use AuthorizesAccounting;
+    use AuthorizesCompanySettings;
 
     public function show(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $integration = $request->user()->company->whatsappIntegration;
 
@@ -29,7 +29,7 @@ class WhatsAppSettingsController extends Controller
 
     public function update(UpdateWhatsAppIntegrationRequest $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $company = $request->user()->company;
         $integration = $company->whatsappIntegration()->updateOrCreate([], [
@@ -44,7 +44,7 @@ class WhatsAppSettingsController extends Controller
 
     public function destroy(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $request->user()->company->whatsappIntegration?->delete();
 
@@ -53,7 +53,7 @@ class WhatsAppSettingsController extends Controller
 
     public function test(Request $request, WhatsAppService $whatsApp)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $data = $request->validate(['phone' => ['required', 'string']]);
 

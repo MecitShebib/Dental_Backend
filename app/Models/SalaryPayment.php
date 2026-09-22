@@ -25,6 +25,7 @@ class SalaryPayment extends Model
         'commission_percentage',
         'commission_amount',
         'advances_total',
+        'advance_allocations',
         'net_amount',
         'paid_at',
         'created_by',
@@ -40,6 +41,13 @@ class SalaryPayment extends Model
             'commission_percentage' => 'decimal:2',
             'commission_amount' => 'decimal:2',
             'advances_total' => 'decimal:2',
+            // [{salary_advance_id, amount}, ...] -- exactly how much of THIS
+            // payment went to each advance, oldest-advance-first. Lets
+            // destroy() put every advance back exactly where it found it
+            // instead of blanket-unsettling everything settledAdvances()
+            // (the settled_by_salary_payment_id FK) can see, which would
+            // wrongly touch an advance only fully settled by a LATER payment.
+            'advance_allocations' => 'array',
             'net_amount' => 'decimal:2',
             'paid_at' => 'date',
         ];

@@ -53,13 +53,58 @@ class CrmIntegrationTest extends TestCase
         $this->assertDatabaseHas('crm_integrations', ['company_id' => $company->id, 'client_id' => '1000.ABCDEF']);
     }
 
-    public function test_crm_settings_are_forbidden_without_accounting_access(): void
+    public function test_crm_settings_are_forbidden_without_company_settings_access(): void
     {
         $company = Company::factory()->create();
         $regularUser = User::factory()->create(['company_id' => $company->id]);
         Sanctum::actingAs($regularUser);
 
         $this->getJson('/api/settings/crm')->assertStatus(422);
+    }
+
+    /**
+     * The CRM OAuth connection is a company-settings action, not an accounting
+     * one -- an accountant-only account must not be able to re-point where
+     * every new patient record gets pushed.
+     */
+    public function test_an_accountant_cannot_read_or_change_the_crm_connection(): void
+    {
+        $company = Company::factory()->create();
+        $accountant = User::factory()->create(['company_id' => $company->id]);
+        $accountant->roles()->attach(Role::query()->firstOrCreate(['slug' => 'accountant'], ['name' => 'Accountant']));
+        Sanctum::actingAs($accountant);
+
+        $this->getJson('/api/settings/crm')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('user');
+
+        $this->putJson('/api/settings/crm', [
+            'client_id' => 'hijack',
+            'client_secret' => 'hijack',
+            'refresh_token' => 'hijack',
+        ])->assertStatus(422)->assertJsonValidationErrors('user');
+
+        $this->assertDatabaseMissing('crm_integrations', ['company_id' => $company->id]);
+    }
+
+    /**
+     * Same gate on the telephony webhook secret -- regenerating it silently
+     * breaks the clinic's call logging, so it belongs to company settings.
+     */
+    public function test_an_accountant_cannot_regenerate_the_call_webhook_secret(): void
+    {
+        $company = Company::factory()->create();
+        $accountant = User::factory()->create(['company_id' => $company->id]);
+        $accountant->roles()->attach(Role::query()->firstOrCreate(['slug' => 'accountant'], ['name' => 'Accountant']));
+        Sanctum::actingAs($accountant);
+
+        $this->getJson('/api/settings/call-webhook')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('user');
+
+        $this->postJson('/api/settings/call-webhook/regenerate')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('user');
     }
 
     public function test_disconnecting_removes_the_integration(): void

@@ -21,10 +21,19 @@ class BranchController extends Controller
 
     public function __construct(protected CompanyBranchLimitService $branchLimit) {}
 
-    public function index(Request $request)
+    /**
+     * Deliberately NOT behind assertHasAccountingAccess(): this returns only
+     * branch names plus staff/patient head-counts -- no money whatsoever --
+     * and every ordinary page with a branch selector (patients, appointments,
+     * inventory...) needs it, so gating it here made a plain doctor hit
+     * "You are not authorized to access accounting" on login. The route's
+     * auth:sanctum + active.clinic middleware plus Branch's BelongsToCompany
+     * global scope are the whole authorization story. Everything else on this
+     * controller (create/update/delete, and summary() with its revenue,
+     * patient debt and payroll figures) stays accounting-only.
+     */
+    public function index()
     {
-        $this->assertHasAccountingAccess($request);
-
         $branches = Branch::query()
             ->withCount(['users', 'clients'])
             ->with('specialties')

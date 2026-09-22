@@ -406,6 +406,141 @@ class SalaryPaymentTest extends TestCase
             ->assertJsonPath('data.net_amount', 2000);
     }
 
+    public function test_the_database_itself_refuses_a_second_payment_for_an_already_paid_period(): void
+    {
+        // Proves the unique index (not just the application-level exists()
+        // check store() also does) is the real backstop: bypass the
+        // controller entirely and insert a duplicate row directly.
+        $manager = $this->makeManager();
+        $employee = User::factory()->create(['company_id' => $manager->company_id, 'monthly_salary' => 1000]);
+
+        $row = [
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'company_id' => $manager->company_id,
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'base_salary' => 1000,
+            'advances_total' => 0,
+            'net_amount' => 1000,
+            'paid_at' => '2026-08-31',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        \Illuminate\Support\Facades\DB::table('salary_payments')->insert($row);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+        \Illuminate\Support\Facades\DB::table('salary_payments')->insert($row);
+    }
+
+    public function test_an_advance_larger_than_one_periods_earnings_is_only_partially_settled(): void
+    {
+        $manager = $this->makeManager();
+        $employee = User::factory()->create(['company_id' => $manager->company_id, 'monthly_salary' => 2000]);
+        Sanctum::actingAs($manager);
+
+        $advanceId = $this->postJson('/api/payroll/salary-advances', [
+            'user_id' => $employee->id,
+            'amount' => 5000,
+            'advance_date' => '2026-08-05',
+        ])->assertCreated()->json('data.id');
+
+        // Earns 2000 this period; the 5000 advance can only absorb 2000 of it.
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()
+            ->assertJsonPath('data.advances_total', 5000)
+            ->assertJsonPath('data.net_amount', 0);
+
+        // The advance is NOT marked fully settled -- 3000 remains outstanding.
+        $this->assertDatabaseHas('salary_advances', [
+            'id' => $advanceId,
+            'settled_amount' => 2000,
+            'settled_by_salary_payment_id' => null,
+        ]);
+
+        // A later period with its own 2000 earnings picks up the remainder:
+        // the report must still see 3000 outstanding, not 0 or 5000 again.
+        $summaryResponse = $this->getJson('/api/reports/payroll-summary?year=2026&month=8')->assertOk();
+        $summaryRow = collect($summaryResponse->json('data.employees'))->firstWhere('user_id', $employee->id);
+        $this->assertEquals(3000.0, $summaryRow['unsettled_advances']);
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 9,
+            'paid_at' => '2026-09-30',
+        ])->assertCreated()
+            ->assertJsonPath('data.advances_total', 3000)
+            ->assertJsonPath('data.net_amount', 0);
+
+        $this->assertDatabaseHas('salary_advances', [
+            'id' => $advanceId,
+            'settled_amount' => 4000,
+            'settled_by_salary_payment_id' => null,
+        ]);
+
+        // A third period finally covers the last 1000 and keeps 1000 net pay.
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 10,
+            'paid_at' => '2026-10-31',
+        ])->assertCreated()
+            ->assertJsonPath('data.advances_total', 1000)
+            ->assertJsonPath('data.net_amount', 1000);
+
+        $this->assertDatabaseHas('salary_advances', [
+            'id' => $advanceId,
+            'settled_amount' => 5000,
+        ]);
+        $this->assertDatabaseMissing('salary_advances', [
+            'id' => $advanceId,
+            'settled_by_salary_payment_id' => null,
+        ]);
+    }
+
+    public function test_deleting_a_partially_settling_payment_only_reverses_its_own_share(): void
+    {
+        $manager = $this->makeManager();
+        $employee = User::factory()->create(['company_id' => $manager->company_id, 'monthly_salary' => 2000]);
+        Sanctum::actingAs($manager);
+
+        $advanceId = $this->postJson('/api/payroll/salary-advances', [
+            'user_id' => $employee->id,
+            'amount' => 5000,
+            'advance_date' => '2026-08-05',
+        ])->assertCreated()->json('data.id');
+
+        $firstPaymentId = $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 8,
+            'paid_at' => '2026-08-31',
+        ])->assertCreated()->json('data.id');
+
+        $this->postJson('/api/payroll/salary-payments', [
+            'user_id' => $employee->id,
+            'period_year' => 2026,
+            'period_month' => 9,
+            'paid_at' => '2026-09-30',
+        ])->assertCreated();
+
+        // 4000 settled across the two payments above; deleting only the
+        // first must put back exactly its own 2000, leaving the second
+        // payment's 2000 contribution untouched.
+        $this->deleteJson("/api/payroll/salary-payments/{$firstPaymentId}")->assertOk();
+
+        $this->assertDatabaseHas('salary_advances', [
+            'id' => $advanceId,
+            'settled_amount' => 2000,
+        ]);
+    }
+
     public function test_commission_percentage_on_a_non_doctor_user_is_not_applied(): void
     {
         $manager = $this->makeManager();

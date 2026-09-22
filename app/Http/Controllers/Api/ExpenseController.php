@@ -151,16 +151,20 @@ class ExpenseController extends Controller
      * Pulls the optional cari-hesap fields out of the validated payload
      * before it's mass-assigned to Expense (which doesn't have these
      * columns) and returns them for syncCari() to act on afterward.
+     *
+     * Only the counterparty is taken from the request: the currency is not
+     * the caller's to choose -- see syncCari() for why.
      */
     protected function extractCariInput(array &$data): array
     {
         $cari = [
             'partyable_type' => $data['cari_partyable_type'] ?? null,
             'partyable_id' => $data['cari_partyable_id'] ?? null,
-            'currency' => $data['cari_currency'] ?? CariCurrency::TRY->value,
-            'exchange_rate' => $data['cari_exchange_rate'] ?? 1,
         ];
 
+        // Tolerated on the wire (the expense form still posts them) but
+        // deliberately ignored -- older clients must not be able to
+        // mislabel the row's currency.
         unset($data['cari_partyable_type'], $data['cari_partyable_id'], $data['cari_currency'], $data['cari_exchange_rate']);
 
         return $cari;
@@ -170,6 +174,19 @@ class ExpenseController extends Controller
      * Re-derives this expense's cari entry from scratch on every save --
      * simpler and safer than patching a possibly-different party in place,
      * and mirrors LabCaseCariSyncService's delete-then-repost pattern.
+     *
+     * The row is always posted in the company's base currency (TRY) at rate
+     * 1, regardless of what the request asked for. Expense.amount has no
+     * currency of its own: it is the exact figure that leaves the TRY-only
+     * company fund ledger (FundTransactionService, above). The cari ledger
+     * never converts between currencies either -- CariLedgerService::summary()
+     * groups by currency and keeps a TRY total and a USD total side by side,
+     * with exchange_rate stored but never multiplied against anything. So
+     * labelling this row "USD" did not convert the amount, it just filed 100
+     * TRY under the USD total as "100 USD owed" (~32x too much at a 32.00
+     * rate). A genuinely foreign-currency payable belongs in a manual cari
+     * entry (CariTransactionController), where the caller states the amount
+     * in that currency directly.
      */
     protected function syncCari(Request $request, Expense $expense, array $cari): void
     {
@@ -186,8 +203,8 @@ class ExpenseController extends Controller
             $partyable,
             (float) $expense->amount,
             0,
-            $cari['currency'],
-            (float) $cari['exchange_rate'],
+            CariCurrency::TRY->value,
+            1,
             CariTransactionType::Invoice->value,
             $expense->description ?: ucfirst(str_replace('_', ' ', $expense->category->value)),
             $expense->expense_date?->toDateString(),

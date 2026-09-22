@@ -137,6 +137,60 @@ class ExpenseTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    /**
+     * Regression: an expense amount is always in the company's base currency
+     * (it is exactly what leaves the TRY-only fund ledger), but the request
+     * used to let the caller tag the cari row it drives as USD with its own
+     * exchange rate -- and syncCari() then posted the raw TRY figure under
+     * that label without converting anything. A 100 TRY expense against a
+     * USD-invoiced supplier read as "100 USD owed" (~3,200 TRY at a rate of
+     * 32) while only 100 TRY had actually been spent.
+     */
+    public function test_an_expense_cari_row_is_always_posted_in_the_base_currency(): void
+    {
+        $manager = $this->makeManager();
+        Sanctum::actingAs($manager);
+
+        $partyId = $this->postJson('/api/cari/parties', [
+            'type' => 'supplier',
+            'name' => 'Dollar-Invoiced Supplier',
+        ])->assertCreated()->json('data.id');
+
+        $response = $this->postJson('/api/expenses', [
+            'category' => 'dental_supplies',
+            'amount' => 100,
+            'expense_date' => '2026-08-01',
+            'description' => 'Imported burs',
+            'cari_partyable_type' => 'cari_party',
+            'cari_partyable_id' => $partyId,
+            // Both ignored now -- kept in the payload because the expense
+            // form still sends them.
+            'cari_currency' => 'USD',
+            'cari_exchange_rate' => 32,
+        ])->assertCreated();
+
+        $response->assertJsonPath('data.cari_currency', 'TRY')
+            ->assertJsonPath('data.cari_exchange_rate', 1);
+
+        $summary = collect($this->getJson("/api/cari/parties/{$partyId}/summary")->assertOk()->json('data'))
+            ->keyBy('currency');
+
+        // The 100 TRY that really left the fund, filed as TRY...
+        $this->assertEquals(100.0, $summary['TRY']['debit']);
+        // ...and nothing at all recorded as a dollar debt.
+        $this->assertEquals(0.0, $summary['USD']['debit']);
+
+        $this->assertDatabaseHas('cari_transactions', [
+            'source_type' => 'expense',
+            'debit' => 100.00,
+            'currency' => 'TRY',
+            'exchange_rate' => 1.0000,
+        ]);
+
+        // The fund ledger and the cari ledger now agree on the figure.
+        $this->getJson('/api/fund/summary')->assertJsonPath('data.balance', -100);
+    }
+
     public function test_a_regular_user_cannot_record_an_expense(): void
     {
         $user = User::factory()->create();

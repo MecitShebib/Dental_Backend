@@ -77,6 +77,42 @@ class BranchTest extends TestCase
         $this->getJson('/api/branches')->assertOk()->assertJsonCount(0, 'data');
     }
 
+    /**
+     * Regression: the plain branch list (names + head-counts, no money) used
+     * to sit behind the accounting gate, so a plain doctor was greeted with
+     * "You are not authorized to access accounting" on every page carrying a
+     * branch selector.
+     */
+    public function test_a_doctor_without_accounting_access_can_list_branches(): void
+    {
+        $company = Company::factory()->create();
+        Branch::create(['company_id' => $company->id, 'name' => 'Main Branch', 'status' => 'active']);
+
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        Sanctum::actingAs($doctor);
+
+        $this->getJson('/api/branches')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Main Branch');
+    }
+
+    public function test_a_doctor_without_accounting_access_still_cannot_manage_branches_or_see_their_figures(): void
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::create(['company_id' => $company->id, 'name' => 'Main Branch', 'status' => 'active']);
+
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        Sanctum::actingAs($doctor);
+
+        $this->postJson('/api/branches', ['name' => 'Sneaky Branch'])->assertStatus(422);
+        $this->putJson("/api/branches/{$branch->id}", ['name' => 'Renamed'])->assertStatus(422);
+        $this->deleteJson("/api/branches/{$branch->id}")->assertStatus(422);
+        $this->getJson("/api/branches/{$branch->id}/summary")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('user');
+    }
+
     public function test_a_branch_with_staff_or_patients_cannot_be_deleted(): void
     {
         $company = Company::factory()->create();

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Concerns\AuthorizesAccounting;
+use App\Http\Controllers\Concerns\AuthorizesCompanySettings;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,11 +13,11 @@ use Illuminate\Support\Str;
  */
 class CallWebhookSettingsController extends Controller
 {
-    use AuthorizesAccounting;
+    use AuthorizesCompanySettings;
 
     public function show(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $company = $request->user()->company;
 
@@ -29,7 +29,7 @@ class CallWebhookSettingsController extends Controller
 
     public function regenerate(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $company = $request->user()->company;
         $secret = Str::random(40);

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Concerns\AuthorizesAccounting;
+use App\Http\Controllers\Concerns\AuthorizesCompanySettings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Crm\UpdateCrmIntegrationRequest;
 use App\Http\Resources\CrmIntegrationResource;
@@ -17,11 +17,11 @@ use Illuminate\Http\Request;
  */
 class CrmSettingsController extends Controller
 {
-    use AuthorizesAccounting;
+    use AuthorizesCompanySettings;
 
     public function show(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $integration = $request->user()->company->crmIntegration;
 
@@ -30,7 +30,7 @@ class CrmSettingsController extends Controller
 
     public function update(UpdateCrmIntegrationRequest $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $company = $request->user()->company;
         $integration = $company->crmIntegration()->updateOrCreate([], [
@@ -48,7 +48,7 @@ class CrmSettingsController extends Controller
 
     public function destroy(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $request->user()->company->crmIntegration?->delete();
 
@@ -57,7 +57,7 @@ class CrmSettingsController extends Controller
 
     public function test(Request $request, ZohoCrmService $crm)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $token = $crm->accessToken($request->user()->company);
 

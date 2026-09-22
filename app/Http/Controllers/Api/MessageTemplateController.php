@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Concerns\AuthorizesAccounting;
+use App\Http\Controllers\Concerns\AuthorizesCompanySettings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MessageTemplate\UpdateMessageTemplateRequest;
 use App\Models\MessageTemplate;
@@ -19,7 +19,7 @@ use Illuminate\Http\Request;
  */
 class MessageTemplateController extends Controller
 {
-    use AuthorizesAccounting;
+    use AuthorizesCompanySettings;
 
     /**
      * Every key/channel/language slot the app supports, each with its
@@ -28,7 +28,7 @@ class MessageTemplateController extends Controller
      */
     public function index(Request $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $company = $request->user()->company;
         $specialtyId = $request->filled('specialty')
@@ -67,7 +67,7 @@ class MessageTemplateController extends Controller
 
     public function update(UpdateMessageTemplateRequest $request)
     {
-        $this->assertHasAccountingAccess($request);
+        $this->assertHasCompanySettingsAccess($request);
 
         $data = $request->validated();
         $company = $request->user()->company;

@@ -168,10 +168,15 @@ class ReportController extends Controller
                     ->where('period_month', $month)
                     ->first();
 
-                $unsettledAdvances = round((float) SalaryAdvance::query()
+                // sum('amount') would over-report a partially-settled advance
+                // by its full original amount instead of what's actually
+                // still owed -- remainingAmount() is amount - settled_amount
+                // (see SalaryPaymentController::allocateAdvances()).
+                $unsettledAdvances = round(SalaryAdvance::query()
                     ->where('user_id', $employee->id)
                     ->unsettled()
-                    ->sum('amount'), 2);
+                    ->get()
+                    ->sum(fn (SalaryAdvance $advance) => $advance->remainingAmount()), 2);
 
                 return [
                     'user_id' => $employee->id,

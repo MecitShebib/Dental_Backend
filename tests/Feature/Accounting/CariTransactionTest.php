@@ -70,6 +70,35 @@ class CariTransactionTest extends TestCase
             ->assertJsonCount(2, 'data');
     }
 
+    public function test_a_transaction_cannot_have_both_a_positive_debit_and_credit(): void
+    {
+        $manager = $this->makeManager();
+        Sanctum::actingAs($manager);
+        $partyId = $this->makeParty();
+
+        $this->postJson('/api/cari/transactions', [
+            'partyable_type' => 'cari_party',
+            'partyable_id' => $partyId,
+            'invoice_date' => '2026-08-01',
+            'debit' => 500,
+            'credit' => 500,
+            'currency' => 'TRY',
+            'transaction_type' => 'invoice',
+        ])->assertStatus(422)->assertJsonValidationErrors('debit');
+
+        // The Cari page's own form always submits both keys, zeroing out
+        // whichever the user didn't fill in -- that must still be accepted.
+        $this->postJson('/api/cari/transactions', [
+            'partyable_type' => 'cari_party',
+            'partyable_id' => $partyId,
+            'invoice_date' => '2026-08-01',
+            'debit' => 500,
+            'credit' => 0,
+            'currency' => 'TRY',
+            'transaction_type' => 'invoice',
+        ])->assertCreated();
+    }
+
     public function test_usd_and_try_balances_are_tracked_separately(): void
     {
         $manager = $this->makeManager();

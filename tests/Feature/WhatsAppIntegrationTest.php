@@ -58,13 +58,37 @@ class WhatsAppIntegrationTest extends TestCase
         $this->assertSame('super-secret-token-abcdef', $raw->access_token);
     }
 
-    public function test_whatsapp_settings_are_forbidden_without_accounting_access(): void
+    public function test_whatsapp_settings_are_forbidden_without_company_settings_access(): void
     {
         $company = Company::factory()->create();
         $regularUser = User::factory()->create(['company_id' => $company->id]);
         Sanctum::actingAs($regularUser);
 
         $this->getJson('/api/settings/whatsapp')->assertStatus(422);
+    }
+
+    /**
+     * Connecting a WhatsApp Business number is a company-settings action, not
+     * an accounting one -- an accountant-only account must not be able to
+     * re-point (or read back) the credential every patient message goes out on.
+     */
+    public function test_an_accountant_cannot_read_or_change_whatsapp_credentials(): void
+    {
+        $company = Company::factory()->create();
+        $accountant = User::factory()->create(['company_id' => $company->id]);
+        $accountant->roles()->attach(Role::query()->firstOrCreate(['slug' => 'accountant'], ['name' => 'Accountant']));
+        Sanctum::actingAs($accountant);
+
+        $this->getJson('/api/settings/whatsapp')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('user');
+
+        $this->putJson('/api/settings/whatsapp', [
+            'access_token' => 'hijacked-token',
+            'phone_number_id' => '999',
+        ])->assertStatus(422)->assertJsonValidationErrors('user');
+
+        $this->assertDatabaseMissing('whatsapp_integrations', ['company_id' => $company->id]);
     }
 
     public function test_disconnecting_removes_the_integration(): void
