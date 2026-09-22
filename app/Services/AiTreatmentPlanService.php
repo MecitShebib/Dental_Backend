@@ -21,6 +21,7 @@ class AiTreatmentPlanService
         protected AiTokenUsageService $aiTokenUsage,
         protected TreatmentChargeService $treatmentCharges,
         protected ClientSpecialtyEnrollmentService $enrollment,
+        protected AppointmentAutoAttendanceService $autoAttendance,
     ) {}
 
     /**
@@ -346,6 +347,15 @@ class AiTreatmentPlanService
                     $appointment->id,
                     $session['charge_items'] ?? [],
                 );
+
+                // The doctor is confirming this plan with the patient
+                // physically present -- a session scheduled for today isn't
+                // a future booking, it already happened, so it starts out
+                // already attended rather than sitting as "scheduled" until
+                // someone remembers to check it in later.
+                if ($appointment->date->isToday()) {
+                    $this->autoAttendance->attendNow($appointment, $userId);
+                }
 
                 return $appointment->fresh();
             });

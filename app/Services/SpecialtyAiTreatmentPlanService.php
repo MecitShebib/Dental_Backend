@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Specialty;
 use App\Models\TreatmentCharge;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -34,6 +35,7 @@ class SpecialtyAiTreatmentPlanService
         protected AiTokenUsageService $aiTokenUsage,
         protected TreatmentChargeService $treatmentCharges,
         protected ClientSpecialtyEnrollmentService $enrollment,
+        protected AppointmentAutoAttendanceService $autoAttendance,
     ) {}
 
     public function buildJsonSchema(Specialty $specialty): array
@@ -184,13 +186,19 @@ class SpecialtyAiTreatmentPlanService
     }
 
     /**
-     * Unlike dental's confirm() (which derives planned_summary from the
-     * proposed odontogram), this specialty's appointments carry only
-     * planned_notes (free text) -- there's no structured viewer for
-     * "procedures" the way there is for teeth, so planned_summary stays
-     * null.
+     * Like dental's confirm() (which derives planned_summary from the
+     * proposed odontogram), this stamps the session's procedure-code
+     * selection onto the appointment's planned_summary, in the same
+     * "__visit_specialty_procedures__" JSON shape the frontend's
+     * visitSpecialtyProcedures.js already reads/writes for a manually
+     * checked-in visit -- without this, ClientTimelinePanel.jsx's check-in
+     * modal has nothing to reconstruct the AI plan's procedures from, so it
+     * showed no "performed" indicator and opened blank, prompting the
+     * charges to be re-entered from scratch (and, until AppointmentController
+     * ::update()'s missing retarget() was fixed alongside this, silently
+     * double-counted against the client's total services).
      *
-     * @return array{appointments: \Illuminate\Support\Collection, care_plan: ?CarePlan}
+     * @return array{appointments: Collection, care_plan: ?CarePlan}
      */
     public function confirm(
         Client $client,
@@ -222,6 +230,7 @@ class SpecialtyAiTreatmentPlanService
                     'duration_minutes' => (int) $session['duration_minutes'],
                     'end_time' => $this->conflicts->calculateEndTime($session['start_time'], (int) $session['duration_minutes']),
                     'planned_notes' => $session['session_description'],
+                    'planned_summary' => $this->buildPlannedSummary($session['procedures'] ?? []),
                     'created_by' => $userId,
                     'updated_by' => $userId,
                 ]);
@@ -232,6 +241,15 @@ class SpecialtyAiTreatmentPlanService
                     $appointment->id,
                     $session['charge_items'] ?? [],
                 );
+
+                // The doctor is confirming this plan with the patient
+                // physically present -- a session scheduled for today isn't
+                // a future booking, it already happened, so it starts out
+                // already attended rather than sitting as "scheduled" until
+                // someone remembers to check it in later.
+                if ($appointment->date->isToday()) {
+                    $this->autoAttendance->attendNow($appointment, $userId);
+                }
 
                 return $appointment->fresh();
             });
@@ -258,6 +276,28 @@ class SpecialtyAiTreatmentPlanService
 
             return ['appointments' => $appointments, 'care_plan' => $carePlan];
         });
+    }
+
+    /**
+     * Mirrors the frontend's serializeVisitProceduresSnapshot() exactly
+     * (utils/visitSpecialtyProcedures.js) -- same "__visit_specialty_procedures__"
+     * marker and shape, so parseVisitProceduresSnapshot() on the other end
+     * reads this back as a real procedures checklist rather than falling
+     * through to its legacy-plain-text branch.
+     */
+    protected function buildPlannedSummary(array $procedures): ?string
+    {
+        if (empty($procedures)) {
+            return null;
+        }
+
+        return json_encode([
+            '__visit_specialty_procedures__' => true,
+            'procedures' => collect($procedures)->map(fn (array $procedure) => [
+                'procedure_code' => $procedure['procedure_code'],
+                'notes' => $procedure['notes'] ?? null,
+            ])->all(),
+        ]);
     }
 
     protected function assertNoIntraBatchOverlap(array $sessions): void

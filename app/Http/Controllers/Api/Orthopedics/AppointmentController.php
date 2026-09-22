@@ -109,6 +109,13 @@ class AppointmentController extends Controller
         ]);
 
         if ($chargeItemsProvided && $appointment->client_id) {
+            // Consolidate any AI-plan-sourced charge onto this same
+            // (appointment, id) bucket first -- syncItems() below only
+            // deletes rows that already match that exact source, so without
+            // this an AI-confirmed plan's charge and a freshly edited one
+            // coexist and both get summed, double-counting the client's
+            // total services.
+            $this->treatmentCharges->retarget(TreatmentCharge::SOURCE_AI_PLAN, $appointment->id, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id);
             $this->treatmentCharges->syncItems($appointment->client, TreatmentCharge::SOURCE_APPOINTMENT, $appointment->id, $chargeItems);
         }
 
