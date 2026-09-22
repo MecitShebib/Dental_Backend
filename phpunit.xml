@@ -26,6 +26,11 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- Pinned regardless of whatever the real .env currently has (it
+             mirrors production and, as of 2026-09-12, temporarily sets this
+             to false, see config/services.php's 'kvkk' block); tests
+             must always exercise the real KVKK enforcement behavior. -->
+        <env name="KVKK_AI_CONSENT_REQUIRED" value="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

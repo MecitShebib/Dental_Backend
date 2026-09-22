@@ -127,7 +127,11 @@ class DoctorAvailabilityService
         return $doctor->appointmentsAsDoctor()
             ->with(['client', 'doctor'])
             ->whereDate('date', $date)
-            ->where('status', '!=', 'cancelled')
+            // Same list assertNoConflict() uses -- a cancelled or no-show
+            // appointment no longer occupies its slot, so the grid must
+            // show it free (otherwise the front desk sees "filled" for a
+            // slot the conflict check would happily accept a booking into).
+            ->whereNotIn('status', AppointmentConflictService::SLOT_FREEING_STATUSES)
             ->orderBy('start_time')
             ->get()
             ->each(function (Appointment $appointment): void {

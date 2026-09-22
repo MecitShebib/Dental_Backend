@@ -92,6 +92,26 @@ class RequiresKvkkConsentTest extends TestCase
         $this->getJson("/api/clients/{$client->id}/ai-conversation")->assertOk();
     }
 
+    public function test_the_gate_can_be_temporarily_disabled_via_config(): void
+    {
+        config(['services.kvkk.ai_consent_required' => false]);
+
+        $doctor = $this->activeDoctor();
+        $client = $this->makeClient($doctor->company_id);
+        Sanctum::actingAs($doctor);
+
+        config(['services.openai.api_key' => 'test-key']);
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => json_encode(['reply' => 'Tell me more.', 'options' => [], 'ready_for_plan' => false])]]],
+                'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
+            ], 200),
+        ]);
+
+        $this->postJson("/api/clients/{$client->id}/ai-conversation/messages", ['text' => 'Patient has a toothache.'])
+            ->assertOk();
+    }
+
     public function test_a_consent_template_of_a_different_kind_does_not_satisfy_the_gate(): void
     {
         $doctor = $this->activeDoctor();

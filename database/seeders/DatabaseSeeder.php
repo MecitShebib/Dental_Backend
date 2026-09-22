@@ -106,8 +106,22 @@ class DatabaseSeeder extends Seeder
         // via the loop below.
         (new TreatmentCatalogSeeder)->seedCompany($company);
 
+        // Same reasoning as the TreatmentCatalogSeeder call above: covers a
+        // fresh install (zero companies yet when KvkkConsentTemplateSeeder's
+        // own blanket run() below executes) explicitly for this company, in
+        // addition to (not instead of) the blanket backfill immediately
+        // after -- that backfill is the only thing that retroactively gives
+        // the two KVKK consent templates to companies created before this
+        // feature shipped (2026-09-05), since CompanyController::store()'s
+        // own seedCompany() call only ever covers companies created *after*.
+        // Without it, RequiresKvkkConsent permanently blocks every AI
+        // feature for every existing company: there is no KVKK Açık Rıza
+        // Beyanı template for a patient to sign in the first place.
+        (new KvkkConsentTemplateSeeder)->seedCompany($company);
+
         $this->call([
             TreatmentCatalogSeeder::class,
+            KvkkConsentTemplateSeeder::class,
         ]);
 
         $admin = $this->updateOrCreateSafely(

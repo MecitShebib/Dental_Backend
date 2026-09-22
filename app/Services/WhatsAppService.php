@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Company;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -32,14 +33,25 @@ class WhatsAppService
 
         $baseUrl = rtrim((string) config('services.whatsapp.graph_base_url'), '/');
 
-        $response = Http::withToken($integration->access_token)
-            ->timeout(15)
-            ->post("{$baseUrl}/{$integration->phone_number_id}/messages", [
-                'messaging_product' => 'whatsapp',
-                'to' => $this->normalizePhone($to),
-                'type' => 'text',
-                'text' => ['body' => $text],
-            ]);
+        try {
+            $response = Http::withToken($integration->access_token)
+                ->timeout(15)
+                ->post("{$baseUrl}/{$integration->phone_number_id}/messages", [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $this->normalizePhone($to),
+                    'type' => 'text',
+                    'text' => ['body' => $text],
+                ]);
+        } catch (ConnectionException $e) {
+            // Transport-level failure (DNS, TLS, timeout, refused): the Http
+            // client throws these regardless of ->throw(), so without this
+            // the documented "returns false, never throws" contract broke
+            // and the exception escaped into whatever was fanning out
+            // messages (reminders, recalls, booking confirmations).
+            return $this->fail($company, $integration, 'WhatsApp send failed: could not reach the WhatsApp Cloud API.', $e);
+        } catch (\Throwable $e) {
+            return $this->fail($company, $integration, 'WhatsApp send failed unexpectedly.', $e);
+        }
 
         if (! $response->successful()) {
             Log::error('WhatsApp send failed.', [
@@ -54,6 +66,22 @@ class WhatsAppService
         }
 
         return true;
+    }
+
+    /**
+     * Logs a failed send and records it on the integration the same way the
+     * non-2xx branch above does, then reports failure to the caller.
+     */
+    protected function fail(Company $company, $integration, string $message, \Throwable $e): bool
+    {
+        Log::error($message, [
+            'company_id' => $company->id,
+            'exception' => $e->getMessage(),
+        ]);
+
+        $integration->update(['last_error' => Str::limit($e->getMessage(), 500)]);
+
+        return false;
     }
 
     protected function normalizePhone(string $phone): string

@@ -36,11 +36,19 @@ class AnalyzeXrayImageJob implements ShouldQueue
         $company = $xrayImage->client->company;
 
         if (! $this->hasSignedExplicitConsent($xrayImage->client_id)) {
-            Log::info('Skipped X-ray AI odontogram analysis: KVKK açık rıza not signed for this patient.', [
-                'xray_image_id' => $xrayImage->id,
-            ]);
+            if (! config('services.kvkk.ai_consent_required', true)) {
+                // TEMPORARY bypass, see config/services.php's 'kvkk' block.
+                Log::warning('X-ray AI odontogram analysis run without a signed KVKK consent (gate temporarily disabled).', [
+                    'xray_image_id' => $xrayImage->id,
+                    'client_id' => $xrayImage->client_id,
+                ]);
+            } else {
+                Log::info('Skipped X-ray AI odontogram analysis: KVKK açık rıza not signed for this patient.', [
+                    'xray_image_id' => $xrayImage->id,
+                ]);
 
-            return;
+                return;
+            }
         }
 
         try {

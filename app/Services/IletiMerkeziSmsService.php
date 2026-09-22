@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -45,27 +46,46 @@ class IletiMerkeziSmsService
             return false;
         }
 
-        $response = Http::post(self::ENDPOINT, [
-            'request' => [
-                'authentication' => [
-                    'key' => $key,
-                    'hash' => $hash,
-                ],
-                'order' => [
-                    'sender' => (string) config('services.iletimerkezi.sender', 'Dentavaria'),
-                    // '0': a transactional message tied to an existing
-                    // relationship (OTP, appointment reminder) rather than
-                    // marketing -- exempt from İYS opt-in checking.
-                    'iys' => '0',
-                    'message' => [
-                        'text' => $text,
-                        'receipents' => [
-                            'number' => [$this->normalizeMobile($mobile)],
+        try {
+            $response = Http::post(self::ENDPOINT, [
+                'request' => [
+                    'authentication' => [
+                        'key' => $key,
+                        'hash' => $hash,
+                    ],
+                    'order' => [
+                        'sender' => (string) config('services.iletimerkezi.sender', 'Dentavaria'),
+                        // '0': a transactional message tied to an existing
+                        // relationship (OTP, appointment reminder) rather than
+                        // marketing -- exempt from İYS opt-in checking.
+                        'iys' => '0',
+                        'message' => [
+                            'text' => $text,
+                            'receipents' => [
+                                'number' => [$this->normalizeMobile($mobile)],
+                            ],
                         ],
                     ],
                 ],
-            ],
-        ]);
+            ]);
+        } catch (ConnectionException $e) {
+            // Transport-level failure (DNS, TLS, timeout, refused). The Http
+            // client throws these independently of ->throw(), so without this
+            // catch the "does not throw" contract above was a lie and an OTP
+            // login or a reminder fan-out died on a flaky network instead of
+            // degrading to a logged failure.
+            Log::error('İleti Merkezi SMS request could not reach the gateway.', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('İleti Merkezi SMS request failed unexpectedly.', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
 
         if (! $response->successful()) {
             Log::error('İleti Merkezi SMS request failed.', [

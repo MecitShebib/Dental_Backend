@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Company;
 use App\Models\ConsentTemplate;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 /**
  * Seeds the two KVKK-specific consent templates every Company needs on top
@@ -12,8 +13,9 @@ use Illuminate\Database\Seeder;
  * Aydınlatma Metni (KVKK m.10 disclosure -- informational, patient
  * acknowledges having read it) and the Açık Rıza Beyanı (KVKK m.6/2
  * explicit consent -- required before a doctor can use the AI treatment
- * plan assistant or AI X-ray reading for that patient, since both send
- * health data to OpenAI in the United States; see
+ * plan assistant, AI X-ray reading, or AI lab/analysis-report reading for
+ * that patient, since all of them send health data to OpenAI in the
+ * United States; see
  * RequiresKvkkConsent middleware and the KVKK compliance plan,
  * docs/superpowers/plans/2026-09-05-kvkk-uyumlulugu.md, Görev 2.2/5.4).
  *
@@ -36,7 +38,7 @@ class KvkkConsentTemplateSeeder extends Seeder
 
     public function seedCompany(Company $company): void
     {
-        ConsentTemplate::query()->updateOrCreate(
+        $this->updateOrCreateTemplate(
             ['company_id' => $company->id, 'kind' => ConsentTemplate::KIND_KVKK_DISCLOSURE],
             [
                 'title' => 'Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni',
@@ -47,7 +49,7 @@ class KvkkConsentTemplateSeeder extends Seeder
             ]
         );
 
-        ConsentTemplate::query()->updateOrCreate(
+        $this->updateOrCreateTemplate(
             ['company_id' => $company->id, 'kind' => ConsentTemplate::KIND_KVKK_EXPLICIT_CONSENT],
             [
                 'title' => 'Açık Rıza Beyanı',
@@ -57,6 +59,29 @@ class KvkkConsentTemplateSeeder extends Seeder
                 'sections' => null,
             ]
         );
+    }
+
+    /**
+     * Same effect as ConsentTemplate::updateOrCreate($attributes, $values),
+     * except it's safe when model events are suppressed (DatabaseSeeder --
+     * which this is also called from via the blanket per-deploy backfill --
+     * uses WithoutModelEvents, which silently disables HasUuid's `creating`
+     * hook, so a plain updateOrCreate() would try to insert a NULL into the
+     * NOT NULL `uuid` column and fail). Assigns a uuid only when actually
+     * inserting a new row; an existing row's uuid is left untouched on every
+     * later re-run, since save() only fills the keys present in $values.
+     */
+    protected function updateOrCreateTemplate(array $attributes, array $values): ConsentTemplate
+    {
+        $template = ConsentTemplate::query()->firstOrNew($attributes);
+
+        if (! $template->exists) {
+            $template->uuid = (string) Str::uuid();
+        }
+
+        $template->fill($values)->save();
+
+        return $template;
     }
 
     protected function disclosureBody(): string
@@ -75,7 +100,7 @@ class KvkkConsentTemplateSeeder extends Seeder
             ],
             [
                 'heading' => 'İşlenme amaçları',
-                'body' => 'Verileriniz; teşhis ve tedavi süreçlerinin yürütülmesi, randevu planlaması, hasta iletişimi (randevu hatırlatmaları dahil), faturalandırma ve tahsilat, mevzuattan doğan saklama/raporlama yükümlülüklerinin yerine getirilmesi ve -yalnızca ayrıca alınacak açık rızanız bulunması halinde- yapay zeka destekli tedavi planlaması/röntgen değerlendirmesi amaçlarıyla işlenmektedir.',
+                'body' => 'Verileriniz; teşhis ve tedavi süreçlerinin yürütülmesi, randevu planlaması, hasta iletişimi (randevu hatırlatmaları dahil), faturalandırma ve tahsilat, mevzuattan doğan saklama/raporlama yükümlülüklerinin yerine getirilmesi ve -yalnızca ayrıca alınacak açık rızanız bulunması halinde- yapay zeka destekli tedavi planlaması, röntgen değerlendirmesi ve laboratuvar/tahlil raporu fotoğrafınızın okunarak sonuçlarının kayda geçirilmesi amaçlarıyla işlenmektedir.',
             ],
             [
                 'heading' => 'Hukuki sebep',
@@ -83,7 +108,7 @@ class KvkkConsentTemplateSeeder extends Seeder
             ],
             [
                 'heading' => 'Kimlere ve hangi amaçla aktarılabilir',
-                'body' => 'Verileriniz; yasal yükümlülükler kapsamında yetkili kamu kurum ve kuruluşlarına, randevu/hatırlatma SMS\'lerinin iletilmesi amacıyla SMS hizmet sağlayıcımıza, ve -yalnızca ayrıca imzalayacağınız Açık Rıza Beyanı bulunması halinde- yapay zeka destekli tedavi planlaması/röntgen okuma hizmeti sağlayan OpenAI\'a (Amerika Birleşik Devletleri) aktarılabilir.',
+                'body' => 'Verileriniz; yasal yükümlülükler kapsamında yetkili kamu kurum ve kuruluşlarına, randevu/hatırlatma SMS\'lerinin iletilmesi amacıyla SMS hizmet sağlayıcımıza, ve -yalnızca ayrıca imzalayacağınız Açık Rıza Beyanı bulunması halinde- yapay zeka destekli tedavi planlaması, röntgen okuma ve laboratuvar/tahlil raporu okuma hizmeti sağlayan OpenAI\'a (Amerika Birleşik Devletleri) aktarılabilir.',
             ],
             [
                 'heading' => 'Toplama yöntemi',
@@ -99,7 +124,7 @@ class KvkkConsentTemplateSeeder extends Seeder
     protected function explicitConsentBody(): string
     {
         return <<<'TEXT'
-        {client_name} olarak, {company_name} tarafından yukarıdaki Aydınlatma Metni'nde belirtilen kapsamda tarafıma ait sağlık verilerimin (röntgen görüntülerim ve/veya vaka açıklamam dahil), yapay zeka destekli tedavi planlaması ve/veya röntgen değerlendirmesi hizmeti sunmak amacıyla, bu hizmeti sağlayan OpenAI, L.L.C. şirketine (Amerika Birleşik Devletleri) aktarılmasına, KVKK m.6/2 uyarınca özgür irademle, bilgilendirilmiş ve tereddüde yer vermeyecek açıklıkta AÇIK RIZA gösteriyorum.
+        {client_name} olarak, {company_name} tarafından yukarıdaki Aydınlatma Metni'nde belirtilen kapsamda tarafıma ait sağlık verilerimin (röntgen görüntülerim, laboratuvar/tahlil raporu fotoğraf veya belgelerim ve/veya vaka açıklamam dahil), yapay zeka destekli tedavi planlaması, röntgen değerlendirmesi ve/veya laboratuvar/tahlil raporu okuma hizmeti sunmak amacıyla, bu hizmeti sağlayan OpenAI, L.L.C. şirketine (Amerika Birleşik Devletleri) aktarılmasına, KVKK m.6/2 uyarınca özgür irademle, bilgilendirilmiş ve tereddüde yer vermeyecek açıklıkta AÇIK RIZA gösteriyorum.
 
         Bu rızayı istediğim zaman, Klinik'e yazılı başvuruda bulunarak geri çekebileceğimi; rızamı geri çekmemin, geri çekme tarihinden önce bu rızaya dayanılarak gerçekleştirilmiş işlemlerin hukuka uygunluğunu etkilemeyeceğini biliyorum. Bu rızayı vermemem veya geri çekmemin, Klinik'ten alacağım tedavi hizmetinin diğer kısımlarını hiçbir şekilde etkilemeyeceği tarafıma bildirilmiştir; yapay zeka destekli özellikler kullanılmadan da tedavim aynı şekilde sürdürülür.
         TEXT;

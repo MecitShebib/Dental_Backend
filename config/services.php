@@ -35,6 +35,19 @@ return [
         ],
     ],
 
+    'kvkk' => [
+        // TEMPORARY (2026-09-12, user request): flips RequiresKvkkConsent
+        // and AnalyzeXrayImageJob's matching guard from "enforce" to
+        // "log and allow" while set to false. Every AI request that would
+        // otherwise have been blocked while this is off is a real,
+        // live KVKK m.9 compliance gap (patient health data goes to OpenAI,
+        // a US processor, without the patient's required explicit consent)
+        // -- this is a knowingly-accepted short-term risk, not a fix. Set
+        // KVKK_AI_CONSENT_REQUIRED=true (or remove the env line) to
+        // re-enable; no code changes needed to turn it back on.
+        'ai_consent_required' => env('KVKK_AI_CONSENT_REQUIRED', true),
+    ],
+
     'iletimerkezi' => [
         'enabled' => env('ILETIMERKEZI_ENABLED', false),
         // İleti Merkezi (Turkey-domiciled) rather than a foreign provider

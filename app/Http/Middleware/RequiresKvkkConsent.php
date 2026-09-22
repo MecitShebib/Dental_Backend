@@ -6,6 +6,7 @@ use App\Models\ClientConsent;
 use App\Models\ConsentTemplate;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -30,6 +31,20 @@ class RequiresKvkkConsent
         $client = $request->route('client');
 
         if ($client && ! $this->hasSignedExplicitConsent($client)) {
+            if (! config('services.kvkk.ai_consent_required', true)) {
+                // TEMPORARY bypass, see config/services.php's 'kvkk' block --
+                // logged so this real compliance gap isn't invisible while
+                // it's open.
+                Log::warning('AI used without a signed KVKK consent (gate temporarily disabled).', [
+                    'client_id' => $client->id,
+                    'company_id' => $client->company_id,
+                    'user_id' => $request->user()?->id,
+                    'route' => $request->path(),
+                ]);
+
+                return $next($request);
+            }
+
             throw ValidationException::withMessages([
                 'client' => ['This patient has not signed the KVKK Açık Rıza Beyanı required before AI features can be used with their health data.'],
             ]);

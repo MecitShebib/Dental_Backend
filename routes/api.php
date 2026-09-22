@@ -213,7 +213,11 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
 
     Route::get('clients/{client}/lab-results', [PatientLabResultController::class, 'index']);
     Route::post('clients/{client}/lab-results', [PatientLabResultController::class, 'store']);
-    Route::post('clients/{client}/lab-results/analyze', [PatientLabResultController::class, 'analyze']);
+    // Uploads a photo/PDF of the patient's lab report to OpenAI vision --
+    // exactly the same transfer of health data abroad the AI treatment-plan
+    // endpoints make, so it goes behind the same KVKK Açık Rıza gate.
+    Route::post('clients/{client}/lab-results/analyze', [PatientLabResultController::class, 'analyze'])
+        ->middleware('kvkk.consent');
     Route::put('lab-results/{labResult}', [PatientLabResultController::class, 'update']);
     Route::delete('lab-results/{labResult}', [PatientLabResultController::class, 'destroy']);
 

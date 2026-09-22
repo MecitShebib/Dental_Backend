@@ -226,6 +226,9 @@ class PatientLabResultTest extends TestCase
         $doctor = $this->makeDoctor($company, Specialty::INTERNAL_MEDICINE);
         $client = $this->makeClient($company);
         $this->enrollClient($client, $doctor);
+        // analyze() ships the report photo to OpenAI, so it sits behind the
+        // same KVKK Açık Rıza gate as every other AI endpoint.
+        $this->signKvkkConsent($client);
         Sanctum::actingAs($doctor);
 
         Http::fake([
@@ -282,6 +285,9 @@ class PatientLabResultTest extends TestCase
         $doctor = $this->makeDoctor($company, Specialty::INTERNAL_MEDICINE);
         $client = $this->makeClient($company);
         $this->enrollClient($client, $doctor);
+        // analyze() ships the report file to OpenAI, so it sits behind the
+        // same KVKK Açık Rıza gate as every other AI endpoint.
+        $this->signKvkkConsent($client);
         Sanctum::actingAs($doctor);
 
         Http::fake([

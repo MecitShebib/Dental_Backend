@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\AppointmentStatus;
+use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\TreatmentCharge;
 use App\Models\TreatmentChargeInventoryConsumption;
@@ -29,6 +31,17 @@ class TreatmentChargeService
      */
     public function syncItems(Client $client, string $sourceType, int $sourceId, array $items): void
     {
+        if ($this->sourceIsCancelledAppointment($sourceType, $sourceId)) {
+            // A cancelled appointment owns no charges (see Appointment's
+            // `updated` hook, which clears them). An update() request can
+            // carry `status=cancelled` *and* the edit modal's full
+            // charge_items payload, and the controller syncs those items
+            // after the save -- without this guard the cleanup would be
+            // immediately undone and the patient would keep owing for a
+            // treatment that was called off.
+            $items = [];
+        }
+
         $this->deleteForSource($sourceType, $sourceId);
 
         if (! empty($items)) {
@@ -52,6 +65,24 @@ class TreatmentChargeService
             ->all();
 
         $this->inventory->syncConsumptionForSource($client->company_id, $sourceType, $sourceId, $catalogIdCounts);
+    }
+
+    /**
+     * Whether this source key points at an appointment that is already
+     * cancelled. Only the two appointment-keyed source types can -- a visit
+     * has no status of its own, and manual charges have no source row at all.
+     */
+    protected function sourceIsCancelledAppointment(string $sourceType, int $sourceId): bool
+    {
+        if (! in_array($sourceType, [TreatmentCharge::SOURCE_APPOINTMENT, TreatmentCharge::SOURCE_AI_PLAN], true)) {
+            return false;
+        }
+
+        return Appointment::query()
+            ->withoutGlobalScopes()
+            ->whereKey($sourceId)
+            ->where('status', AppointmentStatus::Cancelled->value)
+            ->exists();
     }
 
     public function deleteForSource(string $sourceType, int $sourceId): void

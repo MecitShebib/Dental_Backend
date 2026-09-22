@@ -10,6 +10,19 @@ use Illuminate\Validation\ValidationException;
 
 class AppointmentConflictService
 {
+    /**
+     * Statuses that release the slot back to the front desk. `cancelled` is
+     * obvious; `no_show` is here because the patient never came -- the
+     * doctor was (and still is) physically free for that hour, so leaving
+     * it blocked meant the slot could never be rebooked even minutes after
+     * the no-show was recorded. DoctorAvailabilityService reuses this list
+     * so the conflict check and the slot grid can't drift apart.
+     */
+    public const SLOT_FREEING_STATUSES = [
+        AppointmentStatus::Cancelled->value,
+        AppointmentStatus::NoShow->value,
+    ];
+
     public function calculateEndTime(string $startTime, int $durationMinutes): string
     {
         return $this->parseTime($startTime)
@@ -56,7 +69,7 @@ class AppointmentConflictService
         $appointments = Appointment::query()
             ->where('doctor_id', $doctorId)
             ->whereDate('date', $date)
-            ->where('status', '!=', AppointmentStatus::Cancelled->value)
+            ->whereNotIn('status', self::SLOT_FREEING_STATUSES)
             ->when($ignoreAppointmentId, fn ($query) => $query->whereKeyNot($ignoreAppointmentId))
             ->get();
 
