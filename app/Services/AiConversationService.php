@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AppointmentStatus;
 use App\Models\AiConversation;
 use App\Models\AiConversationMessage;
 use App\Models\CarePlan;
@@ -144,14 +145,40 @@ class AiConversationService
     /**
      * One combined system message: the mode-specific system prompt (chat vs
      * plan-building) followed by a small, always-fresh block of the patient's
-     * basic info -- cheap enough to resend every turn, unlike images.
+     * basic info -- cheap enough to resend every turn, unlike images. Every
+     * specialty now gets the same baseline of shared context (scheduling,
+     * prescriptions, visit/record history) plus its own specialty-specific
+     * piece (nutrition's profile/body-metrics/care-plan/labs, dental's
+     * lab cases, the other 4's lab results) -- previously only nutrition got
+     * anything beyond the four basic fields below.
      */
     protected function buildOpenAiMessages(Client $client, Collection $history, string $systemPrompt, Specialty $specialty): array
     {
         $contextText = $this->buildPatientContextText($client);
+        $contextText .= "\n\n".$this->buildAppointmentsContextText($client, $specialty);
+
+        $prescriptionsText = $this->buildPrescriptionsContextText($client, $specialty);
+        if ($prescriptionsText) {
+            $contextText .= "\n\n".$prescriptionsText;
+        }
+
+        $visitHistoryText = $this->buildVisitHistoryText($client, $specialty);
+        if ($visitHistoryText) {
+            $contextText .= "\n\n".$visitHistoryText;
+        }
 
         if ($specialty->key === Specialty::NUTRITION) {
             $contextText .= "\n\n".$this->buildNutritionContextText($client);
+        } elseif ($specialty->key === Specialty::DENTAL) {
+            $labCasesText = $this->buildLabCasesContextText($client);
+            if ($labCasesText) {
+                $contextText .= "\n\n".$labCasesText;
+            }
+        } else {
+            $labResultsText = $this->buildLabResultsText($client);
+            if ($labResultsText) {
+                $contextText .= "\n\n".$labResultsText;
+            }
         }
 
         $messages = [
@@ -201,6 +228,167 @@ class AiConversationService
         }
 
         return "Patient context:\n".implode("\n", $lines);
+    }
+
+    /**
+     * Every specialty's AI now sees the client's own upcoming schedule
+     * within that specialty (never surfaced anywhere before this) plus an
+     * explicit same-day instruction -- a doctor confirming a plan while the
+     * patient is physically in the room routinely wants a session TODAY,
+     * but the AI had no way to know whether one already existed, risking a
+     * duplicate booking for the same day.
+     */
+    protected function buildAppointmentsContextText(Client $client, Specialty $specialty): string
+    {
+        $today = now()->toDateString();
+
+        $appointments = $client->appointments()
+            ->whereHas('doctor', fn ($query) => $query->where('specialty_id', $specialty->id))
+            ->where('status', AppointmentStatus::Scheduled->value)
+            ->where('date', '>=', $today)
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->limit(10)
+            ->get();
+
+        $hasAppointmentToday = $appointments->contains(fn ($appointment) => $appointment->date->toDateString() === $today);
+
+        $lines = ["Today's date: {$today}."];
+
+        if ($appointments->isEmpty()) {
+            $lines[] = 'This patient has no upcoming scheduled appointments in this specialty.';
+        } else {
+            $lines[] = 'Upcoming scheduled appointments in this specialty (soonest first):';
+            foreach ($appointments as $appointment) {
+                $parts = ["{$appointment->date->toDateString()} {$appointment->start_time}"];
+                if ($appointment->planned_notes) {
+                    $parts[] = $appointment->planned_notes;
+                }
+                $lines[] = '- '.implode(': ', $parts);
+            }
+        }
+
+        $lines[] = $hasAppointmentToday
+            ? 'The patient already has an appointment scheduled for today -- when proposing new session dates, do NOT add another one for today, start scheduling from the next available day instead.'
+            : 'The patient does not currently have an appointment scheduled for today -- if the doctor is confirming this plan with the patient physically present, it is appropriate to schedule the first session for today.';
+
+        return "Scheduling context:\n".implode("\n", $lines);
+    }
+
+    /**
+     * Recent prescriptions on file, scoped to this specialty (Prescription
+     * has its own specialty_id column, unlike Appointment/Visit which are
+     * scoped via the treating doctor's specialty).
+     */
+    protected function buildPrescriptionsContextText(Client $client, Specialty $specialty): ?string
+    {
+        $prescriptions = $client->prescriptions()
+            ->where('specialty_id', $specialty->id)
+            ->with('items')
+            ->latest('prescribed_date')
+            ->limit(5)
+            ->get();
+
+        if ($prescriptions->isEmpty()) {
+            return null;
+        }
+
+        $lines = ['Recent prescriptions on file (most recent first):'];
+
+        foreach ($prescriptions as $prescription) {
+            $medications = $prescription->items
+                ->map(fn ($item) => $item->dosage_instruction ? "{$item->medication_name} ({$item->dosage_instruction})" : $item->medication_name)
+                ->implode(', ');
+            $lines[] = "- {$prescription->prescribed_date->toDateString()}: ".($medications ?: 'no medications listed');
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * "Record"/timeline history: recent past visits, most recent first. For
+     * the 4 non-dental, non-nutrition specialties, Visit.summary is the
+     * same "__visit_specialty_procedures__" JSON snapshot
+     * ClientTimelinePanel.jsx writes (see visitSpecialtyProcedures.js on
+     * the frontend) -- decoded here into plain procedure codes. Dental's
+     * own summary is a much larger odontogram JSON blob (tooth-by-tooth
+     * state) this deliberately does not attempt to decode into prose;
+     * dental visit history here is notes-only.
+     */
+    protected function buildVisitHistoryText(Client $client, Specialty $specialty): ?string
+    {
+        $visits = $client->visits()
+            ->whereHas('doctor', fn ($query) => $query->where('specialty_id', $specialty->id))
+            ->latest('visit_date')
+            ->limit(5)
+            ->get();
+
+        if ($visits->isEmpty()) {
+            return null;
+        }
+
+        $lines = ['Recent visit history (most recent first):'];
+
+        foreach ($visits as $visit) {
+            $parts = [$visit->visit_date->toDateString()];
+
+            $procedureCodes = $this->extractSpecialtyProcedureCodes($visit->summary);
+            if ($procedureCodes) {
+                $parts[] = 'procedures: '.implode(', ', $procedureCodes);
+            }
+
+            if ($visit->notes) {
+                $parts[] = "notes: {$visit->notes}";
+            }
+
+            $lines[] = '- '.implode(', ', $parts);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function extractSpecialtyProcedureCodes(?string $summary): array
+    {
+        if (! $summary) {
+            return [];
+        }
+
+        $decoded = json_decode($summary, true);
+        if (! is_array($decoded) || empty($decoded['__visit_specialty_procedures__'])) {
+            return [];
+        }
+
+        return collect($decoded['procedures'] ?? [])->pluck('procedure_code')->filter()->values()->all();
+    }
+
+    /**
+     * Dental's own "lab" concept -- outsourced prosthetics work (LabCase),
+     * not a test-results concept (that's PatientLabResult, used by the
+     * other 5 specialties -- see buildLabResultsText()).
+     */
+    protected function buildLabCasesContextText(Client $client): ?string
+    {
+        $labCases = $client->labCases()->latest('sent_date')->limit(5)->get();
+
+        if ($labCases->isEmpty()) {
+            return null;
+        }
+
+        $lines = ['Dental lab cases on file (most recent first):'];
+
+        foreach ($labCases as $labCase) {
+            $parts = [$labCase->work_type?->value ?? $labCase->work_type];
+            if (! empty($labCase->teeth)) {
+                $parts[] = 'teeth '.implode(', ', $labCase->teeth);
+            }
+            $parts[] = 'status: '.($labCase->status?->value ?? $labCase->status);
+            if ($labCase->expected_return_date) {
+                $parts[] = "expected back {$labCase->expected_return_date->toDateString()}";
+            }
+            $lines[] = '- '.implode(', ', $parts);
+        }
+
+        return implode("\n", $lines);
     }
 
     /**
@@ -296,7 +484,7 @@ class AiConversationService
 
         $text = $lines
             ? "Nutrition profile and measurement history:\n".implode("\n", $lines)
-            : "Nutrition profile and measurement history: none recorded yet.";
+            : 'Nutrition profile and measurement history: none recorded yet.';
 
         $priorPlanText = $this->buildPriorCarePlanText($client);
         if ($priorPlanText) {
