@@ -94,4 +94,23 @@ class DemoDataSeederTest extends TestCase
         $this->assertSame(1, Visit::query()->where('client_id', $gynClient->id)->count());
         $this->assertSame(1, CarePlan::query()->where('client_id', $gynClient->id)->count());
     }
+
+    public function test_re_running_it_after_a_demo_client_was_soft_deleted_restores_it_instead_of_erroring(): void
+    {
+        $this->seed(DemoDataSeeder::class);
+
+        // client_code has no soft-delete-aware unique index, so a since-erased
+        // demo client (e.g. a KVKK erasure test run against it) must not make
+        // a later re-seed crash trying to re-create the same code -- this is
+        // the exact production incident this test guards against.
+        $nutritionClient = Client::query()->where('client_code', 'DEMO-NUT-001')->firstOrFail();
+        $nutritionClient->delete();
+
+        $this->seed(DemoDataSeeder::class);
+
+        $this->assertSame(1, Client::query()->where('client_code', 'DEMO-NUT-001')->count());
+        $restored = Client::query()->where('client_code', 'DEMO-NUT-001')->firstOrFail();
+        $this->assertSame($nutritionClient->id, $restored->id);
+        $this->assertNull($restored->deleted_at);
+    }
 }

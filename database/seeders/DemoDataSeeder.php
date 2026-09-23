@@ -327,23 +327,39 @@ class DemoDataSeeder extends Seeder
 
     protected function ensureClient(Company $company, array $config, Branch $branch): Client
     {
-        $client = Client::firstOrCreate(
-            ['client_code' => $config['client_code']],
-            [
+        // withTrashed(): client_code's unique index has no soft-delete
+        // exception, so a plain firstOrCreate() can't see a since-erased demo
+        // client (e.g. via the KVKK erasure flow being tested against it) but
+        // still collides with it on create -- restore it instead, same as
+        // any other "ensure this seed row exists" step here.
+        $client = Client::withTrashed()->where('client_code', $config['client_code'])->first();
+
+        if ($client) {
+            if ($client->trashed()) {
+                $client->restore();
+            }
+
+            $wasRecentlyCreated = false;
+        } else {
+            $client = Client::create([
                 'company_id' => $company->id,
                 'branch_id' => $branch->id,
                 'uuid' => (string) Str::uuid(),
+                'client_code' => $config['client_code'],
                 'name' => $config['client_name'],
                 'phone' => $config['client_phone'],
                 'gender' => $config['client_gender'],
                 'status' => 'under_treatment',
                 'city' => 'Damascus',
-            ],
-        );
+            ]);
+            $wasRecentlyCreated = true;
+        }
 
-        if (! $client->wasRecentlyCreated && ! $client->branch_id) {
+        if (! $wasRecentlyCreated && ! $client->branch_id) {
             $client->update(['branch_id' => $branch->id]);
         }
+
+        $client->wasRecentlyCreated = $wasRecentlyCreated;
 
         return $client;
     }
