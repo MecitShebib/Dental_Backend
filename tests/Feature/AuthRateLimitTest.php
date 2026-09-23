@@ -26,6 +26,10 @@ class AuthRateLimitTest extends TestCase
             'services.iletimerkezi.api_hash' => 'test-api-hash',
             'services.iletimerkezi.sender' => 'Dentavaria',
             'services.otp.digits' => 6,
+            // Real 2-step OTP flow is what's under test here regardless of
+            // this machine's ambient MOBILE_OTP_FIXED_CODE (e.g. mirroring a
+            // production testing mode).
+            'services.otp.fixed_code' => '',
         ]);
 
         Http::fake([

@@ -31,6 +31,17 @@ trait GeneratesOtpCodes
         return app(IletiMerkeziSmsService::class)->enabled();
     }
 
+    /**
+     * True while a fixed testing code (MOBILE_OTP_FIXED_CODE) is configured,
+     * i.e. every OTP challenge would resolve to the same known value. Used by
+     * the login flow to skip the OTP screen entirely rather than make the
+     * user type a code that provides no real second factor.
+     */
+    public function usesFixedCode(): bool
+    {
+        return (string) config('services.otp.fixed_code', '') !== '';
+    }
+
     protected function generateOtp(): string
     {
         $fixed = (string) config('services.otp.fixed_code', '');

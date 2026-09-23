@@ -14,6 +14,7 @@ use App\Models\UserOtp;
 use App\Services\MobileOtpService;
 use App\Services\SubscriptionAccessService;
 use App\Specialties\SpecialtyModuleRegistry;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -41,6 +42,13 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'mobile' => [$this->subscriptionAccess->loginErrorMessage($user)],
             ]);
+        }
+
+        // While a fixed testing OTP is configured, every challenge resolves
+        // to the same known code -- it verifies nothing, so skip the OTP
+        // screen entirely and log the user straight in on password alone.
+        if ($this->otpService->usesFixedCode()) {
+            return $this->authenticatedSessionResponse($user);
         }
 
         $challenge = $this->otpService->issue($user, UserOtp::PURPOSE_LOGIN, $credentials['mobile']);
@@ -81,6 +89,16 @@ class AuthController extends Controller
         $this->otpService->verify($challenge, $credentials['otp']);
         $this->otpService->markUsed($challenge);
 
+        return $this->authenticatedSessionResponse($user);
+    }
+
+    /**
+     * Shared by verifyLoginOtp() and login()'s fixed-OTP bypass -- both end
+     * the login flow the same way once the user's identity is settled
+     * (password alone, in the bypass case).
+     */
+    protected function authenticatedSessionResponse(User $user): JsonResponse
+    {
         $user->forceFill(['last_login_at' => now()])->save();
 
         // Single-session-per-account: logging in from a new device/browser

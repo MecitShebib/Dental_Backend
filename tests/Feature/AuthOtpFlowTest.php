@@ -35,6 +35,12 @@ class AuthOtpFlowTest extends TestCase
             'services.iletimerkezi.api_hash' => 'test-api-hash',
             'services.iletimerkezi.sender' => 'Dentavaria',
             'services.otp.digits' => 6,
+            // Real 2-step OTP flow is the default under test here regardless
+            // of what MOBILE_OTP_FIXED_CODE happens to be set to in this
+            // machine's .env (e.g. mirroring a production testing mode) --
+            // the one test that exercises the fixed-code bypass sets this
+            // back to a non-empty value itself.
+            'services.otp.fixed_code' => '',
         ]);
     }
 
@@ -75,6 +81,30 @@ class AuthOtpFlowTest extends TestCase
             'purpose' => UserOtp::PURPOSE_LOGIN,
             'reference' => $reference,
         ]);
+    }
+
+    public function test_login_bypasses_the_otp_challenge_when_a_fixed_testing_code_is_configured(): void
+    {
+        $user = $this->activeUser();
+        config(['services.otp.fixed_code' => '505050']);
+
+        $response = $this->postJson('/api/auth/login', [
+            'mobile' => '963955123456',
+            'password' => 'secret',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure(['token', 'user' => ['id', 'mobile']])
+            ->assertJsonMissing(['otp_reference'])
+            ->assertJsonPath('user.id', $user->id);
+
+        $this->assertDatabaseMissing('user_otps', [
+            'user_id' => $user->id,
+            'purpose' => UserOtp::PURPOSE_LOGIN,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$response->json('token'))
+            ->getJson('/api/auth/me')->assertOk();
     }
 
     public function test_verify_login_otp_returns_token_and_user(): void
