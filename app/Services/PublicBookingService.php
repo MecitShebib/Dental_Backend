@@ -9,6 +9,7 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -46,8 +47,14 @@ class PublicBookingService
         $doctor = $this->doctorQuery($company)->findOrFail($doctorId);
         $result = $this->availability->availability($doctor, $date);
 
+        // availability() builds every slot in the doctor's working hours
+        // regardless of the current time -- fine for the internal scheduling
+        // grid (staff still need to see the whole day), but this public page
+        // must not let a same-day slot that's already passed show up as
+        // bookable.
         return collect($result['slots'])
             ->where('status', 'free')
+            ->filter(fn (array $slot) => Carbon::parse($date.' '.$slot['time'])->isFuture())
             ->pluck('time')
             ->values()
             ->all();
@@ -74,6 +81,16 @@ class PublicBookingService
         if (! $doctor) {
             throw ValidationException::withMessages([
                 'doctor_id' => ['The selected doctor is not available for online booking.'],
+            ]);
+        }
+
+        // Guards the endpoint itself, not just what freeTimes() lists: the
+        // frontend already hides a same-day slot once it's passed, but this
+        // still needs to reject a direct request for one too (stale page,
+        // or a slot that tips into the past during the OTP round-trip).
+        if (Carbon::parse($data['date'].' '.$data['start_time'])->isPast()) {
+            throw ValidationException::withMessages([
+                'start_time' => ['This time has already passed. Please choose another time.'],
             ]);
         }
 

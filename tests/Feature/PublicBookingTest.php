@@ -64,6 +64,12 @@ class PublicBookingTest extends TestCase
         return Carbon::now()->next(Carbon::MONDAY);
     }
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
     public function test_the_public_can_list_doctors_check_availability_and_book_an_appointment(): void
     {
         $company = Company::factory()->create(['name' => 'Dentavaria Clinic', 'booking_slug' => 'dentavaria-clinic']);
@@ -102,6 +108,39 @@ class PublicBookingTest extends TestCase
         $this->assertSame('Walk-in Patient', $client->name);
 
         Http::assertSent(fn ($request) => str_contains((string) $request['request']['order']['message']['text'], 'confirmed'));
+    }
+
+    public function test_a_same_day_slot_that_has_already_passed_is_not_listed_or_bookable(): void
+    {
+        Carbon::setTestNow(Carbon::today()->setTime(11, 15));
+
+        $company = Company::factory()->create(['booking_slug' => 'today-clinic']);
+        // makeBookableDoctor's schedule is 09:00-12:00 in 30-minute slots --
+        // with "now" frozen at 11:15, only 11:30 is still in the future.
+        $doctor = $this->makeBookableDoctor($company, strtolower(Carbon::today()->englishDayOfWeek));
+        $date = Carbon::today()->toDateString();
+
+        $freeTimes = $this->getJson("/api/public/companies/today-clinic/availability?doctor_id={$doctor->id}&date={$date}")
+            ->assertOk()
+            ->json('data.free_times');
+
+        $this->assertNotContains('09:00', $freeTimes);
+        $this->assertNotContains('11:00', $freeTimes);
+        $this->assertContains('11:30', $freeTimes);
+
+        $otpReference = $this->requestBookingOtp('today-clinic', '+905550001111');
+
+        $this->postJson('/api/public/companies/today-clinic/book', [
+            'doctor_id' => $doctor->id,
+            'date' => $date,
+            'start_time' => '09:00',
+            'client_name' => 'Late Riser',
+            'client_phone' => '+905550001111',
+            'otp' => '123456',
+            'otp_reference' => $otpReference,
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Appointment::query()->count());
     }
 
     public function test_booking_the_same_slot_twice_is_rejected(): void
