@@ -114,6 +114,28 @@ class BodyMetricTest extends TestCase
         $response->assertJsonPath('data.left_leg_fat_percent', '22.4');
     }
 
+    public function test_store_persists_trunk_and_metabolic_fields(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->postJson("/api/nutrition/clients/{$client->id}/body-metrics", [
+            'recorded_at' => '2026-09-16',
+            'trunk_muscle_kg' => 30.2,
+            'trunk_fat_percent' => 24.1,
+            'metabolic_age' => 34,
+            'daily_calorie_need' => 2692,
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.trunk_muscle_kg', '30.2');
+        $response->assertJsonPath('data.trunk_fat_percent', '24.1');
+        $response->assertJsonPath('data.metabolic_age', 34);
+        $response->assertJsonPath('data.daily_calorie_need', 2692);
+    }
+
     public function test_index_lists_measurements_newest_first(): void
     {
         $company = Company::factory()->create();
@@ -311,6 +333,10 @@ class BodyMetricTest extends TestCase
                         'basal_metabolic_rate' => 1650,
                         'waist_cm' => 82.0,
                         'hip_cm' => 98.0,
+                        'trunk_muscle_kg' => 29.5,
+                        'trunk_fat_percent' => 23.0,
+                        'metabolic_age' => 33,
+                        'daily_calorie_need' => 2600,
                     ])]],
                 ],
                 'usage' => ['prompt_tokens' => 200, 'completion_tokens' => 40, 'total_tokens' => 240],
@@ -327,6 +353,9 @@ class BodyMetricTest extends TestCase
         $response->assertJsonPath('data.weight_kg', 78.5);
         $response->assertJsonPath('data.body_fat_percent', 23);
         $response->assertJsonPath('data.recorded_at', '2026-09-16');
+        $response->assertJsonPath('data.trunk_muscle_kg', 29.5);
+        $response->assertJsonPath('data.metabolic_age', 33);
+        $response->assertJsonPath('data.daily_calorie_need', 2600);
         $this->assertDatabaseCount('nutrition_body_metrics', 0);
     }
 

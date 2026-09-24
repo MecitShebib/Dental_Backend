@@ -33,6 +33,10 @@ class NutritionBodyMetricResource extends JsonResource
             'left_leg_muscle_kg' => $this->left_leg_muscle_kg,
             'right_leg_fat_percent' => $this->right_leg_fat_percent,
             'left_leg_fat_percent' => $this->left_leg_fat_percent,
+            'trunk_muscle_kg' => $this->trunk_muscle_kg,
+            'trunk_fat_percent' => $this->trunk_fat_percent,
+            'metabolic_age' => $this->metabolic_age,
+            'daily_calorie_need' => $this->daily_calorie_need,
             'notes' => $this->notes,
             'report_original_filename' => $this->report_original_filename,
             'report_url' => $this->report_path

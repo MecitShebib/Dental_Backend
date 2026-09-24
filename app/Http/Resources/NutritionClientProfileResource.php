@@ -12,6 +12,7 @@ class NutritionClientProfileResource extends JsonResource
         return [
             'client_id' => $this->client_id,
             'height_cm' => $this->height_cm,
+            'body_type' => $this->body_type,
             'dietary_type' => $this->dietary_type,
             'allergies' => $this->allergies ?? [],
             'chronic_conditions' => $this->chronic_conditions ?? [],

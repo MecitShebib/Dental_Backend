@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Nutrition;
 
 use App\Enums\NutritionActivityLevel;
+use App\Enums\NutritionBodyType;
 use App\Enums\NutritionDietaryType;
 use App\Enums\NutritionGoal;
 use App\Enums\NutritionSubstanceUseStatus;
@@ -20,6 +21,7 @@ class UpdateNutritionClientProfileRequest extends FormRequest
     {
         return [
             'height_cm' => ['nullable', 'numeric', 'min:0', 'max:999.9'],
+            'body_type' => ['nullable', Rule::enum(NutritionBodyType::class)],
             'dietary_type' => ['nullable', Rule::enum(NutritionDietaryType::class)],
             'allergies' => ['nullable', 'array'],
             'allergies.*' => ['string', 'max:255'],

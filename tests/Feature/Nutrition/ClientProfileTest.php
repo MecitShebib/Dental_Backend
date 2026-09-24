@@ -74,6 +74,7 @@ class ClientProfileTest extends TestCase
 
         $payload = [
             'height_cm' => 168.5,
+            'body_type' => 'non_athlete',
             'dietary_type' => 'vegetarian',
             'allergies' => ['peanuts', 'shellfish'],
             'chronic_conditions' => ['type_2_diabetes'],
@@ -90,14 +91,31 @@ class ClientProfileTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.height_cm', '168.5');
+        $response->assertJsonPath('data.body_type', 'non_athlete');
         $response->assertJsonPath('data.dietary_type', 'vegetarian');
         $response->assertJsonPath('data.allergies', ['peanuts', 'shellfish']);
         $response->assertJsonPath('data.goal', 'weight_loss');
         $this->assertDatabaseHas('nutrition_client_profiles', [
             'client_id' => $client->id,
+            'body_type' => 'non_athlete',
             'dietary_type' => 'vegetarian',
             'activity_level' => 'moderate',
         ]);
+    }
+
+    public function test_update_rejects_an_invalid_body_type(): void
+    {
+        $company = Company::factory()->create();
+        [$doctor, $client] = $this->makeNutritionDoctorAndClient($company);
+
+        Sanctum::actingAs($doctor);
+
+        $response = $this->putJson("/api/nutrition/clients/{$client->id}/profile", [
+            'body_type' => 'semi_pro',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['body_type']);
     }
 
     public function test_update_rejects_an_invalid_enum_value(): void

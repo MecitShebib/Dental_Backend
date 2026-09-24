@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NutritionActivityLevel;
+use App\Enums\NutritionBodyType;
 use App\Enums\NutritionDietaryType;
 use App\Enums\NutritionGoal;
 use App\Enums\NutritionSubstanceUseStatus;
@@ -20,6 +21,7 @@ class NutritionClientProfile extends Model
         'uuid',
         'client_id',
         'height_cm',
+        'body_type',
         'dietary_type',
         'allergies',
         'chronic_conditions',
@@ -41,6 +43,7 @@ class NutritionClientProfile extends Model
             'target_weight_kg' => 'decimal:1',
             'allergies' => 'array',
             'chronic_conditions' => 'array',
+            'body_type' => NutritionBodyType::class,
             'dietary_type' => NutritionDietaryType::class,
             'smoking_status' => NutritionSubstanceUseStatus::class,
             'alcohol_status' => NutritionSubstanceUseStatus::class,

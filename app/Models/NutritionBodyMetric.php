@@ -40,6 +40,10 @@ class NutritionBodyMetric extends Model
         'left_leg_muscle_kg',
         'right_leg_fat_percent',
         'left_leg_fat_percent',
+        'trunk_muscle_kg',
+        'trunk_fat_percent',
+        'metabolic_age',
+        'daily_calorie_need',
         'notes',
         'report_path',
         'report_original_filename',
@@ -71,6 +75,10 @@ class NutritionBodyMetric extends Model
             'left_leg_muscle_kg' => 'decimal:1',
             'right_leg_fat_percent' => 'decimal:1',
             'left_leg_fat_percent' => 'decimal:1',
+            'trunk_muscle_kg' => 'decimal:1',
+            'trunk_fat_percent' => 'decimal:1',
+            'metabolic_age' => 'integer',
+            'daily_calorie_need' => 'integer',
         ];
     }
 

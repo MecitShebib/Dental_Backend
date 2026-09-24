@@ -139,14 +139,16 @@ class BodyMetricController extends Controller
             on-screen report (e.g. InBody, Tanita, Omron). Extract the values it
             shows into the given fields. Use standard units: weight in kilograms,
             muscle/bone mass in kilograms, body fat/water in percent, waist/hip in
-            centimeters, basal metabolic rate in kcal. Some reports also include a
-            segmental (right/left arm and leg) breakdown -- extract those into the
-            right_/left_ arm/leg muscle_kg and fat_percent fields when the report
-            shows them. If a field isn't shown on the report at all, return null
-            for it -- never guess or estimate a value that isn't actually printed
-            on the report. If the report shows a date, return it as recorded_at in
-            YYYY-MM-DD format; otherwise return null for recorded_at (the frontend
-            will default it to today).
+            centimeters, basal metabolic rate and daily calorie need in kcal,
+            metabolic age in years. Some reports also include a segmental
+            (right/left arm and leg, and trunk) breakdown -- extract those into
+            the right_/left_ arm/leg muscle_kg and fat_percent fields, and
+            trunk_muscle_kg/trunk_fat_percent, when the report shows them. If a
+            field isn't shown on the report at all, return null for it -- never
+            guess or estimate a value that isn't actually printed on the report.
+            If the report shows a date, return it as recorded_at in YYYY-MM-DD
+            format; otherwise return null for recorded_at (the frontend will
+            default it to today).
             PROMPT;
     }
 
@@ -178,6 +180,10 @@ class BodyMetricController extends Controller
                     'left_leg_muscle_kg' => $numberOrNull,
                     'right_leg_fat_percent' => $numberOrNull,
                     'left_leg_fat_percent' => $numberOrNull,
+                    'trunk_muscle_kg' => $numberOrNull,
+                    'trunk_fat_percent' => $numberOrNull,
+                    'metabolic_age' => $numberOrNull,
+                    'daily_calorie_need' => $numberOrNull,
                 ],
                 'required' => [
                     'recorded_at', 'weight_kg', 'body_fat_percent', 'muscle_mass_kg',
@@ -187,6 +193,8 @@ class BodyMetricController extends Controller
                     'right_arm_fat_percent', 'left_arm_fat_percent',
                     'right_leg_muscle_kg', 'left_leg_muscle_kg',
                     'right_leg_fat_percent', 'left_leg_fat_percent',
+                    'trunk_muscle_kg', 'trunk_fat_percent',
+                    'metabolic_age', 'daily_calorie_need',
                 ],
                 'additionalProperties' => false,
             ],
