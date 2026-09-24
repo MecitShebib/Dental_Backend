@@ -282,4 +282,56 @@ class SatisfactionSurveyTest extends TestCase
         $this->assertEquals(3.0, $response->json('data.category_averages.wait_time'));
         $this->assertNull($response->json('data.category_averages.staff'));
     }
+
+    public function test_summary_and_index_are_scoped_by_doctor_and_specialty(): void
+    {
+        $company = Company::factory()->create();
+        $this->seed(\Database\Seeders\SpecialtySeeder::class);
+        $dental = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::DENTAL)->firstOrFail();
+        $nutrition = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::NUTRITION)->firstOrFail();
+
+        $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
+        $nutritionDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id]);
+        $admin = User::factory()->create(['company_id' => $company->id]);
+
+        $dentalClient = $this->makeClient($company);
+        \App\Models\ClientSpecialtyRecord::create([
+            'company_id' => $company->id, 'client_id' => $dentalClient->id,
+            'specialty_id' => $dental->id, 'primary_doctor_id' => $dentalDoctor->id,
+        ]);
+        $dentalVisit = Visit::create([
+            'client_id' => $dentalClient->id, 'doctor_id' => $dentalDoctor->id,
+            'visit_date' => now()->toDateString(), 'start_time' => '10:00:00', 'duration_minutes' => 30,
+            'attendance_status' => 'attended',
+        ]);
+        $dentalSurvey = SatisfactionSurvey::query()->where('visit_id', $dentalVisit->id)->firstOrFail();
+        $this->post("/survey/{$dentalSurvey->token}", ['rating' => 5]);
+
+        $nutritionClient = $this->makeClient($company);
+        \App\Models\ClientSpecialtyRecord::create([
+            'company_id' => $company->id, 'client_id' => $nutritionClient->id,
+            'specialty_id' => $nutrition->id, 'primary_doctor_id' => $nutritionDoctor->id,
+        ]);
+        $nutritionVisit = Visit::create([
+            'client_id' => $nutritionClient->id, 'doctor_id' => $nutritionDoctor->id,
+            'visit_date' => now()->toDateString(), 'start_time' => '10:00:00', 'duration_minutes' => 30,
+            'attendance_status' => 'attended',
+        ]);
+        $nutritionSurvey = SatisfactionSurvey::query()->where('visit_id', $nutritionVisit->id)->firstOrFail();
+        $this->post("/survey/{$nutritionSurvey->token}", ['rating' => 3]);
+
+        // A doctor sees only their own patients' surveys.
+        Sanctum::actingAs($dentalDoctor);
+        $this->getJson('/api/satisfaction-surveys/summary')->assertOk()->assertJsonPath('data.count', 1);
+
+        // A non-doctor (admin) scoped to one specialty sees only that
+        // specialty's surveys.
+        Sanctum::actingAs($admin);
+        $nutritionResponse = $this->getJson('/api/satisfaction-surveys/summary?specialty=nutrition')
+            ->assertOk()->assertJsonPath('data.count', 1);
+        $this->assertEquals(3.0, $nutritionResponse->json('data.average_rating'));
+
+        // A non-doctor with no specialty filter still sees everything.
+        $this->getJson('/api/satisfaction-surveys/summary')->assertOk()->assertJsonPath('data.count', 2);
+    }
 }

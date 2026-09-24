@@ -155,10 +155,12 @@ class ReportController extends Controller
             // stays visible from every branch rather than silently disappearing.
             ->when($request->branch_id, fn ($q) => $q->where(fn ($q2) => $q2->where('branch_id', $request->branch_id)->orWhereNull('branch_id')))
             ->when($request->doctor_id, fn ($q) => $q->where('id', $request->doctor_id))
-            // Non-doctor staff (accountants, secretaries...) have no
-            // specialty of their own -- a specialty filter narrows which
-            // doctors show up without hiding the rest of the payroll.
-            ->when($specialtyId, fn ($q) => $q->where(fn ($sub) => $sub->where('specialty_id', $specialtyId)->orWhere('is_doctor', false)))
+            // Strict per user request: a specialty filter shows only staff
+            // actually assigned to that specialty (via specialty_id), doctor
+            // or not -- previously any non-doctor with no specialty_id at
+            // all (accountants, secretaries...) still showed up under every
+            // specialty's payroll, which is what was reported as the bug.
+            ->when($specialtyId, fn ($q) => $q->where('specialty_id', $specialtyId))
             ->orderBy('name')
             ->get()
             ->map(function (User $employee) use ($year, $month) {

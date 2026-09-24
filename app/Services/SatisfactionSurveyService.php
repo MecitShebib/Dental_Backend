@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Enums\ClientLanguage;
 use App\Mail\NegativeSatisfactionAlertMail;
 use App\Mail\SatisfactionSurveyInviteMail;
-use App\Models\Company;
 use App\Models\SatisfactionSurvey;
+use App\Models\Specialty;
+use App\Models\User;
 use App\Models\Visit;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -111,12 +112,24 @@ class SatisfactionSurveyService
     }
 
     /**
+     * Same doctor/specialty scoping as SatisfactionSurveyController::index()
+     * -- $specialtyKey is only honored for a non-doctor acting user, a
+     * doctor is always hard-scoped to their own specialty+patients.
+     *
      * @return array{count: int, average_rating: ?float, distribution: array<int, int>, category_averages: array{wait_time: ?float, staff: ?float, cleanliness: ?float}}
      */
-    public function summary(Company $company): array
+    public function summary(User $actingUser, ?string $specialtyKey): array
     {
         $submitted = SatisfactionSurvey::query()
-            ->whereHas('client', fn ($query) => $query->where('company_id', $company->id))
+            ->whereHas('client', fn ($query) => $query->where('company_id', $actingUser->company_id))
+            ->when($actingUser->is_doctor, fn ($query) => $query->whereHas(
+                'client.specialtyRecords',
+                fn ($sq) => $sq->where('specialty_id', $actingUser->specialty_id)->where('primary_doctor_id', $actingUser->id)
+            ))
+            ->when(! $actingUser->is_doctor && $specialtyKey, function ($query) use ($specialtyKey) {
+                $specialtyId = Specialty::query()->where('key', $specialtyKey)->value('id');
+                $query->whereHas('client.specialtyRecords', fn ($sq) => $sq->where('specialty_id', $specialtyId));
+            })
             ->whereNotNull('submitted_at')
             ->get();
 

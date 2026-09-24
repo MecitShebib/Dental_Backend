@@ -285,6 +285,30 @@ class ReportTest extends TestCase
         $this->assertEquals(300.0, $row['unsettled_advances']);
     }
 
+    public function test_payroll_summary_filtered_by_specialty_excludes_staff_with_no_matching_specialty_id(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        $this->seed(\Database\Seeders\SpecialtySeeder::class);
+        $dental = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::DENTAL)->firstOrFail();
+        $nutrition = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::NUTRITION)->firstOrFail();
+        Sanctum::actingAs($manager);
+
+        $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id, 'name' => 'Dental Doctor']);
+        $nutritionDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id, 'name' => 'Nutrition Doctor']);
+        // A non-doctor with no specialty_id at all -- the exact case that
+        // used to leak into every specialty's payroll report regardless of
+        // the filter.
+        User::factory()->create(['company_id' => $company->id, 'is_doctor' => false, 'specialty_id' => null, 'name' => 'Unassigned Accountant']);
+
+        $response = $this->getJson('/api/reports/payroll-summary?specialty=nutrition')->assertOk();
+        $names = collect($response->json('data.employees'))->pluck('name');
+
+        $this->assertTrue($names->contains('Nutrition Doctor'));
+        $this->assertFalse($names->contains('Dental Doctor'));
+        $this->assertFalse($names->contains('Unassigned Accountant'));
+    }
+
     public function test_payroll_summary_is_forbidden_without_accounting_access(): void
     {
         $company = Company::factory()->create();
