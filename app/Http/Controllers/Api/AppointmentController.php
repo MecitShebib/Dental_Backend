@@ -14,6 +14,7 @@ use App\Models\Client;
 use App\Models\TreatmentCharge;
 use App\Models\User;
 use App\Services\AppointmentConflictService;
+use App\Services\AppointmentReminderService;
 use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\Clinical\AppointmentQueryService;
 use App\Services\TreatmentChargeService;
@@ -29,6 +30,7 @@ class AppointmentController extends Controller
         protected TreatmentChargeService $treatmentCharges,
         protected ClientSpecialtyEnrollmentService $enrollment,
         protected AppointmentQueryService $appointmentQuery,
+        protected AppointmentReminderService $reminders,
     ) {}
 
     public function index(IndexAppointmentRequest $request)
@@ -36,6 +38,56 @@ class AppointmentController extends Controller
         $appointments = $this->appointmentQuery->list($request->user(), $request->validated());
 
         return $this->success(AppointmentResource::collection($appointments));
+    }
+
+    /**
+     * Backs the dashboard's "send WhatsApp reminders" button: tomorrow's
+     * still-scheduled appointments (optionally scoped to one specialty),
+     * each with the client's name, a wa.me-ready phone (digits only, no
+     * "+"), and the reminder text rendered via
+     * AppointmentReminderService::smsText() -- the exact same template,
+     * placeholders, and per-client language as the automatic 24h-before
+     * send, so this manual flow can never drift out of sync with the "real"
+     * reminder wording. Paginated at 10 per page to match the
+     * WhatsApp-tabs-per-batch UI on the frontend.
+     */
+    public function whatsappReminderCandidates(Request $request)
+    {
+        $validated = $request->validate([
+            'specialty' => ['nullable', 'string', 'exists:specialties,key'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        // list()'s paginate() resolves the current page from the request's
+        // own "page" query param automatically -- validated above, but not
+        // repeated in this filters array since list() has no such key.
+        $appointments = $this->appointmentQuery->list($request->user(), [
+            'date' => now()->addDay()->toDateString(),
+            'specialty' => $validated['specialty'] ?? null,
+            'status' => 'scheduled',
+            'per_page' => 10,
+        ]);
+
+        $items = $appointments->getCollection()->map(function (Appointment $appointment) {
+            $appointment->loadMissing(['client', 'doctor', 'company']);
+            $client = $appointment->client;
+
+            return [
+                'appointment_id' => $appointment->id,
+                'client_name' => $client?->name ?? '',
+                'phone' => $client?->phone ? preg_replace('/\D+/', '', $client->phone) : '',
+                'message' => $this->reminders->smsText($appointment),
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'current_page' => $appointments->currentPage(),
+                'last_page' => $appointments->lastPage(),
+                'total' => $appointments->total(),
+            ],
+        ]);
     }
 
     public function store(StoreAppointmentRequest $request)

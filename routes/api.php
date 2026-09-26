@@ -166,6 +166,11 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::get('doctors/{doctor}/available-start-times', [DoctorAvailabilityController::class, 'availableStartTimes']);
     Route::get('doctors/{doctor}/available-durations', [DoctorAvailabilityController::class, 'availableDurations']);
 
+    // Must come before the apiResource below -- otherwise "whatsapp-reminders"
+    // matches the resource's GET appointments/{appointment} route instead,
+    // with Laravel trying (and failing) to resolve an Appointment by that
+    // literal string as an id.
+    Route::get('appointments/whatsapp-reminders', [AppointmentController::class, 'whatsappReminderCandidates']);
     Route::apiResource('appointments', AppointmentController::class);
     Route::post('appointments/{appointment}/check-in', [ClientVisitController::class, 'checkIn']);
     Route::post('appointments/{appointment}/no-show', [ClientVisitController::class, 'noShow']);
