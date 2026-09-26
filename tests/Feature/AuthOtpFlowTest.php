@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\OtpCodeMail;
 use App\Models\Company;
 use App\Models\Specialty;
 use App\Models\Subscription;
@@ -19,6 +20,7 @@ use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AuthOtpFlowTest extends TestCase
@@ -41,6 +43,12 @@ class AuthOtpFlowTest extends TestCase
             // the one test that exercises the fixed-code bypass sets this
             // back to a non-empty value itself.
             'services.otp.fixed_code' => '',
+            // Same reasoning: SMS is the default under test regardless of
+            // whatever MOBILE_OTP_CHANNEL this machine's .env happens to be
+            // set to (e.g. while someone's live-testing the email channel
+            // against a real mailbox) -- the two email-channel tests below
+            // set this back to 'email' themselves.
+            'services.otp.channel' => 'sms',
         ]);
     }
 
@@ -71,7 +79,9 @@ class AuthOtpFlowTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonStructure(['message', 'otp_reference', 'masked_mobile', 'expires_at'])
+            ->assertJsonStructure(['message', 'otp_reference', 'masked_mobile', 'otp_channel', 'masked_destination', 'expires_at'])
+            ->assertJsonPath('otp_channel', 'sms')
+            ->assertJsonPath('masked_destination', $response->json('masked_mobile'))
             ->assertJsonMissing(['token']);
 
         $reference = $response->json('otp_reference');
@@ -198,6 +208,50 @@ class AuthOtpFlowTest extends TestCase
             'otp' => '999111',
             'otp_reference' => $challenge->reference,
         ])->assertOk()->assertJsonPath('user.requires_specialty_selection', true);
+    }
+
+    public function test_login_sends_the_otp_by_email_instead_of_sms_when_that_channel_is_configured(): void
+    {
+        $user = $this->activeUser();
+        config(['services.otp.channel' => 'email']);
+        $this->fakeGeneratedOtp('147258');
+        Mail::fake();
+
+        $response = $this->postJson('/api/auth/login', [
+            'mobile' => '963955123456',
+            'password' => 'secret',
+        ])->assertOk();
+
+        Mail::assertSent(OtpCodeMail::class, fn (OtpCodeMail $mail) => $mail->hasTo($user->email) && $mail->otp === '147258');
+
+        $response->assertJsonPath('otp_channel', 'email')
+            ->assertJsonPath('masked_destination', fn (string $masked) => $masked !== $user->email && str_ends_with($masked, '@'.explode('@', $user->email)[1]));
+
+        $reference = $response->json('otp_reference');
+        $this->assertDatabaseHas('user_otps', [
+            'user_id' => $user->id,
+            'purpose' => UserOtp::PURPOSE_LOGIN,
+            'reference' => $reference,
+        ]);
+
+        // No SMS attempt at all -- the email channel replaces it rather than
+        // sending both.
+        Http::assertNothingSent();
+    }
+
+    public function test_forgot_password_also_sends_the_otp_by_email_when_that_channel_is_configured(): void
+    {
+        $user = $this->activeUser();
+        config(['services.otp.channel' => 'email']);
+        $this->fakeGeneratedOtp('369258');
+        Mail::fake();
+
+        $this->postJson('/api/auth/forgot-password', [
+            'mobile' => '963955123456',
+        ])->assertOk();
+
+        Mail::assertSent(OtpCodeMail::class, fn (OtpCodeMail $mail) => $mail->hasTo($user->email) && $mail->otp === '369258');
+        Http::assertNothingSent();
     }
 
     public function test_forgot_password_verification_and_reset_flow(): void

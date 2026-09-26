@@ -57,6 +57,7 @@ class AuthController extends Controller
             'message' => 'OTP sent successfully',
             'otp_reference' => $challenge->reference,
             'masked_mobile' => $this->otpService->maskMobile($credentials['mobile']),
+            ...$this->otpDestinationFields($user, $credentials['mobile']),
             'expires_at' => $challenge->expires_at?->toIso8601String(),
         ]);
     }
@@ -133,6 +134,7 @@ class AuthController extends Controller
             'message' => 'OTP sent successfully',
             'otp_reference' => $challenge->reference,
             'masked_mobile' => $this->otpService->maskMobile($mobile),
+            ...$this->otpDestinationFields($user, $mobile),
             'expires_at' => $challenge->expires_at?->toIso8601String(),
         ]);
     }
@@ -230,6 +232,21 @@ class AuthController extends Controller
             ->count();
 
         return $usableCount > 1;
+    }
+
+    /**
+     * @return array{otp_channel: string, masked_destination: string}
+     */
+    protected function otpDestinationFields(User $user, string $mobile): array
+    {
+        $channel = config('services.otp.channel', 'sms');
+
+        return [
+            'otp_channel' => $channel,
+            'masked_destination' => $channel === 'email'
+                ? $this->otpService->maskEmail($user->email)
+                : $this->otpService->maskMobile($mobile),
+        ];
     }
 
     protected function findUserByMobile(string $mobile, ?string $branchCode = null): ?User

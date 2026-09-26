@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
+use App\Mail\OtpCodeMail;
 use App\Models\User;
 use App\Models\UserOtp;
 use App\Services\Concerns\GeneratesOtpCodes;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class MobileOtpService
 {
@@ -23,8 +26,11 @@ class MobileOtpService
             ->update(['used_at' => now()]);
 
         $otp = $this->generateOtp();
+        $channel = config('services.otp.channel', 'sms');
 
-        if ($this->providerEnabled()) {
+        if ($channel === 'email') {
+            $this->sendOtpEmail($user, $otp);
+        } elseif ($this->providerEnabled()) {
             $this->sendOtpSms($mobile, $otp);
         }
 
@@ -37,11 +43,12 @@ class MobileOtpService
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        Log::info('OTP sent to mobile.', [
+        Log::info('OTP sent.', [
             'user_id' => $user->id,
             'purpose' => $purpose,
+            'channel' => $channel,
             'mobile' => $mobile,
-            'otp' => $this->providerEnabled() ? 'sent_via_sms_provider' : $otp,
+            'otp' => ($channel === 'email' || $this->providerEnabled()) ? 'sent' : $otp,
             'reference' => $challenge->reference,
         ]);
 
@@ -123,6 +130,22 @@ class MobileOtpService
         if (! $sent) {
             throw ValidationException::withMessages([
                 'mobile' => ['Failed to send OTP SMS.'],
+            ]);
+        }
+    }
+
+    protected function sendOtpEmail(User $user, string $otp): void
+    {
+        try {
+            Mail::to($user->email)->send(new OtpCodeMail($user, $otp));
+        } catch (Throwable $e) {
+            Log::error('Failed to send OTP email.', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'mobile' => ['Failed to send OTP email.'],
             ]);
         }
     }

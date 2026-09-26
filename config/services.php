@@ -64,6 +64,14 @@ return [
     'otp' => [
         'digits' => (int) env('MOBILE_OTP_DIGITS', 6),
         'fixed_code' => env('MOBILE_OTP_FIXED_CODE'),
+        // "sms" (default, via IletiMerkeziSmsService) or "email" (to the
+        // user's own User::$email, via OtpCodeMail) -- covers both the login
+        // and forgot-password OTP flows, since both go through
+        // MobileOtpService::issue(). Switching to "email" also requires
+        // MAIL_MAILER etc. to be configured with a real, working mailer:
+        // with the default log driver, OTP emails are only written to the
+        // log, never actually delivered.
+        'channel' => env('MOBILE_OTP_CHANNEL', 'sms') === 'email' ? 'email' : 'sms',
     ],
 
     'openai' => [

@@ -26,6 +26,25 @@ trait GeneratesOtpCodes
         return preg_replace('/\D+/', '', trim($mobile)) ?? '';
     }
 
+    /**
+     * "jo**@doctovaria.com.tr" -- keeps the domain fully visible (useful for
+     * the recipient to recognize it's really their own address) while
+     * masking all but the first two characters of the local part.
+     */
+    public function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', trim($email), 2), 2, '');
+
+        if ($domain === '') {
+            return $email;
+        }
+
+        $visible = mb_substr($local, 0, 2);
+        $maskedLength = max(mb_strlen($local) - mb_strlen($visible), 2);
+
+        return $visible.str_repeat('*', $maskedLength).'@'.$domain;
+    }
+
     protected function providerEnabled(): bool
     {
         return app(IletiMerkeziSmsService::class)->enabled();
