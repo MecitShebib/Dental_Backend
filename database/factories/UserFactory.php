@@ -38,6 +38,13 @@ class UserFactory extends Factory
             'status' => 'active',
             'is_project_admin' => false,
             'is_doctor' => false,
+            // Explicit rather than relying on the column's DB-level default
+            // (true) -- Eloquent's create() doesn't reload DB-computed
+            // defaults into the returned in-memory instance, and tests
+            // widely reuse that exact instance via Sanctum::actingAs()
+            // without a fresh DB round-trip, so an implicit default would
+            // read back as null (falsy) here even though the real row is 1.
+            'ai_enabled' => true,
             'notes' => null,
             'remember_token' => Str::random(10),
         ];

@@ -48,6 +48,8 @@ class UpdateUserRequest extends FormRequest
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'is_doctor' => ['nullable', 'boolean'],
             'specialty_id' => ['nullable', 'integer', 'exists:specialties,id', 'required_if:is_doctor,true'],
+            // See the identical note in StoreUserRequest.
+            'ai_enabled' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'role_ids' => ['nullable', 'array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],

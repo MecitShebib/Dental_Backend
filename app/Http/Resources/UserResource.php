@@ -29,6 +29,9 @@ class UserResource extends JsonResource
             'status' => $this->status?->value ?? $this->status,
             'is_project_admin' => $this->is_project_admin,
             'is_doctor' => $this->is_doctor,
+            // Only meaningful for a doctor -- the AI assistant is never
+            // shown to anyone else regardless of this flag.
+            'ai_enabled' => $this->ai_enabled,
             // Set for a doctor (one specialty); null for staff, who work
             // across every specialty the company subscribes to -- see
             // Specialty/Sidebar's launcher-routing use of this.

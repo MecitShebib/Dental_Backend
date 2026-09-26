@@ -32,6 +32,10 @@
                     <option value="0">Not Doctor</option>
                     <option value="1">Doctor</option>
                 </select>
+                <select name="ai_enabled">
+                    <option value="1" selected>AI Assistant: Enabled</option>
+                    <option value="0">AI Assistant: Disabled</option>
+                </select>
                 <select name="role_ids[]" multiple>
                     @foreach ($roles as $role)
                         <option value="{{ $role->id }}">{{ $role->name }}</option>
@@ -95,6 +99,10 @@
                                     <select name="is_doctor">
                                         <option value="0" @selected(! $user->is_doctor)>Not Doctor</option>
                                         <option value="1" @selected($user->is_doctor)>Doctor</option>
+                                    </select>
+                                    <select name="ai_enabled">
+                                        <option value="1" @selected($user->ai_enabled)>AI Assistant: Enabled</option>
+                                        <option value="0" @selected(! $user->ai_enabled)>AI Assistant: Disabled</option>
                                     </select>
                                     <select name="role_ids[]" multiple>
                                         @foreach ($roles as $role)

@@ -78,7 +78,12 @@
                             @endif
                         </td>
                         <td>{{ $user->roles->pluck('name')->join(', ') ?: 'No role' }}</td>
-                        <td>{{ $user->is_doctor ? 'Yes' : 'No' }}</td>
+                        <td>
+                            {{ $user->is_doctor ? 'Yes' : 'No' }}
+                            @if ($user->is_doctor)
+                                <br><small>AI: {{ $user->ai_enabled ? 'Yes' : 'No' }}</small>
+                            @endif
+                        </td>
                         <td>
                             <div class="actions-row table-actions">
                                 @if ($user->trashed())
@@ -242,6 +247,10 @@
                     <option value="0" @selected(old('is_doctor', '0') === '0')>Not Doctor</option>
                     <option value="1" @selected(old('is_doctor') === '1')>Doctor</option>
                 </select>
+                <select name="ai_enabled">
+                    <option value="1" @selected(old('ai_enabled', '1') === '1')>AI Assistant: Enabled</option>
+                    <option value="0" @selected(old('ai_enabled') === '0')>AI Assistant: Disabled</option>
+                </select>
                 <select name="specialty_id">
                     <option value="">No specialty (staff only)</option>
                     @foreach ($specialties as $specialty)
@@ -378,6 +387,11 @@
                         @php($currentIsDoctor = $userReopened ? old('is_doctor') === '1' : (bool) $user->is_doctor)
                         <option value="0" @selected(! $currentIsDoctor)>Not Doctor</option>
                         <option value="1" @selected($currentIsDoctor)>Doctor</option>
+                    </select>
+                    <select name="ai_enabled">
+                        @php($currentAiEnabled = $userReopened ? old('ai_enabled', '1') === '1' : (bool) $user->ai_enabled)
+                        <option value="1" @selected($currentAiEnabled)>AI Assistant: Enabled</option>
+                        <option value="0" @selected(! $currentAiEnabled)>AI Assistant: Disabled</option>
                     </select>
                     <select name="specialty_id">
                         @php($currentSpecialtyId = $userReopened ? old('specialty_id') : $user->specialty_id)

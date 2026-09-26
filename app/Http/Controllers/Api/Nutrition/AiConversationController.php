@@ -114,7 +114,14 @@ class AiConversationController extends Controller
 
     protected function assertCanUseAiAssistant(User $user): void
     {
-        if (! $user->is_doctor && ! $user->isSystemManager()) {
+        if ($user->isSystemManager()) {
+            return;
+        }
+
+        // A System Manager can always use it; a doctor additionally needs
+        // ai_enabled (a per-doctor toggle set from User Management) --
+        // everyone else was already blocked before this flag existed.
+        if (! $user->is_doctor || ! $user->ai_enabled) {
             throw ValidationException::withMessages([
                 'doctor' => ['Only doctors or system managers can use the AI treatment assistant.'],
             ]);

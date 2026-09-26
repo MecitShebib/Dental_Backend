@@ -64,6 +64,11 @@ class StoreUserRequest extends FormRequest
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'is_doctor' => ['nullable', 'boolean'],
             'specialty_id' => ['nullable', 'integer', 'exists:specialties,id', 'required_if:is_doctor,true'],
+            // Only meaningful for a doctor (the AI assistant is never shown
+            // to anyone else) -- no required_if, just defaults true on
+            // create (see Api\UserController/Admin\UserController::store())
+            // so a non-doctor's row still gets a sensible value.
+            'ai_enabled' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
             'role_ids' => ['nullable', 'array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
