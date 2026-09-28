@@ -27,8 +27,45 @@ trait Auditable
     protected static function writeAuditLog(string $action, $model, ?array $changedFields = null): void
     {
         $actor = static::resolveAuditActor();
+        $meta = null;
 
-        AuditLog::record($action, $model, $actor, $changedFields ? ['changed_fields' => array_keys($changedFields)] : null);
+        if ($changedFields !== null) {
+            // updated_at is never itself the story; last_login_at is bumped
+            // on every single login (User::forceFill(...)->save() in both
+            // AuthControllers) and would otherwise drown the activity log in
+            // one row per login -- neither is a "changed field" worth
+            // reporting on its own, though either still counts once paired
+            // with a real field change below.
+            $fields = array_values(array_diff(array_keys($changedFields), ['updated_at', 'last_login_at']));
+
+            // A password change is common enough (and sensitive enough) to
+            // deserve its own action label instead of getting buried in a
+            // generic "updated" -- the activity log filters/displays on this.
+            // The field NAME is never a secret; only its value would be, and
+            // that never enters $fields (array_keys, not the changes array).
+            if ($action === 'updated' && in_array('password', $fields, true)) {
+                $action = 'password_changed';
+                $fields = array_values(array_diff($fields, ['password']));
+            }
+
+            // A plain touch() (or a save() that only bumped updated_at) isn't
+            // a meaningful activity-log entry.
+            if ($action === 'updated' && $fields === []) {
+                return;
+            }
+
+            $meta = ['changed_fields' => $fields];
+        }
+
+        // Opt-in per model (see e.g. User::auditSubjectLabel()) -- a short,
+        // human string identifying WHAT was acted on beyond the model's own
+        // type, for models the activity log can't otherwise label via a
+        // client_id join (see AuditLog::resolveClientId()).
+        if (method_exists($model, 'auditSubjectLabel') && ($label = $model->auditSubjectLabel())) {
+            $meta = ($meta ?? []) + ['subject_label' => $label];
+        }
+
+        AuditLog::record($action, $model, $actor, $meta);
     }
 
     protected static function resolveAuditActor(): ?User

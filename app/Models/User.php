@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -20,7 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use BelongsToCompany, HasApiTokens, HasFactory, HasUuid, Notifiable, SoftDeletes;
+    use Auditable, BelongsToCompany, HasApiTokens, HasFactory, HasUuid, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -190,5 +191,10 @@ class User extends Authenticatable
         return $this->relationLoaded('roles')
             ? $this->roles->contains('slug', $slug)
             : $this->roles()->where('slug', $slug)->exists();
+    }
+
+    public function auditSubjectLabel(): ?string
+    {
+        return $this->name;
     }
 }

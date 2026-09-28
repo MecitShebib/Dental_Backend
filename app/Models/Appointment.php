@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AppointmentStatus;
 use App\Enums\AppointmentType;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use App\Services\TreatmentChargeService;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Appointment extends Model
 {
-    use BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
+    use Auditable, BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',

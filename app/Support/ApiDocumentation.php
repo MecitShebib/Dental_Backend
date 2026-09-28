@@ -179,6 +179,35 @@ class ApiDocumentation
                 ],
             ],
             [
+                'id' => 'activity-log',
+                'title' => 'Activity Log',
+                'intro' => "System manager/admin only. Every AuditLog row for your company across every audited model (patients, appointments, visits, payments, accounting, password changes, ...), newest first, 100 per page.",
+                'endpoints' => [
+                    [
+                        'method' => 'GET', 'path' => '/activity-log', 'auth' => 'Bearer token · system manager/admin only',
+                        'summary' => 'Lists the company-wide activity log, filterable and paginated.',
+                        'request' => [
+                            ['name' => 'user_id', 'type' => 'integer', 'required' => false, 'notes' => 'one specific user'],
+                            ['name' => 'role', 'type' => 'enum', 'required' => false, 'enum' => 'doctor|staff'],
+                            ['name' => 'client_id', 'type' => 'integer', 'required' => false, 'notes' => 'actions related to one patient'],
+                            ['name' => 'date_from', 'type' => 'date', 'required' => false],
+                            ['name' => 'date_to', 'type' => 'date', 'required' => false],
+                            ['name' => 'category', 'type' => 'enum', 'required' => false, 'enum' => 'patient|appointment|visit|payment|prescription|lab|xray|consent|accounting|user|clinical'],
+                            ['name' => 'action', 'type' => 'enum', 'required' => false, 'enum' => 'created|updated|deleted|password_changed'],
+                        ],
+                        'response' => [['name' => '[ActivityLog object]', 'type' => 'array', 'notes' => 'paginated: data/links/meta, 100 per page']],
+                    ],
+                ],
+                'object' => [
+                    'name' => 'ActivityLog object', 'fields' => [
+                        'id, created_at', 'action', 'category',
+                        'user: {id, name, is_doctor, role} | null', 'client: {id, name} | null',
+                        'subject_label (string|null -- e.g. vendor/party/employee name for non-patient entries)',
+                        'changed_fields: string[] | null', 'ip_address',
+                    ],
+                ],
+            ],
+            [
                 'id' => 'companies',
                 'title' => 'Companies & Pricing',
                 'intro' => "Your clinic's profile, subscription history, and the price list used for services and odontogram procedures.",

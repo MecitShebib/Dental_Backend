@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SalaryAdvance extends Model
 {
-    use BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
+    use Auditable, BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',
@@ -55,5 +56,10 @@ class SalaryAdvance extends Model
     public function remainingAmount(): float
     {
         return round((float) $this->amount - (float) $this->settled_amount, 2);
+    }
+
+    public function auditSubjectLabel(): ?string
+    {
+        return $this->employee?->name;
     }
 }

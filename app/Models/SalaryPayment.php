@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SalaryPayment extends Model
 {
-    use BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
+    use Auditable, BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',
@@ -61,5 +62,10 @@ class SalaryPayment extends Model
     public function settledAdvances(): HasMany
     {
         return $this->hasMany(SalaryAdvance::class, 'settled_by_salary_payment_id');
+    }
+
+    public function auditSubjectLabel(): ?string
+    {
+        return $this->employee?->name;
     }
 }

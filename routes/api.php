@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AiTreatmentPlanController;
 use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\AppointmentController;
@@ -103,6 +104,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::get('specialties', [SpecialtyController::class, 'index']);
     Route::get('doctors', [UserController::class, 'doctors']);
+    Route::get('activity-log', [ActivityLogController::class, 'index']);
     Route::get('companies/{company}', [CompanyController::class, 'show']);
     Route::get('companies/{company}/subscriptions', [CompanyController::class, 'subscriptions']);
     Route::get('companies/{company}/treatment-products', [CompanyTreatmentProductController::class, 'index']);

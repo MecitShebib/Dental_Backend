@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CapitalTransactionType;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CapitalTransaction extends Model
 {
-    use BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
+    use Auditable, BelongsToCompany, HasFactory, HasUuid, SoftDeletes;
 
     protected $fillable = [
         'uuid',
@@ -49,5 +50,10 @@ class CapitalTransaction extends Model
     public function specialty(): BelongsTo
     {
         return $this->belongsTo(Specialty::class);
+    }
+
+    public function auditSubjectLabel(): ?string
+    {
+        return $this->party_name ?: $this->description;
     }
 }
