@@ -21,7 +21,6 @@
                 </select>
                 <input name="phone" placeholder="Phone">
                 <input name="password" type="password" placeholder="Password (min 8, upper+lower+number+symbol)" required>
-                <input name="job_title" placeholder="Job title">
                 <input name="branch_name" placeholder="Branch name">
                 <select name="status">
                     <option value="active">active</option>
@@ -89,7 +88,6 @@
                                     </select>
                                     <input name="phone" value="{{ $user->phone }}">
                                     <input name="password" type="password" placeholder="Leave blank to keep current, or min 8 with upper+lower+number+symbol">
-                                    <input name="job_title" value="{{ $user->job_title }}">
                                     <input name="branch_name" value="{{ $user->branch_name }}">
                                     <select name="status">
                                         <option value="active" @selected(($user->status->value ?? $user->status) === 'active')>active</option>

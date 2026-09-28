@@ -13,7 +13,7 @@ class EmployeeSalaryResource extends JsonResource
             'id' => $this->id,
             'uuid' => $this->uuid,
             'name' => $this->name,
-            'job_title' => $this->job_title,
+            'role_name' => $this->whenLoaded('roles', fn () => $this->roles->first()?->name),
             'is_doctor' => (bool) $this->is_doctor,
             'monthly_salary' => $this->monthly_salary !== null ? (float) $this->monthly_salary : null,
             'commission_percentage' => $this->commission_percentage !== null ? (float) $this->commission_percentage : null,

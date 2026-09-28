@@ -17,7 +17,7 @@ class EmployeeSalaryController extends Controller
     {
         $this->assertHasAccountingAccess($request);
 
-        $employees = User::query()->where('status', 'active')->orderBy('name')->get();
+        $employees = User::query()->with('roles')->where('status', 'active')->orderBy('name')->get();
 
         return $this->success(EmployeeSalaryResource::collection($employees));
     }

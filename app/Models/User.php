@@ -36,7 +36,6 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
-        'job_title',
         'branch_name',
         'status',
         'is_project_admin',

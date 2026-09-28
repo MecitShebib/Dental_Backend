@@ -152,7 +152,6 @@ class ApiDocumentation
                             ['name' => 'email', 'type' => 'string', 'required' => true, 'notes' => 'unique'],
                             ['name' => 'phone', 'type' => 'string', 'required' => false],
                             ['name' => 'password', 'type' => 'string', 'required' => true, 'notes' => 'min 8, must include an uppercase letter, a lowercase letter, a number, and a symbol'],
-                            ['name' => 'job_title', 'type' => 'string', 'required' => false],
                             ['name' => 'branch_name', 'type' => 'string', 'required' => false],
                             ['name' => 'status', 'type' => 'enum', 'required' => false, 'enum' => 'UserStatus', 'notes' => 'defaults active'],
                             ['name' => 'is_doctor', 'type' => 'boolean', 'required' => false],
@@ -174,7 +173,7 @@ class ApiDocumentation
                 'object' => [
                     'name' => 'User object', 'fields' => [
                         'id, uuid', 'company_id, company_name', 'name, email, phone (mobile is an alias of phone)',
-                        'job_title, branch_name', 'status (UserStatus)', 'is_project_admin, is_doctor', 'notes',
+                        'branch_name', 'status (UserStatus)', 'is_project_admin, is_doctor', 'notes',
                         'last_login_at', 'roles: [{id, name, slug}]', 'permissions: [{id, name, slug}]',
                     ],
                 ],
@@ -500,7 +499,7 @@ class ApiDocumentation
                     ['method' => 'DELETE', 'path' => '/capital-transactions/{id}', 'auth' => 'Bearer token · accounting access', 'summary' => 'Deletes a capital transaction and its fund transaction. (No GET /capital-transactions/{id} — show is not exposed.)', 'request' => [], 'response' => []],
 
                     ['method' => 'GET', 'path' => '/payroll/employees', 'auth' => 'Bearer token · accounting access', 'summary' => 'Lists employees with their current salary/commission configuration.', 'request' => [], 'response' => [
-                        ['name' => 'id, uuid, name, job_title', 'type' => ''],
+                        ['name' => 'id, uuid, name, role_name', 'type' => ''],
                         ['name' => 'is_doctor', 'type' => 'boolean'],
                         ['name' => 'monthly_salary, commission_percentage', 'type' => 'number | null'],
                     ]],

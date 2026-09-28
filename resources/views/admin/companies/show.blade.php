@@ -225,12 +225,6 @@
                 @error('phone', 'create-user-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <input name="password" type="password" placeholder="Password (min 8, upper+lower+number+symbol)" required>
                 @error('password', 'create-user-modal') <span class="field-error">{{ $message }}</span> @enderror
-                <select name="job_title">
-                    <option value="" @selected(! old('job_title'))>No job title</option>
-                    @foreach ($roles as $role)
-                        <option value="{{ $role->name }}" @selected(old('job_title') === $role->name)>{{ $role->name }}</option>
-                    @endforeach
-                </select>
                 <select name="branch_id" required>
                     <option value="" disabled @selected(! old('branch_id'))>Select branch…</option>
                     @foreach ($branches as $branch)
@@ -362,13 +356,6 @@
                     @error('phone', $userModalId) <span class="field-error">{{ $message }}</span> @enderror
                     <input name="password" type="password" placeholder="Leave blank to keep current, or min 8 with upper+lower+number+symbol">
                     @error('password', $userModalId) <span class="field-error">{{ $message }}</span> @enderror
-                    <select name="job_title">
-                        @php($currentJobTitle = $userReopened ? old('job_title') : $user->job_title)
-                        <option value="" @selected(! $currentJobTitle)>No job title</option>
-                        @foreach ($roles as $role)
-                            <option value="{{ $role->name }}" @selected($currentJobTitle === $role->name)>{{ $role->name }}</option>
-                        @endforeach
-                    </select>
                     <select name="branch_id" required>
                         @php($currentBranchId = $userReopened ? old('branch_id') : $user->branch_id)
                         <option value="" disabled @selected(! $currentBranchId)>Select branch…</option>

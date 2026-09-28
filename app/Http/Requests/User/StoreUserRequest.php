@@ -59,7 +59,6 @@ class StoreUserRequest extends FormRequest
             // makes login ambiguous/broken for both of them.
             'phone' => ['nullable', 'string', 'max:50', new ValidPhone, 'unique:users,phone'],
             'password' => ['required', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'job_title' => ['nullable', 'string', 'max:255'],
             'branch_name' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'is_doctor' => ['nullable', 'boolean'],

@@ -19,7 +19,6 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'mobile' => $this->phone,
             'phone' => $this->phone,
-            'job_title' => $this->job_title,
             // Prefers the real Branch relation's name (set via the branch_id
             // picklist) over the legacy free-text branch_name column, which
             // predates the proper Branch model and is only still populated on

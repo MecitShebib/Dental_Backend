@@ -62,12 +62,12 @@ class UserController extends Controller
         $user->permissions()->sync($data['permission_ids'] ?? []);
         $this->companyUserLimit->syncActiveUsers($company);
 
-        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])), 'User created successfully.', 201);
+        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch', 'specialty'])), 'User created successfully.', 201);
     }
 
     public function show(User $user)
     {
-        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])));
+        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch', 'specialty'])));
     }
 
     public function update(UpdateUserRequest $request, User $user)
@@ -111,7 +111,7 @@ class UserController extends Controller
         $user->permissions()->sync($permissionIds);
         $this->companyUserLimit->syncActiveUsers($company);
 
-        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch'])), 'User updated successfully.');
+        return $this->success(UserResource::make($user->load(['roles', 'permissions', 'company', 'branch', 'specialty'])), 'User updated successfully.');
     }
 
     /**

@@ -150,6 +150,7 @@ class ReportController extends Controller
         $month = (int) $request->query('month', now()->month);
 
         $rows = User::query()
+            ->with('roles')
             ->where('status', 'active')
             // A user with no branch_id assigned yet (pre-dates branch scoping)
             // stays visible from every branch rather than silently disappearing.
@@ -183,7 +184,7 @@ class ReportController extends Controller
                 return [
                     'user_id' => $employee->id,
                     'name' => $employee->name,
-                    'job_title' => $employee->job_title,
+                    'role_name' => $employee->roles->first()?->name,
                     'monthly_salary' => round((float) $employee->monthly_salary, 2),
                     'commission_percentage' => round((float) $employee->commission_percentage, 2),
                     'period_year' => $year,

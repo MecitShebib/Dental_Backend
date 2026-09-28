@@ -36,7 +36,7 @@ class PublicBookingService
 
     public function doctorsFor(Company $company): Collection
     {
-        return $this->doctorQuery($company)->orderBy('name')->get(['id', 'name', 'job_title']);
+        return $this->doctorQuery($company)->orderBy('name')->get(['id', 'name']);
     }
 
     /**

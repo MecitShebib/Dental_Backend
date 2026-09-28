@@ -267,7 +267,6 @@ class DemoDataSeeder extends Seeder
                 'email' => $config['doctor_email'],
                 'phone' => $config['doctor_phone'],
                 'password' => Hash::make('secret'),
-                'job_title' => 'Doctor',
                 'branch_name' => $branch->name,
                 'status' => 'active',
                 'is_project_admin' => false,

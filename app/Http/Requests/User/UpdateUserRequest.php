@@ -43,7 +43,6 @@ class UpdateUserRequest extends FormRequest
             // uniqueness, since phone is the OTP login lookup key.
             'phone' => ['nullable', 'string', 'max:50', new ValidPhone, Rule::unique('users', 'phone')->ignore($userId)],
             'password' => ['nullable', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
-            'job_title' => ['nullable', 'string', 'max:255'],
             'branch_name' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'is_doctor' => ['nullable', 'boolean'],
