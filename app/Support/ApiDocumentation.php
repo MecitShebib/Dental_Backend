@@ -193,7 +193,7 @@ class ApiDocumentation
                             ['name' => 'date_from', 'type' => 'date', 'required' => false],
                             ['name' => 'date_to', 'type' => 'date', 'required' => false],
                             ['name' => 'category', 'type' => 'enum', 'required' => false, 'enum' => 'patient|appointment|visit|payment|prescription|lab|xray|consent|accounting|user|clinical'],
-                            ['name' => 'action', 'type' => 'enum', 'required' => false, 'enum' => 'created|updated|deleted|password_changed'],
+                            ['name' => 'action', 'type' => 'enum', 'required' => false, 'enum' => 'created|updated|deleted|password_changed|exported|erasure_requested', 'notes' => "'viewed' rows are never included -- too high-volume to be useful here"],
                         ],
                         'response' => [['name' => '[ActivityLog object]', 'type' => 'array', 'notes' => 'paginated: data/links/meta, 100 per page']],
                     ],

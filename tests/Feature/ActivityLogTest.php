@@ -75,6 +75,24 @@ class ActivityLogTest extends TestCase
         $this->assertSame($client->id, $row['client']['id']);
     }
 
+    public function test_viewing_a_client_never_appears_in_the_activity_log(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeSystemManager($company->id);
+        Sanctum::actingAs($manager);
+
+        $client = $this->makeClient($company->id);
+        $this->getJson("/api/clients/{$client->id}")->assertOk();
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'viewed', 'auditable_id' => $client->id]);
+
+        $rows = $this->getJson('/api/activity-log')->assertOk()->json('data.data');
+        $this->assertCount(0, collect($rows)->where('action', 'viewed')->all());
+
+        $rejected = $this->getJson('/api/activity-log?action=viewed');
+        $rejected->assertStatus(422);
+    }
+
     public function test_creating_an_appointment_is_logged_under_the_appointment_category_with_its_client(): void
     {
         $company = Company::factory()->create();

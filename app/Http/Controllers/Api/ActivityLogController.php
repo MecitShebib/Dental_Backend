@@ -29,7 +29,7 @@ class ActivityLogController extends Controller
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
             'category' => ['nullable', Rule::in(array_keys(AuditLog::CATEGORY_MODELS))],
-            'action' => ['nullable', Rule::in(['created', 'updated', 'deleted', 'password_changed'])],
+            'action' => ['nullable', Rule::in(AuditLog::ACTIONS)],
         ]);
 
         $logs = AuditLog::query()
@@ -42,6 +42,7 @@ class ActivityLogController extends Controller
                 'user.roles',
                 'client' => fn ($query) => $query->withTrashed(),
             ])
+            ->whereIn('action', AuditLog::ACTIONS)
             ->where('company_id', $request->user()->company_id)
             ->when($validated['user_id'] ?? null, fn ($query, $userId) => $query->where('user_id', $userId))
             ->when($validated['role'] ?? null, fn ($query, $role) => $query->whereHas(

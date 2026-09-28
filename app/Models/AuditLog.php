@@ -57,6 +57,16 @@ class AuditLog extends Model
         ],
     ];
 
+    /**
+     * The action values the activity log shows/filters on. Deliberately
+     * excludes 'viewed' (written on every single Client page load --
+     * ClientController::show() -- so it would otherwise drown every other
+     * action out) even though it's a real, valid AuditLog row kept for KVKK
+     * access-history purposes; that trail is still queryable directly, just
+     * not through this screen.
+     */
+    public const ACTIONS = ['created', 'updated', 'deleted', 'password_changed', 'exported', 'erasure_requested'];
+
     protected $fillable = [
         'uuid',
         'company_id',
