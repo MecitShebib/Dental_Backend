@@ -14,13 +14,16 @@ use Illuminate\Validation\ValidationException;
  * request the UI would never send. Mirrors the read-list scoping already
  * enforced by ClientQueryService/AppointmentQueryService/DashboardStatsService
  * -- this closes the same gap on the single-record and write-side endpoints.
+ *
+ * None of this applies to a doctor who is *also* a system manager --
+ * User::isDoctorOnly() is false for them, same as a plain admin.
  */
 trait AuthorizesOwnDoctorRecords
 {
     protected function assertActingDoctorOwnsDoctorId(Request $request, ?int $doctorId): void
     {
         $actingUser = $request->user();
-        if ($actingUser->is_doctor && (int) $doctorId !== $actingUser->id) {
+        if ($actingUser->isDoctorOnly() && (int) $doctorId !== $actingUser->id) {
             throw ValidationException::withMessages([
                 'doctor_id' => ["You are not authorized to access another doctor's records."],
             ]);
@@ -44,7 +47,7 @@ trait AuthorizesOwnDoctorRecords
         // malformed/legacy fixture the specialty-scoping system was never
         // wired up for -- nothing to check against, so let it through rather
         // than lock every client in the company.
-        if (! $actingUser->is_doctor || ! $actingUser->specialty_id) {
+        if (! $actingUser->isDoctorOnly() || ! $actingUser->specialty_id) {
             return;
         }
 
@@ -78,7 +81,7 @@ trait AuthorizesOwnDoctorRecords
     {
         $actingUser = $request->user();
 
-        if (! $client || ! $actingUser->is_doctor || ! $actingUser->specialty_id) {
+        if (! $client || ! $actingUser->isDoctorOnly() || ! $actingUser->specialty_id) {
             return;
         }
 

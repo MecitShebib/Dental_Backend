@@ -19,10 +19,12 @@ class DashboardStatsService
 {
     public function stats(User $actingUser, string $dateFrom, string $dateTo, ?int $doctorId, ?int $branchId, ?string $specialtyKey): array
     {
-        // Same rule as ClientQueryService/AppointmentQueryService: a doctor
-        // only ever sees their own numbers, regardless of what doctor_id (or
-        // even a mismatched specialty/branch) the request asked for.
-        if ($actingUser->is_doctor) {
+        // Same rule as ClientQueryService/AppointmentQueryService: a plain
+        // doctor only ever sees their own numbers, regardless of what
+        // doctor_id (or even a mismatched specialty/branch) the request
+        // asked for. A doctor who is also a system manager is not
+        // hard-scoped -- see User::isDoctorOnly().
+        if ($actingUser->isDoctorOnly()) {
             $doctorId = $actingUser->id;
 
             if ($actingUser->branch_id) {

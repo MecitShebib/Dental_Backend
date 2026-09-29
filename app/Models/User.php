@@ -177,6 +177,20 @@ class User extends Authenticatable
     }
 
     /**
+     * "Hard-scoped to their own patients/specialty/schedule" applies to a
+     * plain doctor, but not to one who is *also* a system manager -- an
+     * admin who happens to be a doctor keeps every admin capability
+     * (every specialty, every doctor's records, the doctor picker) on top
+     * of their own doctor view, rather than being boxed into it. Every
+     * read-scoping/ownership check that currently branches on `is_doctor`
+     * alone should use this instead.
+     */
+    public function isDoctorOnly(): bool
+    {
+        return $this->is_doctor && ! $this->isSystemManager();
+    }
+
+    /**
      * Company admins and accountants (plus a project admin acting for support)
      * are the only ones who can see or manage the accounting sections: the
      * company fund ledger, expenses, capital/withdrawals, and payroll.

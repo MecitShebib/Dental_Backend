@@ -20,13 +20,15 @@ class SatisfactionSurveyController extends Controller
         // ClientQueryService::list() -- a survey has no doctor_id of its
         // own, so this reaches the acting doctor's ownership through
         // client.specialtyRecords instead.
+        $isDoctorOnly = $actingUser->isDoctorOnly();
+
         $surveys = SatisfactionSurvey::query()
             ->when($request->boolean('submitted_only'), fn ($query) => $query->whereNotNull('submitted_at'))
-            ->when($actingUser->is_doctor, fn ($query) => $query->whereHas(
+            ->when($isDoctorOnly, fn ($query) => $query->whereHas(
                 'client.specialtyRecords',
                 fn ($sq) => $sq->where('specialty_id', $actingUser->specialty_id)->where('primary_doctor_id', $actingUser->id)
             ))
-            ->when(! $actingUser->is_doctor && $request->filled('specialty'), function ($query) use ($request) {
+            ->when(! $isDoctorOnly && $request->filled('specialty'), function ($query) use ($request) {
                 $specialtyId = Specialty::query()->where('key', $request->string('specialty')->value())->value('id');
                 $query->whereHas('client.specialtyRecords', fn ($sq) => $sq->where('specialty_id', $specialtyId));
             })

@@ -65,7 +65,7 @@ class DoctorScheduleController extends Controller
     protected function assertOwnScheduleOrNonDoctor(Request $request, User $doctor): void
     {
         $actingUser = $request->user();
-        if ($actingUser->is_doctor && $actingUser->id !== $doctor->id) {
+        if ($actingUser->isDoctorOnly() && $actingUser->id !== $doctor->id) {
             throw ValidationException::withMessages([
                 'doctor' => ['You are not authorized to view or manage another doctor\'s schedule.'],
             ]);

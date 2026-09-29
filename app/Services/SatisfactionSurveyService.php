@@ -120,13 +120,15 @@ class SatisfactionSurveyService
      */
     public function summary(User $actingUser, ?string $specialtyKey): array
     {
+        $isDoctorOnly = $actingUser->isDoctorOnly();
+
         $submitted = SatisfactionSurvey::query()
             ->whereHas('client', fn ($query) => $query->where('company_id', $actingUser->company_id))
-            ->when($actingUser->is_doctor, fn ($query) => $query->whereHas(
+            ->when($isDoctorOnly, fn ($query) => $query->whereHas(
                 'client.specialtyRecords',
                 fn ($sq) => $sq->where('specialty_id', $actingUser->specialty_id)->where('primary_doctor_id', $actingUser->id)
             ))
-            ->when(! $actingUser->is_doctor && $specialtyKey, function ($query) use ($specialtyKey) {
+            ->when(! $isDoctorOnly && $specialtyKey, function ($query) use ($specialtyKey) {
                 $specialtyId = Specialty::query()->where('key', $specialtyKey)->value('id');
                 $query->whereHas('client.specialtyRecords', fn ($sq) => $sq->where('specialty_id', $specialtyId));
             })

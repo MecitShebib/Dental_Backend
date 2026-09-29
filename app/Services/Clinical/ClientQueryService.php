@@ -18,29 +18,44 @@ use Illuminate\Contracts\Pagination\Paginator;
 class ClientQueryService
 {
     /**
-     * @param  string|null  $specialtyKey  Only applied for a non-doctor acting user -- a doctor
+     * @param  string|null  $specialtyKey  Only applied for a non-doctor acting user -- a plain doctor
      *                                     is always hard-scoped to their own specialty_id
-     *                                     (Doctovaria Phase 8), regardless of this value.
+     *                                     (Doctovaria Phase 8), regardless of this value. A doctor who
+     *                                     is *also* a system manager is NOT hard-scoped -- see
+     *                                     User::isDoctorOnly().
      * @param  array{name?: ?string, phone?: ?string, branch_id?: ?int, per_page?: ?int}  $filters
      */
     public function list(User $actingUser, ?string $specialtyKey, array $filters): Paginator
     {
+        $isDoctorOnly = $actingUser->isDoctorOnly();
+
         // Same rule as the specialty scoping above: a doctor with their own
         // branch_id set is always hard-scoped to it, regardless of what
         // branch_id the request asked for.
-        $branchId = $actingUser->is_doctor && $actingUser->branch_id
+        $branchId = $isDoctorOnly && $actingUser->branch_id
             ? $actingUser->branch_id
             : ($filters['branch_id'] ?? null);
 
         return Client::query()
             ->with(['branch', ...$this->nextAppointmentEagerLoad()])
-            ->when($actingUser->is_doctor, fn ($query) => $query->whereHas(
+            ->when($isDoctorOnly, fn ($query) => $query->whereHas(
                 'specialtyRecords',
                 fn ($sq) => $sq->where('specialty_id', $actingUser->specialty_id)->where('primary_doctor_id', $actingUser->id)
             ))
-            ->when(! $actingUser->is_doctor && $specialtyKey, function ($query) use ($specialtyKey) {
+            ->when(! $isDoctorOnly && $specialtyKey, function ($query) use ($specialtyKey) {
                 $specialtyId = Specialty::query()->where('key', $specialtyKey)->value('id');
                 $query->whereHas('specialtyRecords', fn ($sq) => $sq->where('specialty_id', $specialtyId));
+            })
+            // Optional "patients of this doctor" filter for non-doctor staff
+            // (e.g. the Patients page's doctor picker). A plain doctor is
+            // already hard-scoped to their own patients above, so it's
+            // ignored for them -- a doctor who is also a system manager can
+            // use it like any other admin, including to pick themselves.
+            ->when(! $isDoctorOnly && ($filters['doctor_id'] ?? null), function ($query) use ($filters, $specialtyKey) {
+                $specialtyId = $specialtyKey ? Specialty::query()->where('key', $specialtyKey)->value('id') : null;
+                $query->whereHas('specialtyRecords', fn ($sq) => $sq
+                    ->where('primary_doctor_id', $filters['doctor_id'])
+                    ->when($specialtyId, fn ($q) => $q->where('specialty_id', $specialtyId)));
             })
             // A client with no branch_id assigned yet (pre-dates branch scoping)
             // stays visible from every branch rather than silently disappearing.

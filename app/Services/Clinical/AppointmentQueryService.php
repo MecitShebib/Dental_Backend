@@ -24,15 +24,19 @@ class AppointmentQueryService
      */
     public function list(User $actingUser, array $filters): Paginator
     {
-        // A doctor only ever sees their own schedule -- overrides whatever
-        // doctor_id the request asked for, the same rule
-        // ClientQueryService::list() already enforces for patients.
-        $doctorId = $actingUser->is_doctor ? $actingUser->id : ($filters['doctor_id'] ?? null);
+        $isDoctorOnly = $actingUser->isDoctorOnly();
+
+        // A plain doctor only ever sees their own schedule -- overrides
+        // whatever doctor_id the request asked for, the same rule
+        // ClientQueryService::list() already enforces for patients. A
+        // doctor who is also a system manager is not hard-scoped -- see
+        // User::isDoctorOnly().
+        $doctorId = $isDoctorOnly ? $actingUser->id : ($filters['doctor_id'] ?? null);
 
         // Same rule, for branch: a doctor with their own branch_id set is
         // always hard-scoped to it, regardless of what branch_id the
         // request asked for.
-        $branchId = $actingUser->is_doctor && $actingUser->branch_id
+        $branchId = $isDoctorOnly && $actingUser->branch_id
             ? $actingUser->branch_id
             : ($filters['branch_id'] ?? null);
 
