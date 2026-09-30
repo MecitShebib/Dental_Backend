@@ -22,6 +22,7 @@ class InventoryPurchaseOrder extends Model
 
     protected $fillable = [
         'uuid',
+        'batch_uuid',
         'company_id',
         'inventory_item_id',
         'quantity',

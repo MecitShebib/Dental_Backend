@@ -12,10 +12,13 @@ use App\Models\TreatmentChargeInventoryConsumption;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
+    public function __construct(protected InventoryPurchaseCostSyncService $purchaseCostSync) {}
+
     /**
      * 'in'/'out' quantities are always positive (direction comes from
      * $type); 'adjustment' takes a signed delta applied directly, for
@@ -143,9 +146,10 @@ class InventoryService
         $this->createPurchaseOrder($item, $quantity, $item->unit_cost !== null ? (float) $item->unit_cost : null, null, null);
     }
 
-    public function createPurchaseOrder(InventoryItem $item, float $quantity, ?float $unitCost, ?string $notes, ?int $createdBy): InventoryPurchaseOrder
+    public function createPurchaseOrder(InventoryItem $item, float $quantity, ?float $unitCost, ?string $notes, ?int $createdBy, ?string $batchUuid = null): InventoryPurchaseOrder
     {
         return InventoryPurchaseOrder::create([
+            'batch_uuid' => $batchUuid,
             'company_id' => $item->company_id,
             'inventory_item_id' => $item->id,
             'quantity' => $quantity,
@@ -155,6 +159,36 @@ class InventoryService
             'notes' => $notes,
             'created_by' => $createdBy,
         ]);
+    }
+
+    /**
+     * One "cart" of several items ordered together, each still becoming its
+     * own InventoryPurchaseOrder row with its own independent status
+     * lifecycle (different items in one supplier order can still ship at
+     * different times) -- batch_uuid is purely a display-grouping key for
+     * the Purchase Orders list. See InventoryPurchaseOrderController::storeBatch().
+     *
+     * @param  array<int, array{inventory_item_id: int, quantity: float, unit_cost: ?float}>  $items
+     * @return Collection<int, InventoryPurchaseOrder>
+     */
+    public function createPurchaseOrderBatch(Company $company, array $items, ?string $notes, ?int $createdBy): Collection
+    {
+        $batchUuid = (string) Str::uuid();
+
+        $orders = collect($items)->map(function (array $line) use ($company, $notes, $createdBy, $batchUuid) {
+            $item = InventoryItem::query()->where('company_id', $company->id)->findOrFail($line['inventory_item_id']);
+
+            return $this->createPurchaseOrder(
+                $item,
+                (float) $line['quantity'],
+                isset($line['unit_cost']) ? (float) $line['unit_cost'] : null,
+                $notes,
+                $createdBy,
+                $batchUuid,
+            );
+        });
+
+        return new Collection($orders->all());
     }
 
     /**
@@ -182,6 +216,10 @@ class InventoryService
                 $actingUserId,
             );
             $order->update(['status' => $status, 'received_at' => now()]);
+
+            if ($actingUserId !== null) {
+                $this->purchaseCostSync->record($order, $actingUserId);
+            }
 
             return $order;
         }

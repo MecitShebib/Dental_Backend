@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\AuthorizesAccounting;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\InventoryItem;
+use App\Models\InventoryPurchaseOrder;
+use App\Models\InventorySaleItem;
 use App\Models\LabPartner;
 use App\Models\LabPayment;
 use App\Models\SalaryAdvance;
@@ -206,6 +209,88 @@ class ReportController extends Controller
                 'net_paid_this_period' => round($rows->sum('net_amount_this_period'), 2),
                 'commission_this_period' => round($rows->sum('commission_amount'), 2),
                 'unsettled_advances' => round($rows->sum('unsettled_advances'), 2),
+            ],
+        ]);
+    }
+
+    /**
+     * Purchases (received purchase orders) vs. sales (InventorySaleItem,
+     * the "Add From Inventory" patient-billing flow) vs. profit, per item.
+     * Deliberately excludes plain manual in/out/adjustment transactions --
+     * they carry no captured cost, so folding them in would fabricate
+     * numbers. Both sides are scoped through the inventory item's own
+     * specialty_id/branch_id, not a column on the purchase order or sale
+     * itself (neither has a reliable one of its own).
+     */
+    public function inventoryReport(Request $request)
+    {
+        $this->assertHasAccountingAccess($request);
+
+        $request->validate([
+            'branch_id' => ['nullable', 'exists:branches,id'],
+            'specialty' => ['nullable', 'string', 'exists:specialties,key'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+            'inventory_item_id' => ['nullable', 'integer', 'exists:inventory_items,id'],
+        ]);
+
+        $specialtyId = $request->filled('specialty')
+            ? Specialty::query()->where('key', $request->string('specialty')->value())->value('id')
+            : null;
+        $branchId = $request->branch_id;
+        $itemId = $request->inventory_item_id;
+        $dateFrom = $request->date_from;
+        $dateTo = $request->date_to;
+
+        $itemScope = fn ($query, string $itemColumn) => $query
+            ->when($specialtyId, fn ($q) => $q->whereHas($itemColumn, fn ($iq) => $iq->where('specialty_id', $specialtyId)))
+            ->when($branchId, fn ($q) => $q->whereHas($itemColumn, fn ($iq) => $iq->where('branch_id', $branchId)))
+            ->when($itemId, fn ($q) => $q->where('inventory_item_id', $itemId));
+
+        $purchases = $itemScope(
+            InventoryPurchaseOrder::query()
+                ->where('status', InventoryPurchaseOrder::STATUS_RECEIVED)
+                ->when($dateFrom, fn ($q) => $q->whereDate('received_at', '>=', $dateFrom))
+                ->when($dateTo, fn ($q) => $q->whereDate('received_at', '<=', $dateTo)),
+            'item',
+        )->get(['inventory_item_id', 'quantity', 'total_cost']);
+
+        $sales = $itemScope(
+            InventorySaleItem::query()
+                ->whereHas('inventorySale', fn ($q) => $q
+                    ->when($dateFrom, fn ($q2) => $q2->whereDate('created_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($q2) => $q2->whereDate('created_at', '<=', $dateTo))),
+            'inventoryItem',
+        )->get(['inventory_item_id', 'quantity', 'unit_cost', 'line_total']);
+
+        $itemIds = $purchases->pluck('inventory_item_id')->merge($sales->pluck('inventory_item_id'))->unique();
+        $itemNames = InventoryItem::query()->whereIn('id', $itemIds)->pluck('name', 'id');
+
+        $byItem = $itemIds->map(function ($id) use ($purchases, $sales, $itemNames) {
+            $itemPurchases = $purchases->where('inventory_item_id', $id);
+            $itemSales = $sales->where('inventory_item_id', $id);
+
+            $purchaseCost = round((float) $itemPurchases->sum('total_cost'), 2);
+            $revenue = round((float) $itemSales->sum('line_total'), 2);
+            $costOfGoodsSold = round((float) $itemSales->sum(fn ($row) => (float) $row->quantity * (float) ($row->unit_cost ?? 0)), 2);
+
+            return [
+                'inventory_item_id' => $id,
+                'item_name' => $itemNames->get($id),
+                'quantity_purchased' => (float) $itemPurchases->sum('quantity'),
+                'purchase_cost' => $purchaseCost,
+                'quantity_sold' => (float) $itemSales->sum('quantity'),
+                'sale_revenue' => $revenue,
+                'profit' => round($revenue - $costOfGoodsSold, 2),
+            ];
+        })->sortByDesc('profit')->values();
+
+        return $this->success([
+            'items' => $byItem,
+            'totals' => [
+                'purchase_cost' => round((float) $byItem->sum('purchase_cost'), 2),
+                'sale_revenue' => round((float) $byItem->sum('sale_revenue'), 2),
+                'profit' => round((float) $byItem->sum('profit'), 2),
             ],
         ]);
     }

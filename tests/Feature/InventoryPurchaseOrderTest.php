@@ -69,6 +69,65 @@ class InventoryPurchaseOrderTest extends TestCase
         ]);
     }
 
+    public function test_marking_an_order_received_posts_the_cost_to_accounting(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->create(['company_id' => $company->id]);
+        Sanctum::actingAs($user);
+        $item = $this->makeItem($company, ['quantity_on_hand' => 5, 'supplier_name' => 'Acme Supplies']);
+
+        $order = InventoryPurchaseOrder::create([
+            'company_id' => $company->id,
+            'inventory_item_id' => $item->id,
+            'quantity' => 10,
+            'unit_cost' => 5,
+            'total_cost' => 50,
+            'status' => InventoryPurchaseOrder::STATUS_PENDING,
+        ]);
+
+        $this->putJson("/api/inventory-purchase-orders/{$order->id}/status", ['status' => 'received'])->assertOk();
+
+        $this->assertDatabaseHas('expenses', [
+            'company_id' => $company->id,
+            'vendor_name' => 'Acme Supplies',
+            'amount' => 50,
+            'category' => 'dental_supplies',
+        ]);
+        $this->assertDatabaseHas('fund_transactions', [
+            'company_id' => $company->id,
+            'amount' => -50,
+        ]);
+    }
+
+    public function test_a_purchase_order_batch_creates_one_independent_order_per_item(): void
+    {
+        $company = Company::factory()->create();
+        Sanctum::actingAs(User::factory()->create(['company_id' => $company->id]));
+        $itemA = $this->makeItem($company, ['name' => 'Gloves']);
+        $itemB = $this->makeItem($company, ['name' => 'Masks']);
+
+        $response = $this->postJson('/api/inventory-purchase-orders/batch', [
+            'notes' => 'Monthly restock',
+            'items' => [
+                ['inventory_item_id' => $itemA->id, 'quantity' => 10, 'unit_cost' => 2],
+                ['inventory_item_id' => $itemB->id, 'quantity' => 20, 'unit_cost' => 1],
+            ],
+        ])->assertCreated();
+
+        $this->assertCount(2, $response->json('data'));
+        $batchUuid = $response->json('data.0.batch_uuid');
+        $this->assertNotEmpty($batchUuid);
+        $this->assertSame($batchUuid, $response->json('data.1.batch_uuid'));
+
+        $orderAId = $response->json('data.0.id');
+        $orderBId = $response->json('data.1.id');
+
+        // Each line in the batch still transitions status independently.
+        $this->putJson("/api/inventory-purchase-orders/{$orderAId}/status", ['status' => 'received'])->assertOk();
+        $this->assertDatabaseHas('inventory_purchase_orders', ['id' => $orderAId, 'status' => 'received']);
+        $this->assertDatabaseHas('inventory_purchase_orders', ['id' => $orderBId, 'status' => 'pending']);
+    }
+
     public function test_a_received_order_cannot_be_transitioned_again(): void
     {
         $company = Company::factory()->create();

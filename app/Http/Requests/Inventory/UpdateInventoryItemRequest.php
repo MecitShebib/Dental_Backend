@@ -22,6 +22,7 @@ class UpdateInventoryItemRequest extends FormRequest
             'reorder_threshold' => ['nullable', 'numeric', 'min:0'],
             'reorder_quantity' => ['nullable', 'numeric', 'min:0'],
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'notes' => ['nullable', 'string'],
             'supplier_name' => ['nullable', 'string', 'max:255'],

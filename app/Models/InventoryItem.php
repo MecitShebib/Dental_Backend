@@ -25,6 +25,7 @@ class InventoryItem extends Model
         'reorder_threshold',
         'reorder_quantity',
         'unit_cost',
+        'unit_price',
         'status',
         'notes',
         'supplier_name',
@@ -39,6 +40,7 @@ class InventoryItem extends Model
             'reorder_threshold' => 'decimal:2',
             'reorder_quantity' => 'decimal:2',
             'unit_cost' => 'decimal:2',
+            'unit_price' => 'decimal:2',
             'reorder_alert_sent_at' => 'datetime',
         ];
     }

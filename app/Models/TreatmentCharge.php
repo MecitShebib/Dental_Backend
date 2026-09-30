@@ -20,6 +20,8 @@ class TreatmentCharge extends Model
 
     public const SOURCE_APPOINTMENT = 'appointment';
 
+    public const SOURCE_INVENTORY_SALE = 'inventory_sale';
+
     protected $fillable = [
         'uuid',
         'client_id',

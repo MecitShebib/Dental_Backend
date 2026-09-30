@@ -4,14 +4,20 @@ namespace Tests\Feature;
 
 use App\Models\Branch;
 use App\Models\Client;
+use App\Models\ClientSpecialtyRecord;
 use App\Models\Company;
+use App\Models\InventoryItem;
+use App\Models\InventoryPurchaseOrder;
 use App\Models\LabPartner;
 use App\Models\Payment;
 use App\Models\Role;
 use App\Models\SalaryAdvance;
 use App\Models\SalaryPayment;
+use App\Models\Specialty;
 use App\Models\TreatmentCharge;
 use App\Models\User;
+use App\Services\InventorySaleService;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -106,16 +112,16 @@ class ReportTest extends TestCase
     {
         $company = Company::factory()->create();
         $user = $this->makeManager($company);
-        $this->seed(\Database\Seeders\SpecialtySeeder::class);
-        $dental = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::DENTAL)->firstOrFail();
-        $gynecology = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::GYNECOLOGY)->firstOrFail();
+        $this->seed(SpecialtySeeder::class);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $gynecology = Specialty::query()->where('key', Specialty::GYNECOLOGY)->firstOrFail();
         $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
         $gynDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $gynecology->id]);
         Sanctum::actingAs($user);
 
         $dentalPatient = $this->makeClient($company, 'Dental Patient');
         TreatmentCharge::create(['client_id' => $dentalPatient->id, 'source_type' => 'manual', 'amount' => 1000, 'description' => 'Crown']);
-        \App\Models\ClientSpecialtyRecord::create([
+        ClientSpecialtyRecord::create([
             'company_id' => $company->id,
             'client_id' => $dentalPatient->id,
             'specialty_id' => $dental->id,
@@ -124,7 +130,7 @@ class ReportTest extends TestCase
 
         $gynPatient = $this->makeClient($company, 'Gynecology Patient');
         TreatmentCharge::create(['client_id' => $gynPatient->id, 'source_type' => 'manual', 'amount' => 2000, 'description' => 'Checkup']);
-        \App\Models\ClientSpecialtyRecord::create([
+        ClientSpecialtyRecord::create([
             'company_id' => $company->id,
             'client_id' => $gynPatient->id,
             'specialty_id' => $gynecology->id,
@@ -241,6 +247,52 @@ class ReportTest extends TestCase
         return $manager;
     }
 
+    public function test_inventory_report_computes_purchase_cost_sale_revenue_and_profit_per_item(): void
+    {
+        $company = Company::factory()->create();
+        $manager = $this->makeManager($company);
+        Sanctum::actingAs($manager);
+
+        $item = InventoryItem::create([
+            'company_id' => $company->id,
+            'name' => 'Whitening Kit',
+            'quantity_on_hand' => 10,
+            'unit_cost' => 20,
+            'unit_price' => 50,
+            'status' => 'active',
+        ]);
+
+        InventoryPurchaseOrder::create([
+            'company_id' => $company->id,
+            'inventory_item_id' => $item->id,
+            'quantity' => 10,
+            'unit_cost' => 20,
+            'total_cost' => 200,
+            'status' => InventoryPurchaseOrder::STATUS_RECEIVED,
+            'received_at' => now(),
+        ]);
+
+        $client = $this->makeClient($company, 'Buyer');
+        app(InventorySaleService::class)->create($client, [
+            ['inventory_item_id' => $item->id, 'quantity' => 3],
+        ], $manager->id);
+
+        $response = $this->getJson('/api/reports/inventory')->assertOk();
+
+        $response->assertJsonPath('data.totals.purchase_cost', 200)
+            ->assertJsonPath('data.totals.sale_revenue', 150)
+            ->assertJsonPath('data.totals.profit', 90);
+
+        // 150 revenue - (3 * 20 cost) = 90 profit for this one item.
+        $response->assertJsonPath('data.items.0.item_name', 'Whitening Kit')
+            ->assertJsonPath('data.items.0.profit', 90);
+
+        // Filtering to a single item narrows the breakdown to just it.
+        $this->getJson("/api/reports/inventory?inventory_item_id={$item->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data.items');
+    }
+
     public function test_payroll_summary_reports_this_periods_pay_and_outstanding_advances_per_employee(): void
     {
         $company = Company::factory()->create();
@@ -289,9 +341,9 @@ class ReportTest extends TestCase
     {
         $company = Company::factory()->create();
         $manager = $this->makeManager($company);
-        $this->seed(\Database\Seeders\SpecialtySeeder::class);
-        $dental = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::DENTAL)->firstOrFail();
-        $nutrition = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::NUTRITION)->firstOrFail();
+        $this->seed(SpecialtySeeder::class);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
         Sanctum::actingAs($manager);
 
         $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id, 'name' => 'Dental Doctor']);

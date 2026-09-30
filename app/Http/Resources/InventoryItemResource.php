@@ -22,6 +22,7 @@ class InventoryItemResource extends JsonResource
             'reorder_threshold' => $this->reorder_threshold !== null ? (float) $this->reorder_threshold : null,
             'reorder_quantity' => $this->reorder_quantity !== null ? (float) $this->reorder_quantity : null,
             'unit_cost' => $this->unit_cost !== null ? (float) $this->unit_cost : null,
+            'unit_price' => $this->unit_price !== null ? (float) $this->unit_price : null,
             'status' => $this->status,
             'notes' => $this->notes,
             'supplier_name' => $this->supplier_name,

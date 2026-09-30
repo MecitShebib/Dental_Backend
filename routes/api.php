@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\EmployeeSalaryController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryItemController;
 use App\Http\Controllers\Api\InventoryPurchaseOrderController;
+use App\Http\Controllers\Api\InventorySaleController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\LabPartnerController;
@@ -253,6 +254,7 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
 
     Route::get('reports/patient-debts', [ReportController::class, 'patientDebts']);
     Route::get('reports/lab-debts', [ReportController::class, 'labDebts']);
+    Route::get('reports/inventory', [ReportController::class, 'inventoryReport']);
 
     Route::get('reports/patient-recalls', [PatientRecallController::class, 'index']);
     Route::get('reports/payroll-summary', [ReportController::class, 'payrollSummary']);
@@ -297,7 +299,10 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('inventory-items/{item}/purchase-orders', [InventoryPurchaseOrderController::class, 'store']);
 
     Route::get('inventory-purchase-orders', [InventoryPurchaseOrderController::class, 'index']);
+    Route::post('inventory-purchase-orders/batch', [InventoryPurchaseOrderController::class, 'storeBatch']);
     Route::put('inventory-purchase-orders/{purchaseOrder}/status', [InventoryPurchaseOrderController::class, 'updateStatus']);
+
+    Route::post('clients/{client}/inventory-sales', [InventorySaleController::class, 'store']);
 
     Route::get('treatment-catalog/{catalogEntry}/inventory-links', [TreatmentCatalogInventoryLinkController::class, 'index']);
     Route::put('treatment-catalog/{catalogEntry}/inventory-links', [TreatmentCatalogInventoryLinkController::class, 'update']);

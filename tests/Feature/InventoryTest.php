@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\LowStockAlertMail;
+use App\Models\Branch;
 use App\Models\Company;
 use App\Models\InventoryItem;
 use App\Models\User;
@@ -36,11 +37,30 @@ class InventoryTest extends TestCase
         $this->getJson('/api/inventory-items')->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_unit_price_persists_on_create_and_update(): void
+    {
+        $company = Company::factory()->create();
+        Sanctum::actingAs(User::factory()->create(['company_id' => $company->id]));
+
+        $response = $this->postJson('/api/inventory-items', [
+            'name' => 'Composite Resin',
+            'unit_cost' => 40,
+            'unit_price' => 75,
+        ])->assertCreated();
+
+        $this->assertEquals(75.0, $response->json('data.unit_price'));
+
+        $itemId = $response->json('data.id');
+        $this->putJson("/api/inventory-items/{$itemId}", ['name' => 'Composite Resin', 'unit_price' => 90])
+            ->assertOk()
+            ->assertJsonPath('data.unit_price', 90);
+    }
+
     public function test_the_list_can_be_filtered_by_name_and_by_branch(): void
     {
         $company = Company::factory()->create();
-        $branchA = \App\Models\Branch::create(['company_id' => $company->id, 'name' => 'Branch A', 'status' => 'active']);
-        $branchB = \App\Models\Branch::create(['company_id' => $company->id, 'name' => 'Branch B', 'status' => 'active']);
+        $branchA = Branch::create(['company_id' => $company->id, 'name' => 'Branch A', 'status' => 'active']);
+        $branchB = Branch::create(['company_id' => $company->id, 'name' => 'Branch B', 'status' => 'active']);
         $user = User::factory()->create(['company_id' => $company->id]);
         Sanctum::actingAs($user);
 

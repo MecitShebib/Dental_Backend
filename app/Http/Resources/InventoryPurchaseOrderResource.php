@@ -12,6 +12,7 @@ class InventoryPurchaseOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
+            'batch_uuid' => $this->batch_uuid,
             'inventory_item_id' => $this->inventory_item_id,
             'item_name' => $this->item?->name,
             'unit' => $this->item?->unit,

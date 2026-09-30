@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Inventory\StoreInventoryPurchaseOrderBatchRequest;
 use App\Http\Requests\Inventory\StoreInventoryPurchaseOrderRequest;
 use App\Http\Requests\Inventory\UpdateInventoryPurchaseOrderStatusRequest;
 use App\Http\Resources\InventoryPurchaseOrderResource;
@@ -45,5 +46,24 @@ class InventoryPurchaseOrderController extends Controller
         $order = $inventory->updatePurchaseOrderStatus($purchaseOrder, $request->validated('status'), $request->user()->id);
 
         return $this->success(InventoryPurchaseOrderResource::make($order->load('item')), 'Purchase order updated successfully.');
+    }
+
+    /**
+     * One cart-style order covering several items at once, each still
+     * becoming its own independently-tracked InventoryPurchaseOrder row --
+     * see InventoryService::createPurchaseOrderBatch().
+     */
+    public function storeBatch(StoreInventoryPurchaseOrderBatchRequest $request, InventoryService $inventory)
+    {
+        $data = $request->validated();
+
+        $orders = $inventory->createPurchaseOrderBatch(
+            $request->user()->company,
+            $data['items'],
+            $data['notes'] ?? null,
+            $request->user()->id,
+        );
+
+        return $this->success(InventoryPurchaseOrderResource::collection($orders->load('item')), 'Purchase orders created successfully.', 201);
     }
 }
