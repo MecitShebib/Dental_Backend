@@ -44,6 +44,11 @@ class StoreTreatmentProductRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            // Which specialty's own Settings > Pricing list this product shows up
+            // in -- the frontend always sends the specialty it was added from
+            // (SettingsPage.jsx's activeSpecialtyId). Null is a legitimate value
+            // (shows in every specialty's list, same as the odontogram-seeded rows).
+            'specialty_id' => ['nullable', 'integer', 'exists:specialties,id'],
         ];
     }
 }

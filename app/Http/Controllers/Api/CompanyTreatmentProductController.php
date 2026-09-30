@@ -59,6 +59,7 @@ class CompanyTreatmentProductController extends Controller
 
         $product = TreatmentCatalog::query()->create([
             'company_id' => $company->id,
+            'specialty_id' => $data['specialty_id'] ?? null,
             'scope' => TreatmentCatalog::SCOPE_COMPANY,
             'code' => $data['code'],
             'name_ar' => $data['name_ar'],
@@ -140,7 +141,10 @@ class CompanyTreatmentProductController extends Controller
      * Adjust every priced item in the company's catalog (both scopes) at
      * once by a percentage or fixed amount, e.g. "+10% across the board" --
      * mirrors a feature competing dental-clinic software offers that we
-     * previously only supported one item at a time.
+     * previously only supported one item at a time. Scoped to one
+     * specialty's own rows when specialty_id is given (the Pricing page's
+     * own display list is filtered the same way) -- otherwise every row in
+     * the company's catalog, across every specialty, is adjusted.
      */
     public function bulkPriceAdjustment(BulkAdjustTreatmentProductPricesRequest $request, Company $company)
     {
@@ -149,15 +153,18 @@ class CompanyTreatmentProductController extends Controller
         $data = $request->validated();
 
         DB::transaction(function () use ($company, $data) {
-            $company->treatmentCatalog()->get()->each(function (TreatmentCatalog $product) use ($data) {
-                $current = (float) $product->default_price;
+            $company->treatmentCatalog()
+                ->when($data['specialty_id'] ?? null, fn ($query) => $query->where('specialty_id', $data['specialty_id']))
+                ->get()
+                ->each(function (TreatmentCatalog $product) use ($data) {
+                    $current = (float) $product->default_price;
 
-                $new = $data['type'] === 'percentage'
-                    ? $current * (1 + $data['value'] / 100)
-                    : $current + $data['value'];
+                    $new = $data['type'] === 'percentage'
+                        ? $current * (1 + $data['value'] / 100)
+                        : $current + $data['value'];
 
-                $product->update(['default_price' => max(0, round($new, 2))]);
-            });
+                    $product->update(['default_price' => max(0, round($new, 2))]);
+                });
         });
 
         $products = $company->treatmentCatalog()

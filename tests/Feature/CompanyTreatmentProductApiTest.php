@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\TreatmentCatalog;
 use App\Models\User;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -144,6 +146,67 @@ class CompanyTreatmentProductApiTest extends TestCase
             'type' => 'percentage',
             'value' => -100,
         ])->assertJsonValidationErrors('value');
+    }
+
+    public function test_it_tags_a_new_product_with_the_given_specialty(): void
+    {
+        [, $company] = $this->authenticatedUser();
+        $this->seed(SpecialtySeeder::class);
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
+
+        $this->postJson("/api/companies/{$company->id}/treatment-products", [
+            'code' => 'tt',
+            'name_ar' => 'ar',
+            'name_en' => 'English',
+            'price' => 100,
+            'status' => 'active',
+            'specialty_id' => $nutrition->id,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('treatment_catalog', [
+            'company_id' => $company->id,
+            'code' => 'tt',
+            'specialty_id' => $nutrition->id,
+        ]);
+    }
+
+    public function test_bulk_price_adjustment_only_touches_the_given_specialtys_rows(): void
+    {
+        [, $company] = $this->authenticatedUser();
+        $this->seed(SpecialtySeeder::class);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
+
+        $dentalProduct = TreatmentCatalog::query()->create([
+            'company_id' => $company->id,
+            'specialty_id' => $dental->id,
+            'scope' => TreatmentCatalog::SCOPE_COMPANY,
+            'code' => 'dental-item',
+            'name_ar' => 'ar', 'name_en' => 'Dental item', 'name_tr' => 'tr',
+            'default_price' => 100,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $nutritionProduct = TreatmentCatalog::query()->create([
+            'company_id' => $company->id,
+            'specialty_id' => $nutrition->id,
+            'scope' => TreatmentCatalog::SCOPE_COMPANY,
+            'code' => 'nutrition-item',
+            'name_ar' => 'ar', 'name_en' => 'Nutrition item', 'name_tr' => 'tr',
+            'default_price' => 100,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->postJson("/api/companies/{$company->id}/treatment-products/bulk-price-adjustment", [
+            'type' => 'percentage',
+            'value' => 10,
+            'specialty_id' => $nutrition->id,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('treatment_catalog', ['id' => $nutritionProduct->id, 'default_price' => 110]);
+        $this->assertDatabaseHas('treatment_catalog', ['id' => $dentalProduct->id, 'default_price' => 100]);
     }
 
     public function test_bulk_price_adjustment_is_scoped_to_the_requesters_company(): void
