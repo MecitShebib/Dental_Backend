@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Resources\ApiTokenResource;
 use Closure;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -43,6 +45,15 @@ class EnsureActiveClinicAccess
 
         if (! $company->currentSubscription()->exists()) {
             return $this->deny($user, 'Your clinic does not have an active subscription. Please contact your clinic administrator.');
+        }
+
+        // Integration tokens (Settings > API Token) only work while the
+        // subscription includes API access. 403, not deny(): the token isn't
+        // revoked, it starts working again if the feature is re-enabled.
+        $token = $user->currentAccessToken();
+        $tokenName = $token instanceof PersonalAccessToken ? (string) $token->name : '';
+        if (str_starts_with($tokenName, ApiTokenResource::PREFIX) && ! $company->hasFeature('api_tokens')) {
+            return response()->json(['message' => 'API access is not included in your clinic\'s subscription.'], 403);
         }
 
         return $next($request);

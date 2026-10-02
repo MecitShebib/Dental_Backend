@@ -48,6 +48,35 @@ return [
         'ai_consent_required' => env('KVKK_AI_CONSENT_REQUIRED', true),
     ],
 
+    'admin_login' => [
+        // Second factor on every admin-panel login (Admin\AuthController) --
+        // the OTP always goes here, never to the logging-in admin's own
+        // address, and the login/OTP screens never show or ask for it.
+        // Whoever holds this inbox is the real gatekeeper for admin access.
+        'otp_email' => env('ADMIN_LOGIN_OTP_EMAIL', 'info@doctovaria.com.tr'),
+    ],
+
+    'support' => [
+        // Platform (Doctovaria) support inbox + contact details shown on the
+        // in-app Help & Support page; the page's request form emails SUPPORT_EMAIL.
+        'email' => env('SUPPORT_EMAIL', 'hello@doctovaria.com'),
+        'phone' => env('SUPPORT_PHONE'),
+        'whatsapp' => env('SUPPORT_WHATSAPP'),
+        'ai_token_price_per_million' => env('AI_TOKEN_PRICE_PER_MILLION', '$20'),
+    ],
+
+    // Identity printed on /privacy-policy and /terms-of-service (see
+    // App\Support\LegalContent). KVKK m.10 expects the data controller's
+    // identity on the privacy notice -- fill in the legal entity's real
+    // title/address/MERSİS/KEP here; unset lines are simply omitted.
+    'legal' => [
+        'entity_name' => env('LEGAL_ENTITY_NAME', 'Doctovaria'),
+        'entity_address' => env('LEGAL_ENTITY_ADDRESS'),
+        'entity_mersis' => env('LEGAL_ENTITY_MERSIS'),
+        'entity_kep' => env('LEGAL_ENTITY_KEP'),
+        'privacy_email' => env('PRIVACY_EMAIL', env('SUPPORT_EMAIL', 'hello@doctovaria.com')),
+    ],
+
     'iletimerkezi' => [
         'enabled' => env('ILETIMERKEZI_ENABLED', false),
         // İleti Merkezi (Turkey-domiciled) rather than a foreign provider
@@ -57,6 +86,12 @@ return [
         'api_key' => env('ILETIMERKEZI_API_KEY'),
         'api_hash' => env('ILETIMERKEZI_API_HASH'),
         'sender' => env('ILETIMERKEZI_SENDER', 'Dentavaria'),
+    ],
+
+    // Days a login (SPA/mobile) token stays valid before the user has to sign
+    // in again. Integration tokens (Settings > API Token) don't expire.
+    'auth' => [
+        'login_token_days' => (int) env('LOGIN_TOKEN_DAYS', 30),
     ],
 
     // OTP-generation settings -- independent of which provider actually

@@ -17,6 +17,11 @@ class ApiDocsPageTest extends TestCase
             'orthopedics' => 'orthovaria_logo.png',
             'cosmetic' => 'estevaria_logo.png',
             'nutrition' => 'dietavaria_logo.png',
+            'pediatrics' => 'pediavaria_logo.png',
+            'physiotherapy' => 'physiovaria_logo.png',
+            'hematology' => 'hemavaria_logo.png',
+            'general_surgery' => 'surgivaria_logo.png',
+            'general_practice' => 'genervaria_logo.png',
         ];
 
         foreach (LandingPageContent::SPECIALTIES as $specialty) {

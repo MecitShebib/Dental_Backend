@@ -18,6 +18,8 @@ use App\Services\AppointmentReminderService;
 use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\Clinical\AppointmentQueryService;
 use App\Services\TreatmentChargeService;
+use App\Services\WhatsAppService;
+use App\Support\WhatsAppPhone;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -76,12 +78,64 @@ class AppointmentController extends Controller
                 'appointment_id' => $appointment->id,
                 'client_name' => $client?->name ?? '',
                 'phone' => $client?->phone ? preg_replace('/\D+/', '', $client->phone) : '',
-                'message' => $this->reminders->smsText($appointment),
+                // Empty when there's no "System Messages" wording for this
+                // language any more (staff deleted it) -- see
+                // SystemMessageService.
+                'message' => $this->reminders->smsText($appointment) ?? '',
             ];
         })->values();
 
         return response()->json([
             'data' => $items,
+            'meta' => [
+                'current_page' => $appointments->currentPage(),
+                'last_page' => $appointments->lastPage(),
+                'total' => $appointments->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Same page of tomorrow's reminders as whatsappReminderCandidates(), sent
+     * straight through the clinic's WhatsApp Business number instead of
+     * opening one wa.me tab each -- only for clinics where
+     * WhatsAppService::enabledFor() holds (subscription feature + connected
+     * integration); the app keeps the wa.me tabs for everyone else.
+     */
+    public function sendWhatsappReminders(Request $request, WhatsAppService $whatsApp)
+    {
+        $validated = $request->validate([
+            'specialty' => ['nullable', 'string', 'exists:specialties,key'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $company = $request->user()->company;
+        abort_unless($company && $whatsApp->enabledFor($company), 422, 'WhatsApp Business is not connected for this clinic.');
+
+        $appointments = $this->appointmentQuery->list($request->user(), [
+            'date' => now()->addDay()->toDateString(),
+            'specialty' => $validated['specialty'] ?? null,
+            'status' => 'scheduled',
+            'per_page' => 10,
+        ]);
+
+        $sent = 0;
+        $failed = 0;
+        foreach ($appointments->getCollection() as $appointment) {
+            $appointment->loadMissing(['client', 'doctor', 'company']);
+            $phone = WhatsAppPhone::normalize($appointment->client?->phone);
+            $text = $this->reminders->smsText($appointment);
+
+            if ($phone && $text !== null && $whatsApp->send($company, $phone, $text)) {
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        return $this->success([
+            'sent' => $sent,
+            'failed' => $failed,
             'meta' => [
                 'current_page' => $appointments->currentPage(),
                 'last_page' => $appointments->lastPage(),

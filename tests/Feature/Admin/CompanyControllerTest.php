@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Appointment;
 use App\Models\Branch;
+use App\Models\Client;
 use App\Models\Company;
 use App\Models\ConsentTemplate;
 use App\Models\Subscription;
@@ -30,6 +32,8 @@ class CompanyControllerTest extends TestCase
             'name' => 'New Clinic',
             'code' => 'NEW-01',
             'status' => 'active',
+            'currency' => 'TRY',
+            'language' => 'tr',
         ]);
 
         $response->assertRedirect(route('admin.companies.index'));
@@ -48,6 +52,8 @@ class CompanyControllerTest extends TestCase
             'name' => 'KVKK Clinic',
             'code' => 'NEW-KVKK',
             'status' => 'active',
+            'currency' => 'TRY',
+            'language' => 'tr',
         ]);
 
         $response->assertRedirect(route('admin.companies.index'));
@@ -65,6 +71,8 @@ class CompanyControllerTest extends TestCase
             'name' => 'Another Clinic',
             'code' => 'NEW-02',
             'status' => 'active',
+            'currency' => 'TRY',
+            'language' => 'tr',
         ]);
 
         $response->assertRedirect(route('admin.companies.index'));
@@ -156,6 +164,131 @@ class CompanyControllerTest extends TestCase
         $response->assertRedirect(route('admin.companies.show', $company));
         $this->assertNotNull(User::find($staff->id));
         $this->assertNotNull(Company::find($company->id), 'company was never deleted in this scenario');
+    }
+
+    public function test_force_deleting_a_company_permanently_erases_it_with_its_users_and_subscriptions(): void
+    {
+        $company = Company::factory()->create();
+        $staff = User::factory()->create(['company_id' => $company->id]);
+        $subscription = Subscription::factory()->create(['company_id' => $company->id]);
+        $this->actingAs($this->adminUser())->delete(route('admin.companies.destroy', $company));
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.companies.force-delete', $company));
+
+        $response->assertRedirect(route('admin.companies.index'));
+        $this->assertNull(Company::withTrashed()->find($company->id));
+        $this->assertNull(User::withTrashed()->find($staff->id));
+        $this->assertNull(Subscription::withTrashed()->find($subscription->id));
+    }
+
+    public function test_force_deleting_a_company_also_erases_its_clients_and_appointments(): void
+    {
+        $company = Company::factory()->create();
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $client = Client::create([
+            'company_id' => $company->id,
+            'client_code' => 'CL-FORCE-DEL',
+            'name' => 'Soon Erased Patient',
+            'phone' => '+905551234567',
+            'gender' => 'male',
+            'status' => 'new',
+        ]);
+        $appointment = Appointment::create([
+            'company_id' => $company->id, 'client_id' => $client->id, 'doctor_id' => $doctor->id,
+            'type' => 'booked', 'status' => 'scheduled', 'date' => now()->toDateString(),
+            'start_time' => '10:00:00', 'duration_minutes' => 30,
+        ]);
+        $this->actingAs($this->adminUser())->delete(route('admin.companies.destroy', $company));
+
+        $this->actingAs($this->adminUser())->delete(route('admin.companies.force-delete', $company));
+
+        $this->assertNull(Client::withTrashed()->find($client->id));
+        $this->assertNull(Appointment::withTrashed()->find($appointment->id));
+    }
+
+    public function test_a_company_must_already_be_soft_deleted_before_it_can_be_force_deleted(): void
+    {
+        $company = Company::factory()->create();
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.companies.force-delete', $company));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertNotNull(Company::find($company->id));
+    }
+
+    public function test_force_deleting_a_user_independently_of_its_company(): void
+    {
+        $company = Company::factory()->create();
+        $staff = User::factory()->create(['company_id' => $company->id]);
+        $staff->delete();
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.users.force-delete', $staff));
+
+        $response->assertRedirect(route('admin.companies.show', $company));
+        $this->assertNull(User::withTrashed()->find($staff->id));
+        $this->assertNotNull(Company::find($company->id));
+    }
+
+    public function test_a_user_must_already_be_soft_deleted_before_it_can_be_force_deleted(): void
+    {
+        $staff = User::factory()->create();
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.users.force-delete', $staff));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertNotNull(User::find($staff->id));
+    }
+
+    public function test_force_deleting_a_doctor_with_appointments_on_file_fails_gracefully(): void
+    {
+        $company = Company::factory()->create();
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $client = Client::create([
+            'company_id' => $company->id,
+            'client_code' => 'CL-RESTRICT',
+            'name' => 'Still Has A Doctor',
+            'phone' => '+905557654321',
+            'gender' => 'male',
+            'status' => 'new',
+        ]);
+        Appointment::create([
+            'company_id' => $company->id, 'client_id' => $client->id, 'doctor_id' => $doctor->id,
+            'type' => 'booked', 'status' => 'scheduled', 'date' => now()->toDateString(),
+            'start_time' => '10:00:00', 'duration_minutes' => 30,
+        ]);
+        $doctor->delete();
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.users.force-delete', $doctor));
+
+        $response->assertRedirect(route('admin.companies.show', $company));
+        $response->assertSessionHas('error');
+        $this->assertNotNull(User::withTrashed()->find($doctor->id));
+    }
+
+    public function test_force_deleting_a_subscription_independently_of_its_company(): void
+    {
+        $company = Company::factory()->create();
+        $subscription = Subscription::factory()->create(['company_id' => $company->id]);
+        $subscription->delete();
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.subscriptions.force-delete', $subscription));
+
+        $response->assertRedirect(route('admin.companies.show', $company));
+        $this->assertNull(Subscription::withTrashed()->find($subscription->id));
+    }
+
+    public function test_a_subscription_must_already_be_soft_deleted_before_it_can_be_force_deleted(): void
+    {
+        $company = Company::factory()->create();
+        $subscription = Subscription::factory()->create(['company_id' => $company->id]);
+
+        $response = $this->actingAs($this->adminUser())->delete(route('admin.subscriptions.force-delete', $subscription));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertNotNull(Subscription::find($subscription->id));
     }
 
     public function test_a_failed_create_redirects_back_with_errors_scoped_to_the_create_modal_and_a_reopen_hint(): void

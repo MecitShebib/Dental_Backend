@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\AiTreatmentPlan;
 
+use App\Specialties\Nutrition\NutritionPlanStructure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,12 @@ class ConfirmSpecialtyAiTreatmentPlanRequest extends FormRequest
             // these) -- see SpecialtyAiTreatmentPlanService::confirm().
             'diet_plan' => ['nullable', 'string', 'max:20000'],
             'exercise_plan' => ['nullable', 'string', 'max:20000'],
+            // Table-shaped plans (see NutritionPlanStructure) -- preferred
+            // over the free-text fields above whenever present.
+            'diet_plan_data' => ['nullable', 'array'],
+            ...collect(NutritionPlanStructure::dietRules('diet_plan_data'))->except('diet_plan_data')->all(),
+            'exercise_plan_data' => ['nullable', 'array'],
+            ...collect(NutritionPlanStructure::exerciseRules('exercise_plan_data'))->except('exercise_plan_data')->all(),
             'sessions' => ['required', 'array', 'min:1', 'max:8'],
             'sessions.*.date' => ['required', 'date'],
             'sessions.*.start_time' => ['required', 'date_format:H:i'],

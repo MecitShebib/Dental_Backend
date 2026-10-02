@@ -10,10 +10,20 @@ use App\Services\InventorySaleService;
 
 class InventorySaleController extends Controller
 {
-    public function store(StoreInventorySaleRequest $request, Client $client, InventorySaleService $inventorySale)
+    public function store(StoreInventorySaleRequest $request, InventorySaleService $inventorySale)
     {
-        $sale = $inventorySale->create($client, $request->validated('items'), $request->user()->id);
+        $client = $request->filled('client_id')
+            ? Client::query()->where('company_id', $request->user()->company_id)->findOrFail($request->integer('client_id'))
+            : null;
 
-        return $this->success(InventorySaleResource::make($sale), 'Items sold to patient successfully.', 201);
+        $sale = $inventorySale->create(
+            $request->user()->company,
+            $client,
+            $request->boolean('is_paid'),
+            $request->validated('items'),
+            $request->user()->id,
+        );
+
+        return $this->success(InventorySaleResource::make($sale), 'Sale recorded successfully.', 201);
     }
 }

@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Specialty;
 
 /**
- * Per-specialty AI assistant configuration for the 4 non-dental specialties:
+ * Per-specialty AI assistant configuration for every non-dental specialty:
  * chat system prompt, plan-generation system prompt, and the fixed procedure
  * vocabulary the AI's structured plan output is constrained to (kept small
  * and flat, matching each specialty's own 4-item treatment catalog -- see
@@ -56,6 +56,36 @@ class SpecialtyAiProfiles
                 ['code' => 'followup_session', 'name_en' => 'Follow-up Session'],
                 ['code' => 'body_composition_analysis', 'name_en' => 'Body Composition Analysis'],
                 ['code' => 'meal_plan_revision', 'name_en' => 'Meal Plan Revision'],
+            ],
+            Specialty::PEDIATRICS => [
+                ['code' => 'ped_well_child_visit', 'name_en' => 'Well-Child Visit'],
+                ['code' => 'ped_vaccination_visit', 'name_en' => 'Vaccination Visit'],
+                ['code' => 'ped_growth_assessment', 'name_en' => 'Growth & Development Assessment'],
+                ['code' => 'ped_sick_visit', 'name_en' => 'Sick Child Visit'],
+            ],
+            Specialty::PHYSIOTHERAPY => [
+                ['code' => 'phy_initial_evaluation', 'name_en' => 'Initial Physiotherapy Evaluation'],
+                ['code' => 'phy_therapy_session', 'name_en' => 'Physiotherapy Session'],
+                ['code' => 'phy_reevaluation', 'name_en' => 'Re-evaluation'],
+                ['code' => 'phy_final_evaluation', 'name_en' => 'Final Evaluation'],
+            ],
+            Specialty::HEMATOLOGY => [
+                ['code' => 'hem_consultation', 'name_en' => 'Hematology Consultation'],
+                ['code' => 'hem_cbc_control', 'name_en' => 'CBC Control'],
+                ['code' => 'hem_iron_infusion', 'name_en' => 'IV Iron Infusion'],
+                ['code' => 'hem_evaluation', 'name_en' => 'Treatment Evaluation'],
+            ],
+            Specialty::GENERAL_SURGERY => [
+                ['code' => 'gs_preop_evaluation', 'name_en' => 'Pre-operative Evaluation'],
+                ['code' => 'gs_surgery', 'name_en' => 'Surgical Procedure'],
+                ['code' => 'gs_wound_care', 'name_en' => 'Wound Care & Suture Removal'],
+                ['code' => 'gs_postop_control', 'name_en' => 'Post-operative Control'],
+            ],
+            Specialty::GENERAL_PRACTICE => [
+                ['code' => 'gp_examination', 'name_en' => 'General Examination'],
+                ['code' => 'gp_followup', 'name_en' => 'Follow-up Visit'],
+                ['code' => 'gp_lab_panel', 'name_en' => 'Basic Lab Panel'],
+                ['code' => 'gp_checkup', 'name_en' => 'Periodic Check-up'],
             ],
             default => [],
         };
@@ -167,20 +197,26 @@ class SpecialtyAiProfiles
             Also write two more fields, both in {$languageName}, both addressed to the
             PATIENT (not the doctor) since they may be shown directly to them:
 
-            diet_plan: a concrete meal/diet plan grounded in the patient's profile
-            (dietary type, allergies, chronic conditions, goal) and recent body-metric
-            trend already given to you above. Structure it clearly (e.g. a short intro
-            plus a day-by-day or meal-by-meal breakdown) using plain text with line
-            breaks -- no markdown tables. If a follow-up program is already open and a
+            diet_plan: a meal table grounded in the patient's profile (dietary type,
+            allergies, chronic conditions, goal) and recent body-metric trend already
+            given to you above. Give exactly 3 interchangeable options for each of
+            breakfast, lunch, dinner and snacks -- each option one short, concrete meal
+            with portions (e.g. "2 boiled eggs, 1 slice wholegrain bread, cucumber").
+            Also give a daily_calories target (integer kcal, or null if not
+            appropriate), water_liters (daily water, e.g. 2.5) and brief notes (general
+            rules, foods to avoid). If a follow-up program is already open and a
             baseline comparison was given to you, adjust this plan for the next period
             based on that progress rather than starting from scratch.
 
-            exercise_plan: a realistic weekly exercise plan matching the patient's
-            activity level and goal (e.g. which days, what type of exercise, how long),
-            plain text with line breaks, also in {$languageName}.
+            exercise_plan: a weekly table with one row per day, Saturday through
+            Friday: activity (what to do that day, concrete and matching the
+            patient's activity level and goal) and duration_minutes (integer). For a
+            rest day use an empty activity and null duration. Add brief notes
+            (warm-up, intensity, precautions).
 
-            Both fields are required and must not be empty, even for a very short
+            Both are required and must not be empty, even for a very short
             consultation-only plan -- give at least brief, sensible guidance in each.
+            All text inside them must be in {$languageName}.
             PROMPT;
     }
 
@@ -192,6 +228,11 @@ class SpecialtyAiProfiles
             Specialty::ORTHOPEDICS => 'orthopedic rehabilitation',
             Specialty::COSMETIC => 'cosmetic treatment',
             Specialty::NUTRITION => 'nutrition and dietetics',
+            Specialty::PEDIATRICS => 'pediatrics (child health)',
+            Specialty::PHYSIOTHERAPY => 'physiotherapy and physical rehabilitation',
+            Specialty::HEMATOLOGY => 'hematology',
+            Specialty::GENERAL_SURGERY => 'general surgery and perioperative care',
+            Specialty::GENERAL_PRACTICE => 'general practice / primary care',
             default => 'medical',
         };
     }

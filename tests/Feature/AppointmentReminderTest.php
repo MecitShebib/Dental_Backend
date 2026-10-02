@@ -2,16 +2,18 @@
 
 namespace Tests\Feature;
 
-use App\Mail\AppointmentReminderMail;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\CustomMessage;
+use App\Models\Specialty;
 use App\Models\User;
+use App\Services\SystemMessageService;
 use Carbon\Carbon;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AppointmentReminderTest extends TestCase
@@ -37,6 +39,8 @@ class AppointmentReminderTest extends TestCase
                 ],
             ], 200),
         ]);
+
+        $this->seed(SpecialtySeeder::class);
     }
 
     protected function makeClient(Company $company, array $overrides = []): Client
@@ -51,6 +55,21 @@ class AppointmentReminderTest extends TestCase
             'status' => 'new',
             ...$overrides,
         ]);
+    }
+
+    /**
+     * A doctor with a real specialty_id, and the "System Messages" group
+     * seeded for that company+specialty -- the SMS body SystemMessageService
+     * resolves at send time only exists once this has run, same as it
+     * would in production once a company actually subscribes to a
+     * specialty (see Admin\SubscriptionController).
+     */
+    protected function makeDoctor(Company $company, array $overrides = []): User
+    {
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        app(SystemMessageService::class)->seedForCompanySpecialty($company, $dental);
+
+        return User::factory()->create(['company_id' => $company->id, 'specialty_id' => $dental->id, ...$overrides]);
     }
 
     protected function makeAppointment(Company $company, User $doctor, Client $client, string $startDateTime, string $status = 'scheduled'): Appointment
@@ -69,12 +88,10 @@ class AppointmentReminderTest extends TestCase
         ]);
     }
 
-    public function test_reminder_is_sent_via_sms_and_email_for_an_appointment_within_the_next_24_hours(): void
+    public function test_reminder_is_sent_via_sms_for_an_appointment_within_the_next_24_hours(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create(['name' => 'Dentavaria Clinic']);
-        $doctor = User::factory()->create(['company_id' => $company->id, 'name' => 'Ali Doctor']);
+        $doctor = $this->makeDoctor($company, ['name' => 'Ali Doctor']);
         $client = $this->makeClient($company, ['preferred_language' => 'ar']);
         $appointment = $this->makeAppointment($company, $doctor, $client, now()->addHours(20)->toDateTimeString());
 
@@ -84,33 +101,26 @@ class AppointmentReminderTest extends TestCase
             return str_contains((string) $request['request']['order']['message']['text'], 'تذكير');
         });
 
-        Mail::assertSent(AppointmentReminderMail::class, fn ($mail) => $mail->hasTo($client->email));
-
         $this->assertNotNull($appointment->fresh()->reminder_sent_at);
     }
 
     public function test_reminder_is_not_sent_for_an_appointment_more_than_24_hours_away(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
         $client = $this->makeClient($company);
         $appointment = $this->makeAppointment($company, $doctor, $client, now()->addHours(30)->toDateTimeString());
 
         Artisan::call('appointments:send-reminders');
 
         Http::assertNothingSent();
-        Mail::assertNothingSent();
         $this->assertNull($appointment->fresh()->reminder_sent_at);
     }
 
     public function test_reminder_is_not_sent_twice_for_the_same_appointment(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
         $client = $this->makeClient($company);
         $this->makeAppointment($company, $doctor, $client, now()->addHours(10)->toDateTimeString());
 
@@ -118,15 +128,12 @@ class AppointmentReminderTest extends TestCase
         Artisan::call('appointments:send-reminders');
 
         Http::assertSentCount(1);
-        Mail::assertSent(AppointmentReminderMail::class, 1);
     }
 
     public function test_reminder_is_skipped_for_cancelled_and_completed_and_no_show_appointments(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
 
         foreach (['cancelled', 'completed', 'no_show'] as $status) {
             $client = $this->makeClient($company);
@@ -136,35 +143,50 @@ class AppointmentReminderTest extends TestCase
         Artisan::call('appointments:send-reminders');
 
         Http::assertNothingSent();
-        Mail::assertNothingSent();
     }
 
-    public function test_sms_is_only_sent_when_phone_present_and_email_only_when_email_present(): void
+    public function test_sms_is_only_sent_when_the_client_has_a_phone(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
 
-        $phoneOnlyClient = $this->makeClient($company, ['email' => null]);
-        $this->makeAppointment($company, $doctor, $phoneOnlyClient, now()->addHours(5)->toDateTimeString());
+        $phoneClient = $this->makeClient($company);
+        $this->makeAppointment($company, $doctor, $phoneClient, now()->addHours(5)->toDateTimeString());
 
-        $emailOnlyClient = $this->makeClient($company, ['phone' => '']);
-        $this->makeAppointment($company, $doctor, $emailOnlyClient, now()->addHours(6)->toDateTimeString());
+        $noPhoneClient = $this->makeClient($company, ['phone' => '']);
+        $appointmentWithoutPhone = $this->makeAppointment($company, $doctor, $noPhoneClient, now()->addHours(6)->toDateTimeString());
 
         Artisan::call('appointments:send-reminders');
 
         Http::assertSentCount(1);
-        Mail::assertSent(AppointmentReminderMail::class, 1);
-        Mail::assertSent(AppointmentReminderMail::class, fn ($mail) => $mail->hasTo($emailOnlyClient->email));
+        // Nothing to deliver still counts as "handled" -- never retried.
+        $this->assertNotNull($appointmentWithoutPhone->fresh()->reminder_sent_at);
+    }
+
+    public function test_no_reminder_is_sent_when_the_system_message_was_deleted(): void
+    {
+        $company = Company::factory()->create();
+        $doctor = $this->makeDoctor($company);
+        $client = $this->makeClient($company, ['preferred_language' => 'ar']);
+        $appointment = $this->makeAppointment($company, $doctor, $client, now()->addHours(5)->toDateTimeString());
+
+        CustomMessage::query()
+            ->where('company_id', $company->id)
+            ->where('system_key', 'appointment_reminder')
+            ->where('language', 'ar')
+            ->delete();
+
+        Artisan::call('appointments:send-reminders');
+
+        Http::assertNothingSent();
+        // Nothing meaningful to retry -- still marked handled, not left stuck.
+        $this->assertNotNull($appointment->fresh()->reminder_sent_at);
     }
 
     public function test_appointments_without_a_client_are_skipped(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
         $start = now()->addHours(10);
 
         Appointment::create([
@@ -181,15 +203,12 @@ class AppointmentReminderTest extends TestCase
         Artisan::call('appointments:send-reminders');
 
         Http::assertNothingSent();
-        Mail::assertNothingSent();
     }
 
     public function test_reminder_message_language_matches_the_clients_preferred_language(): void
     {
-        Mail::fake();
-
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
 
         $englishClient = $this->makeClient($company, ['preferred_language' => 'en']);
         $this->makeAppointment($company, $doctor, $englishClient, now()->addHours(2)->toDateTimeString());

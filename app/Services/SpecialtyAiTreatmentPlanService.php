@@ -9,6 +9,7 @@ use App\Models\CarePlan;
 use App\Models\Client;
 use App\Models\Specialty;
 use App\Models\TreatmentCharge;
+use App\Specialties\Nutrition\NutritionPlanStructure;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -87,8 +88,10 @@ class SpecialtyAiTreatmentPlanService
         // declare these two -- OpenAI's strict structured-output mode
         // rejects a schema/response mismatch, so this stays conditional.
         if ($specialty->key === Specialty::NUTRITION) {
-            $properties['diet_plan'] = ['type' => 'string'];
-            $properties['exercise_plan'] = ['type' => 'string'];
+            // Table-shaped since 2026-09-28 (3 options per meal, Saturday..
+            // Friday exercise rows) -- see NutritionPlanStructure.
+            $properties['diet_plan'] = NutritionPlanStructure::aiDietSchema();
+            $properties['exercise_plan'] = NutritionPlanStructure::aiExerciseSchema();
             $required[] = 'diet_plan';
             $required[] = 'exercise_plan';
         }
@@ -176,11 +179,16 @@ class SpecialtyAiTreatmentPlanService
             ];
         }
 
+        $diet = NutritionPlanStructure::normalizeDiet($result['diet_plan'] ?? null);
+        $exercise = NutritionPlanStructure::normalizeExercise($result['exercise_plan'] ?? null);
+
         return [
             'diagnosis_summary' => $result['diagnosis_summary'],
             'sessions' => $sessions,
-            'diet_plan' => $result['diet_plan'] ?? null,
-            'exercise_plan' => $result['exercise_plan'] ?? null,
+            'diet_plan' => $diet ? NutritionPlanStructure::dietToText($diet) : null,
+            'exercise_plan' => $exercise ? NutritionPlanStructure::exerciseToText($exercise) : null,
+            'diet_plan_data' => $diet,
+            'exercise_plan_data' => $exercise,
             'usage' => $response['usage'],
         ];
     }
@@ -208,15 +216,32 @@ class SpecialtyAiTreatmentPlanService
         int $userId,
         ?string $dietPlan = null,
         ?string $exercisePlan = null,
+        ?array $dietPlanData = null,
+        ?array $exercisePlanData = null,
     ): array {
         $this->assertNoIntraBatchOverlap($sessions);
+
+        // A reviewed table wins over free text; its text rendering replaces
+        // the text column so the plan history reads the same either way.
+        $dietPlanData = NutritionPlanStructure::normalizeDiet($dietPlanData);
+        if (NutritionPlanStructure::dietIsEmpty($dietPlanData)) {
+            $dietPlanData = null;
+        } else {
+            $dietPlan = NutritionPlanStructure::dietToText($dietPlanData);
+        }
+        $exercisePlanData = NutritionPlanStructure::normalizeExercise($exercisePlanData);
+        if (NutritionPlanStructure::exerciseIsEmpty($exercisePlanData)) {
+            $exercisePlanData = null;
+        } else {
+            $exercisePlan = NutritionPlanStructure::exerciseToText($exercisePlanData);
+        }
 
         foreach ($sessions as $session) {
             $this->conflicts->assertWithinSchedule($doctor, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
             $this->conflicts->assertNoConflict($doctor->id, $session['date'], $session['start_time'], (int) $session['duration_minutes']);
         }
 
-        return DB::transaction(function () use ($client, $doctor, $specialty, $sessions, $userId, $dietPlan, $exercisePlan) {
+        return DB::transaction(function () use ($client, $doctor, $specialty, $sessions, $userId, $dietPlan, $exercisePlan, $dietPlanData, $exercisePlanData) {
             $this->enrollment->ensureEnrolled($client, $doctor);
 
             $appointments = collect($sessions)->map(function (array $session) use ($client, $doctor, $userId) {
@@ -270,6 +295,8 @@ class SpecialtyAiTreatmentPlanService
                     'title' => 'AI Follow-up Plan '.now()->toDateString(),
                     'diet_plan' => $dietPlan,
                     'exercise_plan' => $exercisePlan,
+                    'diet_plan_data' => $dietPlanData,
+                    'exercise_plan_data' => $exercisePlanData,
                     'status' => CarePlan::STATUS_CONFIRMED,
                 ]);
             }

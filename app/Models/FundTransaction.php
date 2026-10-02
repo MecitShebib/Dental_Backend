@@ -30,6 +30,8 @@ class FundTransaction extends Model
 
     public const SOURCE_SALARY_PAYMENT = 'salary_payment';
 
+    public const SOURCE_INVENTORY_SALE = 'inventory_sale';
+
     protected $fillable = [
         'uuid',
         'company_id',

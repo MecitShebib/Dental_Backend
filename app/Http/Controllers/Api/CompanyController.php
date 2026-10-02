@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CompanyResource;
 use App\Http\Resources\SubscriptionResource;
 use App\Models\Company;
+use App\Services\CompanyUserLimitService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -18,6 +19,12 @@ class CompanyController extends Controller
         $company->load('currentSubscription')
             ->loadCount('users')
             ->setAttribute('active_users_count', $company->users()->where('status', 'active')->count());
+
+        // Pooled, company-wide seat limits/usage (every active subscription
+        // adds up) -- the numbers CompanyUserLimitService actually enforces,
+        // shown on the Users page. latest_active_subscription alone is just
+        // one specialty's row and misses the rest.
+        $company->setAttribute('seat_usage', app(CompanyUserLimitService::class)->seatUsage($company));
 
         return $this->success(CompanyResource::make($company));
     }
@@ -44,6 +51,7 @@ class CompanyController extends Controller
         $this->assertBelongsToRequester($request, $company);
 
         $subscriptions = $company->subscriptions()
+            ->with('specialty')
             ->latest('starts_at')
             ->latest('id')
             ->get();

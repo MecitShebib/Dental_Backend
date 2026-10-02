@@ -37,5 +37,7 @@ class CallLogWebhookController extends Controller
             401,
             'Invalid webhook secret.'
         );
+
+        abort_unless($company->hasFeature('call_webhook'), 403, 'Call webhooks are not included in this clinic\'s subscription.');
     }
 }

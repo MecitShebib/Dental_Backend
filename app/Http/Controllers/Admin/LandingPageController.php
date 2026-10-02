@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\LandingPageContent;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LandingPageController extends Controller
 {
@@ -16,18 +17,30 @@ class LandingPageController extends Controller
             'specialtySlugs' => LandingPageContent::SPECIALTY_SLUGS,
             'hub' => LandingPageContent::hubAll(),
             'specialtiesContent' => LandingPageContent::allSpecialtiesAll(),
+            'plans' => LandingPageContent::PLAN_LABELS,
+            'planVisibility' => LandingPageContent::planVisibility(),
         ]);
     }
 
     public function update(Request $request)
     {
-        $rules = $this->hubRules();
+        $rules = $this->hubRules() + [
+            'content.plans' => 'nullable|array',
+            'content.plans.*' => 'nullable|boolean',
+        ];
         foreach (LandingPageContent::SPECIALTIES as $specialty) {
             $rules = array_merge($rules, $this->specialtyRules($specialty));
         }
 
         $validated = $request->validate($rules);
         $content = $validated['content'] ?? [];
+
+        // Global plan on/off switches -- one set for every specialty page.
+        // No `plans` in the payload at all = keep the current switches
+        // rather than silently hiding every plan.
+        $content['plans'] = isset($content['plans'])
+            ? collect(LandingPageContent::PLANS)->mapWithKeys(fn (string $plan) => [$plan => (bool) ($content['plans'][$plan] ?? false)])->all()
+            : LandingPageContent::planVisibility();
 
         foreach (LandingPageContent::SPECIALTIES as $specialty) {
             foreach (LandingPageContent::LOCALES as $locale) {
@@ -60,6 +73,9 @@ class LandingPageController extends Controller
                 "{$prefix}.hero.subtext" => 'nullable|string|max:500',
 
                 "{$prefix}.products" => 'nullable|array',
+                // Persisted so LandingPageContent::mergeProducts() can match
+                // saved cards to products by specialty, not list position.
+                "{$prefix}.products.*.key" => ['nullable', 'string', Rule::in(LandingPageContent::SPECIALTIES)],
                 "{$prefix}.products.*.name" => 'nullable|string|max:100',
                 "{$prefix}.products.*.tagline" => 'nullable|string|max:255',
                 "{$prefix}.products.*.body" => 'nullable|string|max:500',
@@ -99,6 +115,7 @@ class LandingPageController extends Controller
                 "{$prefix}.how_it_works.*.body" => 'nullable|string|max:500',
 
                 "{$prefix}.pricing" => 'nullable|array',
+                "{$prefix}.pricing.*.plan" => ['nullable', 'string', Rule::in(LandingPageContent::PLANS)],
                 "{$prefix}.pricing.*.name" => 'nullable|string|max:100',
                 "{$prefix}.pricing.*.description" => 'nullable|string|max:255',
                 "{$prefix}.pricing.*.price_monthly" => 'nullable|string|max:50',

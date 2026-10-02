@@ -97,7 +97,6 @@ class InventoryService
 
         if ($wasAboveThreshold && $isNowAtOrBelow) {
             $this->sendLowStockAlert($item);
-            $this->autoCreatePurchaseOrder($item);
 
             return;
         }
@@ -125,30 +124,13 @@ class InventoryService
     }
 
     /**
-     * Raises a draft purchase order the admin can review/edit and mark
-     * ordered -- skipped if one is already open (pending or ordered) for
-     * this item, so repeatedly dipping under threshold doesn't spam
-     * duplicate orders.
+     * No more order follow-up/status tracking -- creating a purchase order
+     * IS receiving it: stock and the fund/accounting side update in the
+     * same call, via the existing 'received' transition logic below.
      */
-    protected function autoCreatePurchaseOrder(InventoryItem $item): void
-    {
-        $hasOpenOrder = InventoryPurchaseOrder::query()
-            ->where('inventory_item_id', $item->id)
-            ->whereIn('status', [InventoryPurchaseOrder::STATUS_PENDING, InventoryPurchaseOrder::STATUS_ORDERED])
-            ->exists();
-
-        if ($hasOpenOrder) {
-            return;
-        }
-
-        $quantity = (float) ($item->reorder_quantity ?? $item->reorder_threshold ?? 1);
-
-        $this->createPurchaseOrder($item, $quantity, $item->unit_cost !== null ? (float) $item->unit_cost : null, null, null);
-    }
-
     public function createPurchaseOrder(InventoryItem $item, float $quantity, ?float $unitCost, ?string $notes, ?int $createdBy, ?string $batchUuid = null): InventoryPurchaseOrder
     {
-        return InventoryPurchaseOrder::create([
+        $order = InventoryPurchaseOrder::create([
             'batch_uuid' => $batchUuid,
             'company_id' => $item->company_id,
             'inventory_item_id' => $item->id,
@@ -159,14 +141,15 @@ class InventoryService
             'notes' => $notes,
             'created_by' => $createdBy,
         ]);
+
+        return $this->updatePurchaseOrderStatus($order, InventoryPurchaseOrder::STATUS_RECEIVED, $createdBy);
     }
 
     /**
-     * One "cart" of several items ordered together, each still becoming its
-     * own InventoryPurchaseOrder row with its own independent status
-     * lifecycle (different items in one supplier order can still ship at
-     * different times) -- batch_uuid is purely a display-grouping key for
-     * the Purchase Orders list. See InventoryPurchaseOrderController::storeBatch().
+     * One "cart" of several items ordered together -- each still becomes its
+     * own InventoryPurchaseOrder row (batch_uuid is purely a display-grouping
+     * key), and each is instantly received via createPurchaseOrder() above.
+     * See InventoryPurchaseOrderController::storeBatch().
      *
      * @param  array<int, array{inventory_item_id: int, quantity: float, unit_cost: ?float}>  $items
      * @return Collection<int, InventoryPurchaseOrder>
@@ -194,8 +177,11 @@ class InventoryService
     /**
      * Marking an order "received" is the one status transition with a real
      * side effect -- it books an ordinary 'in' inventory_transaction for the
-     * ordered quantity, so the stock level and the order's own paper trail
-     * never drift apart.
+     * ordered quantity and syncs its cost to accounting, so the stock level
+     * and the order's own paper trail never drift apart. createPurchaseOrder()
+     * now calls this immediately on every new order (no more manual
+     * ordered/received follow-up), but the method stays general -- e.g. a
+     * cancellation still goes through here too.
      */
     public function updatePurchaseOrderStatus(InventoryPurchaseOrder $order, string $status, ?int $actingUserId): InventoryPurchaseOrder
     {

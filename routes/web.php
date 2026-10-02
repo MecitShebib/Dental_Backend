@@ -6,9 +6,12 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LandingPageController as AdminLandingPageController;
 use App\Http\Controllers\Admin\LandingPageInquiryController as AdminLandingPageInquiryController;
 use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
+use App\Http\Controllers\Admin\SystemStatusController as AdminSystemStatusController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\LandingPageInquiryController;
+use App\Http\Controllers\PublicFileController;
 use App\Http\Controllers\SatisfactionSurveyPublicController;
+use App\Http\Controllers\SharedDocumentFileController;
 use App\Models\Company;
 use App\Models\LandingPageContent;
 use App\Support\ApiDocumentation;
@@ -38,6 +41,17 @@ Route::get('/{specialty}/api-docs', function (string $specialty) {
 // them to the flagship product's own docs instead of 404ing.
 Route::redirect('/api-docs', '/dental/api-docs', 301);
 
+// Pedivaria/Generavaria were renamed to Pediavaria/Genervaria on 2026-09-27,
+// the same day they went live -- keep the already-published URLs working.
+foreach (['pedivaria' => 'pediavaria', 'generavaria' => 'genervaria'] as $oldSlug => $newSlug) {
+    Route::redirect("/{$oldSlug}", "/{$newSlug}", 301);
+    foreach (['en', 'ar', 'tr'] as $redirectLocale) {
+        Route::redirect("/{$redirectLocale}/{$oldSlug}", "/{$redirectLocale}/{$newSlug}", 301);
+    }
+    Route::redirect("/proposal-{$oldSlug}.html", "/proposal-{$newSlug}.html", 301);
+    Route::redirect("/pitch-{$oldSlug}.html", "/pitch-{$newSlug}.html", 301);
+}
+
 Route::get('/privacy-policy', function () {
     return view('legal', ['page' => 'privacy', 'locale' => 'en', 'legal' => LegalContent::get('privacy', 'en')]);
 })->name('privacy.default');
@@ -53,6 +67,19 @@ Route::get('/terms-of-service', function () {
 Route::get('/{locale}/terms-of-service', function (string $locale) {
     return view('legal', ['page' => 'terms', 'locale' => $locale, 'legal' => LegalContent::get('terms', $locale)]);
 })->where('locale', 'en|ar|tr')->name('terms');
+
+// Public-disk files (message attachments, ...) when FILES_ROOT keeps them
+// outside the web root -- see config/filesystems.php.
+Route::get('/files/{path}', [PublicFileController::class, 'show'])
+    ->where('path', '.*')
+    ->middleware('throttle:120,1')
+    ->name('public-files.show');
+
+// Patient document PDFs shared over WhatsApp (random UUID = the secret).
+Route::get('/d/{uuid}', [SharedDocumentFileController::class, 'show'])
+    ->whereUuid('uuid')
+    ->middleware('throttle:60,1')
+    ->name('shared-documents.file');
 
 Route::get('/survey/{token}', [SatisfactionSurveyPublicController::class, 'show'])->name('survey.show');
 Route::post('/survey/{token}', [SatisfactionSurveyPublicController::class, 'submit'])
@@ -94,8 +121,8 @@ Route::get('/{locale}/{specialtySlug}', function (string $locale, string $specia
     ]);
 })->where(['locale' => 'en|ar|tr', 'specialtySlug' => implode('|', LandingPageContent::SPECIALTY_SLUGS)])->name('specialty');
 
-Route::post('/contact', [LandingPageInquiryController::class, 'storeContact'])->name('landing.contact.store');
-Route::post('/quote', [LandingPageInquiryController::class, 'storeQuote'])->name('landing.quote.store');
+Route::post('/contact', [LandingPageInquiryController::class, 'storeContact'])->middleware('throttle:5,1')->name('landing.contact.store');
+Route::post('/quote', [LandingPageInquiryController::class, 'storeQuote'])->middleware('throttle:5,1')->name('landing.quote.store');
 
 Route::get('/book/{company:booking_slug}', function (Company $company) {
     return view('public-booking', [
@@ -112,11 +139,17 @@ Route::prefix('admin')->group(function () {
     Route::middleware('guest')->group(function () {
         Route::get('login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
         Route::post('login', [AdminAuthController::class, 'login'])->middleware('throttle:admin-login')->name('admin.login.store');
+        Route::get('login/otp', [AdminAuthController::class, 'showOtp'])->name('admin.login.otp');
+        Route::post('login/otp', [AdminAuthController::class, 'verifyOtp'])->middleware('throttle:admin-login-otp-verify')->name('admin.login.otp.verify');
+        Route::post('login/otp/resend', [AdminAuthController::class, 'resendOtp'])->middleware('throttle:admin-login-otp-resend')->name('admin.login.otp.resend');
     });
 
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+
+        Route::get('system', [AdminSystemStatusController::class, 'show'])->name('admin.system.show');
+        Route::post('system/test-job', [AdminSystemStatusController::class, 'testJob'])->middleware('throttle:10,1')->name('admin.system.test-job');
 
         Route::get('companies', [AdminCompanyController::class, 'index'])->name('admin.companies.index');
         Route::post('companies', [AdminCompanyController::class, 'store'])->name('admin.companies.store');
@@ -127,18 +160,23 @@ Route::prefix('admin')->group(function () {
         Route::put('companies/{company}', [AdminCompanyController::class, 'update'])->name('admin.companies.update');
         Route::delete('companies/{company}', [AdminCompanyController::class, 'destroy'])->name('admin.companies.destroy');
         Route::patch('companies/{company}/restore', [AdminCompanyController::class, 'restore'])->name('admin.companies.restore')->withTrashed();
+        // withTrashed(): only an already soft-deleted company can be
+        // permanently erased -- see the controller method's own guard.
+        Route::delete('companies/{company}/force-delete', [AdminCompanyController::class, 'forceDestroy'])->name('admin.companies.force-delete')->withTrashed();
 
         Route::post('users', [AdminUserController::class, 'store'])->name('admin.users.store');
         Route::put('users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
         Route::patch('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('admin.users.toggle-status');
         Route::patch('users/{user}/restore', [AdminUserController::class, 'restore'])->name('admin.users.restore')->withTrashed();
+        Route::delete('users/{user}/force-delete', [AdminUserController::class, 'forceDestroy'])->name('admin.users.force-delete')->withTrashed();
 
         Route::post('subscriptions', [AdminSubscriptionController::class, 'store'])->name('admin.subscriptions.store');
         Route::put('subscriptions/{subscription}', [AdminSubscriptionController::class, 'update'])->name('admin.subscriptions.update');
         Route::delete('subscriptions/{subscription}', [AdminSubscriptionController::class, 'destroy'])->name('admin.subscriptions.destroy');
         Route::patch('subscriptions/{subscription}/toggle-status', [AdminSubscriptionController::class, 'toggleStatus'])->name('admin.subscriptions.toggle-status');
         Route::patch('subscriptions/{subscription}/restore', [AdminSubscriptionController::class, 'restore'])->name('admin.subscriptions.restore')->withTrashed();
+        Route::delete('subscriptions/{subscription}/force-delete', [AdminSubscriptionController::class, 'forceDestroy'])->name('admin.subscriptions.force-delete')->withTrashed();
         Route::patch('companies/{company}/toggle-status', [AdminCompanyController::class, 'toggleStatus'])->name('admin.companies.toggle-status');
 
         Route::get('landing-page', [AdminLandingPageController::class, 'edit'])->name('admin.landing-page.edit');

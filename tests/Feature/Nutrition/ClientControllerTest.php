@@ -75,4 +75,41 @@ class ClientControllerTest extends TestCase
             'specialty_id' => Specialty::query()->where('key', Specialty::NUTRITION)->value('id'),
         ]);
     }
+
+    public function test_a_manager_can_filter_patients_by_their_primary_doctor(): void
+    {
+        $company = Company::factory()->create();
+        $manager = User::factory()->create(['company_id' => $company->id]);
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
+        $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id]);
+        $doctorB = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id]);
+
+        $patientA = $this->makeClient($company, 'Patient Of A');
+        $patientB = $this->makeClient($company, 'Patient Of B');
+        app(ClientSpecialtyEnrollmentService::class)->ensureEnrolled($patientA, $doctorA);
+        app(ClientSpecialtyEnrollmentService::class)->ensureEnrolled($patientB, $doctorB);
+
+        Sanctum::actingAs($manager);
+
+        $all = collect($this->getJson('/api/nutrition/clients')->assertOk()->json('data'))->pluck('name');
+        $this->assertTrue($all->contains('Patient Of A'));
+        $this->assertTrue($all->contains('Patient Of B'));
+
+        $onlyA = collect($this->getJson("/api/nutrition/clients?doctor_id={$doctorA->id}")->assertOk()->json('data'))->pluck('name');
+        $this->assertSame(['Patient Of A'], $onlyA->all());
+    }
+
+    public function test_a_doctor_cannot_use_the_doctor_filter_to_see_another_doctors_patients(): void
+    {
+        $company = Company::factory()->create();
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
+        $doctorA = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id]);
+        $doctorB = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id]);
+        $patientB = $this->makeClient($company, 'Patient Of B');
+        app(ClientSpecialtyEnrollmentService::class)->ensureEnrolled($patientB, $doctorB);
+
+        Sanctum::actingAs($doctorA);
+
+        $this->getJson("/api/nutrition/clients?doctor_id={$doctorB->id}")->assertOk()->assertJsonCount(0, 'data');
+    }
 }

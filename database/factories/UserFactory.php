@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Support\LegalContent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -45,8 +46,21 @@ class UserFactory extends Factory
             // read back as null (falsy) here even though the real row is 1.
             'ai_enabled' => true,
             'notes' => null,
+            // Accepted by default so the API isn't blocked by
+            // EnsureTermsAccepted in every test; use termsNotAccepted() to
+            // exercise the acceptance gate itself.
+            'terms_accepted_version' => LegalContent::TERMS_VERSION,
+            'terms_accepted_at' => now(),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function termsNotAccepted(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'terms_accepted_version' => null,
+            'terms_accepted_at' => null,
+        ]);
     }
 
     /**

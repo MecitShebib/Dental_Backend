@@ -6,8 +6,11 @@ use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Role;
+use App\Models\Specialty;
 use App\Models\User;
 use App\Models\WhatsAppIntegration;
+use App\Services\SystemMessageService;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -146,7 +149,10 @@ class WhatsAppIntegrationTest extends TestCase
             'connected_at' => now(),
         ]);
 
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $this->seed(SpecialtySeeder::class);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        app(SystemMessageService::class)->seedForCompanySpecialty($company, $dental);
+        $doctor = User::factory()->create(['company_id' => $company->id, 'specialty_id' => $dental->id]);
         $client = Client::create([
             'company_id' => $company->id,
             'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),

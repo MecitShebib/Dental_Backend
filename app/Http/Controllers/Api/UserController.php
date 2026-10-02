@@ -47,7 +47,7 @@ class UserController extends Controller
         $company = $request->user()->company;
 
         if (($data['status'] ?? 'active') === 'active') {
-            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company);
+            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, null, (bool) ($data['is_doctor'] ?? false));
         }
 
         $user = User::create([
@@ -80,7 +80,7 @@ class UserController extends Controller
         $company = $user->company;
 
         if (($data['status'] ?? ($user->status->value ?? $user->status)) === 'active') {
-            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user);
+            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user, (bool) ($data['is_doctor'] ?? $user->is_doctor));
         }
 
         if (isset($data['password'])) {

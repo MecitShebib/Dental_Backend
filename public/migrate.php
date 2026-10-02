@@ -1,86 +1,161 @@
 <?php
 
-use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\DemoDataSeeder;
+use App\Models\User;
+use App\Support\UploadedFilesCopier;
+use Database\Seeders\KvkkConsentTemplateSeeder;
+use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SpecialtySeeder;
+use Database\Seeders\TreatmentCatalogSeeder;
+use Dotenv\Dotenv;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+/**
+ * Deploy script for this host (no SSH): open
+ *     https://<domain>/migrate.php?key=<DEPLOY_KEY from .env>
+ * after every code upload. It copies uploads into FILES_ROOT, applies
+ * pending migrations, refreshes reference data, and rebuilds the caches.
+ *
+ * Without a DEPLOY_KEY of at least 32 characters in .env, or with a wrong
+ * ?key=, it answers 404 and does nothing -- before even booting Laravel.
+ *
+ * Never wipes data: there is no migrate:fresh and no demo seeding here.
+ */
 
 require __DIR__.'/../vendor/autoload.php';
 
-$app = require_once __DIR__.'/../bootstrap/app.php';
+$env = Dotenv::parse((string) @file_get_contents(__DIR__.'/../.env'));
+$deployKey = (string) ($env['DEPLOY_KEY'] ?? '');
 
+if (strlen($deployKey) < 32 || ! hash_equals($deployKey, (string) ($_GET['key'] ?? ''))) {
+    http_response_code(404);
+    exit;
+}
+
+header('X-Robots-Tag: noindex, nofollow');
+header('Cache-Control: no-store');
+header('Referrer-Policy: no-referrer');
+
+$app = require_once __DIR__.'/../bootstrap/app.php';
 $kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
-/**
- * Same isolated-step pattern as setup.php. Normally this script only ever
- * runs `migrate` (applies pending migrations, keeps existing data) -- never
- * `migrate:fresh`. The one exception is the explicit, hard-to-hit-by-accident
- * `?wipe_and_reseed=yes-i-am-sure-wipe-everything` opt-in below, which does
- * run `migrate:fresh`. Use this for every deploy after the first one;
- * reserve setup.php for the initial, empty-database setup only.
- */
 function migrateStep(string $label, Closure $step): void
 {
-    echo "<strong>{$label}</strong><br>";
+    echo '<strong>'.e($label).'</strong><br>';
 
     try {
         $step();
     } catch (Throwable $e) {
-        echo "<pre style=\"color:red\">{$e->getMessage()}\n\n{$e->getTraceAsString()}</pre>";
+        // Message only -- no stack trace with server paths in the page.
+        echo '<pre style="color:red">'.e($e->getMessage()).'</pre>';
+        report($e);
     }
 
     echo '<br>';
 }
 
-// Explicit, deliberately hard-to-hit-by-accident opt-in: visiting this file
-// normally (or with any other query string) never wipes anything -- only
-// this exact confirmation phrase does. Requested once, at the user's
-// explicit instruction, to reset production to a clean, branch-distributed
-// demo dataset before real customer data exists. DELETE THIS BLOCK once
-// that reset has actually been run -- it must not linger as a standing way
-// to wipe production.
-$wipeAndReseedConfirmed = ($_GET['wipe_and_reseed'] ?? '') === 'yes-i-am-sure-wipe-everything';
+$filesRoot = rtrim((string) ($env['FILES_ROOT'] ?? ''), '/\\');
 
-if ($wipeAndReseedConfirmed) {
-    migrateStep('WIPING THE ENTIRE DATABASE (every company, patient, appointment, payment -- everything) and rebuilding the schema from scratch...', function () use ($kernel) {
-        $kernel->call('migrate:fresh', ['--force' => true]);
-        echo nl2br($kernel->output());
-    });
+// Uploaded files -> FILES_ROOT (a folder outside the code, see
+// config/filesystems.php). COPY ONLY -- originals are never deleted here;
+// files already copied (same size) are skipped. FILES_ROOT is read straight
+// from .env because the config cache may still be the previous one.
+migrateStep('Copying uploaded files into FILES_ROOT (originals are kept)...', function () use ($filesRoot) {
+    if ($filesRoot === '') {
+        echo 'FILES_ROOT is not set in .env -- skipped (files stay in the project folders).';
+
+        return;
+    }
+
+    foreach (UploadedFilesCopier::sources() as $name => $from) {
+        $result = UploadedFilesCopier::copy($from, $filesRoot.'/'.$name);
+        echo e("{$name}: {$result['copied']} copied, {$result['skipped']} already there, {$result['failed']} failed").'<br>';
+        if ($result['failed'] > 0) {
+            echo '<span style="color:red">Some files failed to copy. Do NOT delete the old folders; fix permissions and run this script again.</span><br>';
+        }
+    }
+});
+
+// Opt-in clean-up of the OLD in-project upload folders once the app runs on
+// FILES_ROOT:  &delete_old_uploads=preview  shows what would happen,
+//              &delete_old_uploads=yes      does it.
+// Patient files found on the public disk are first moved into
+// FILES_ROOT/private; an old file is deleted only when an identical-size
+// copy exists in the new folders.
+$deleteOldUploads = (string) ($_GET['delete_old_uploads'] ?? '');
+if (in_array($deleteOldUploads, ['preview', 'yes'], true)) {
+    migrateStep(
+        $deleteOldUploads === 'yes' ? 'DELETING the old upload folders (verified copies only)...' : 'PREVIEW: cleaning up the old upload folders (nothing is changed)...',
+        function () use ($deleteOldUploads, $filesRoot) {
+            $activeRoot = rtrim((string) config('filesystems.disks.local.root'), '/\\');
+
+            if ($filesRoot === '' || $activeRoot !== $filesRoot.'/private') {
+                echo '<span style="color:red">Refused: the app is not running on FILES_ROOT yet. Run this script once without delete_old_uploads first.</span>';
+
+                return;
+            }
+
+            foreach (UploadedFilesCopier::retireOldFolders($filesRoot, $deleteOldUploads === 'yes') as $key => $count) {
+                echo e(str_replace('_', ' ', $key).": {$count}").'<br>';
+            }
+        },
+    );
 }
-
-echo 'Running pending migrations...<br><br>';
 
 migrateStep('Migrating (existing data is kept)...', function () use ($kernel) {
     $kernel->call('migrate', ['--force' => true]);
-    echo nl2br($kernel->output());
+    echo nl2br(e($kernel->output()));
 });
 
-migrateStep('Running database seeders (roles/permissions, treatment catalog, demo company)...', function () {
-    // DatabaseSeeder itself calls RolePermissionSeeder and TreatmentCatalogSeeder,
-    // then updateOrCreate's the seeded demo company/admin/doctors/subscription --
-    // every step in it is updateOrCreate-based, so this is safe to run repeatedly
-    // and matches exactly what setup.php ran on the very first deploy.
-    (new DatabaseSeeder)->run();
-    echo 'Seeders finished.';
+// Reference data only -- every one of these is idempotent and creates no
+// user accounts: roles/permissions, specialties, the treatment price
+// catalog and the KVKK consent templates (back-filled for every company).
+migrateStep('Refreshing reference data (roles, specialties, treatment catalog, KVKK consent templates)...', function () use ($kernel) {
+    foreach ([RolePermissionSeeder::class, SpecialtySeeder::class, TreatmentCatalogSeeder::class, KvkkConsentTemplateSeeder::class] as $seeder) {
+        $kernel->call('db:seed', ['--class' => $seeder, '--force' => true]);
+    }
+    echo 'Done.';
 });
 
-migrateStep('Running demo data seeder (one clinical record set per specialty)...', function () use ($app) {
-    // Temporary, explicit opt-in step -- there is no server console access on
-    // this host, so this is the only way to run DemoDataSeeder here. Needs
-    // container resolution (not `new DemoDataSeeder`) since its constructor
-    // takes several injected services. Idempotent -- safe if this step runs
-    // again on a future deploy before someone removes it.
-    $app->make(DemoDataSeeder::class)->run();
-    echo 'Demo data seeded.';
+// Earlier deploys re-seeded demo accounts with publicly known passwords
+// (the admin panel signs in with phone + password only). Any such account
+// still on its default password gets a strong random one, shown ONCE here.
+migrateStep('Securing demo accounts that still use a default password...', function () {
+    $rotated = [];
+
+    User::query()
+        ->withoutGlobalScopes()
+        ->where(fn ($query) => $query->where('email', 'like', '%@clinic.com')->orWhere('email', 'like', '%@dental.com'))
+        ->each(function (User $user) use (&$rotated) {
+            foreach (['secret', '123456'] as $default) {
+                if ($user->password && Hash::check($default, $user->password)) {
+                    $password = Str::password(20, symbols: false);
+                    $user->forceFill(['password' => Hash::make($password)])->save();
+                    $user->tokens()->delete();
+                    $rotated[] = [$user->email, $user->phone, $password];
+
+                    return;
+                }
+            }
+        });
+
+    if ($rotated === []) {
+        echo 'No account uses a default password.';
+
+        return;
+    }
+
+    echo '<span style="color:#b45309">New passwords -- store them now, they are not shown again:</span><br><table border="1" cellpadding="4">';
+    foreach ($rotated as [$email, $phone, $password]) {
+        echo '<tr><td>'.e($email).'</td><td>'.e($phone).'</td><td><code>'.e($password).'</code></td></tr>';
+    }
+    echo '</table>';
 });
 
 migrateStep('Clearing and rebuilding cache...', function () use ($kernel) {
     $kernel->call('optimize:clear');
-    echo nl2br($kernel->output());
-
     $kernel->call('config:cache');
     $kernel->call('route:cache');
     $kernel->call('view:cache');
@@ -91,15 +166,7 @@ migrateStep('Clearing and rebuilding cache...', function () use ($kernel) {
     // reset -- without this, a code deploy can silently not take effect.
     if (function_exists('opcache_reset')) {
         echo opcache_reset() ? '<br>OPcache reset.' : '<br>OPcache reset call returned false.';
-    } else {
-        echo '<br>opcache_reset() not available in this SAPI.';
     }
 });
 
-if ($wipeAndReseedConfirmed) {
-    echo '<hr><strong>DONE.</strong> The database was wiped and rebuilt from scratch, then reseeded with the demo dataset (2 branches, distributed doctors/patients).<br>';
-} else {
-    echo '<hr><strong>DONE.</strong> Existing clients, visits, appointments, and everything else were left untouched -- only new migrations ran.<br>';
-}
-echo '<strong style="color:red">Delete this file (public/migrate.php) or password-protect it once you\'re done deploying for the day.</strong> '
-    .'It has no authentication and runs migrations on every request.';
+echo '<hr><strong>DONE.</strong> Existing data was left untouched -- only pending migrations and reference data ran.';

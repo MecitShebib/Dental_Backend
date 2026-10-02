@@ -29,7 +29,8 @@ class PublicBookingService
         protected DoctorAvailabilityService $availability,
         protected AppointmentConflictService $conflicts,
         protected MessagingService $messaging,
-        protected MessageTemplateService $templates,
+        protected SystemMessageService $systemMessages,
+        protected MessageTemplateVariableBuilder $templateVariables,
         protected ClientSpecialtyEnrollmentService $enrollment,
         protected PublicBookingOtpService $otp,
     ) {}
@@ -61,11 +62,17 @@ class PublicBookingService
     }
 
     /**
-     * @param  array{doctor_id: int, date: string, start_time: string, client_name: string, client_phone: string, client_email: ?string, otp: string, otp_reference: string}  $data
+     * With the email OTP channel client_email is required and client_phone
+     * optional; with sms it's the other way round (see the FormRequests).
+     *
+     * @param  array{doctor_id: int, date: string, start_time: string, client_name: string, client_phone: ?string, client_email: ?string, otp: string, otp_reference: string}  $data
      */
     public function book(Company $company, array $data): Appointment
     {
-        $challenge = $this->otp->findChallenge($company, $data['client_phone'], $data['otp_reference']);
+        $emailChannel = $this->otp->channel() === 'email';
+        $challenge = $emailChannel
+            ? $this->otp->findChallengeByEmail($company, (string) $data['client_email'], $data['otp_reference'])
+            : $this->otp->findChallenge($company, (string) $data['client_phone'], $data['otp_reference']);
 
         if (! $challenge) {
             throw ValidationException::withMessages([
@@ -99,23 +106,31 @@ class PublicBookingService
         $this->conflicts->assertWithinSchedule($doctor, $data['date'], $data['start_time'], $durationMinutes);
         $this->conflicts->assertNoConflict($doctor->id, $data['date'], $data['start_time'], $durationMinutes);
 
-        return DB::transaction(function () use ($company, $doctor, $data, $durationMinutes) {
+        return DB::transaction(function () use ($company, $doctor, $data, $durationMinutes, $emailChannel) {
             // Re-check for a conflict inside the transaction: the two checks
             // above already ran, but another booking could have landed
             // between then and now under concurrent requests.
             $this->conflicts->assertNoConflict($doctor->id, $data['date'], $data['start_time'], $durationMinutes);
 
-            $client = Client::query()
-                ->where('company_id', $company->id)
-                ->where('phone', $data['client_phone'])
-                ->first();
+            // Match an existing patient by the verified contact: the email
+            // for the email channel (case-insensitive), the phone for sms.
+            $client = $emailChannel
+                ? Client::query()
+                    ->where('company_id', $company->id)
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim((string) $data['client_email']))])
+                    ->first()
+                : Client::query()
+                    ->where('company_id', $company->id)
+                    ->where('phone', $data['client_phone'])
+                    ->first();
 
             if (! $client) {
                 $client = Client::create([
                     'company_id' => $company->id,
                     'client_code' => 'CL-'.strtoupper(Str::random(8)),
                     'name' => $data['client_name'],
-                    'phone' => $data['client_phone'],
+                    // clients.phone is NOT NULL; an email-only booking has none.
+                    'phone' => $data['client_phone'] ?? '',
                     'email' => $data['client_email'] ?? null,
                     'status' => 'new',
                 ]);
@@ -153,15 +168,22 @@ class PublicBookingService
         $language = $client->preferred_language ?? ClientLanguage::English;
 
         if ($client->phone) {
-            $rendered = $this->templates->render($company, 'booking_confirmation', 'sms', $language, [
-                'client_name' => $client->name,
-                'doctor_name' => $doctor->name,
-                'company_name' => $company->name,
-                'date' => $appointment->date->format('d/m/Y'),
-                'time' => substr($appointment->start_time, 0, 5),
-            ], $doctor->specialty_id);
+            $variables = $this->templateVariables->build(
+                $client,
+                $doctor,
+                $company,
+                $doctor->specialty?->key,
+                [
+                    'date' => $appointment->date->format('d/m/Y'),
+                    'time' => substr($appointment->start_time, 0, 5),
+                ],
+            );
 
-            $this->messaging->send($company, $client->phone, $rendered['body']);
+            $text = $this->systemMessages->bodyFor($company, $doctor->specialty_id, 'booking_confirmation', $language->value, $variables);
+
+            if ($text !== null) {
+                $this->messaging->send($company, $client->phone, $text);
+            }
         }
 
         Log::info('Online booking confirmed.', [

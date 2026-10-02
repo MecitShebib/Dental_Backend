@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Mail\NegativeSatisfactionAlertMail;
-use App\Mail\SatisfactionSurveyInviteMail;
 use App\Models\Client;
+use App\Models\ClientSpecialtyRecord;
 use App\Models\Company;
 use App\Models\SatisfactionSurvey;
+use App\Models\Specialty;
 use App\Models\User;
 use App\Models\Visit;
+use App\Services\SystemMessageService;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -34,6 +37,8 @@ class SatisfactionSurveyTest extends TestCase
                 'response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => 'test']],
             ], 200),
         ]);
+
+        $this->seed(SpecialtySeeder::class);
     }
 
     protected function makeClient(Company $company): Client
@@ -48,10 +53,24 @@ class SatisfactionSurveyTest extends TestCase
         ]);
     }
 
+    /**
+     * A doctor with a real specialty_id, and the "System Messages" group
+     * seeded for that company+specialty -- the SMS body SystemMessageService
+     * resolves at send time only exists once this has run (see
+     * Admin\SubscriptionController in production).
+     */
+    protected function makeDoctor(Company $company, array $overrides = []): User
+    {
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        app(SystemMessageService::class)->seedForCompanySpecialty($company, $dental);
+
+        return User::factory()->create(['company_id' => $company->id, 'specialty_id' => $dental->id, ...$overrides]);
+    }
+
     public function test_marking_a_visit_attended_creates_and_sends_a_survey_invite(): void
     {
         $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
+        $doctor = $this->makeDoctor($company);
         $client = $this->makeClient($company);
 
         Visit::create([
@@ -173,31 +192,6 @@ class SatisfactionSurveyTest extends TestCase
         $this->assertSame(1, $response->json('data.distribution.3'));
     }
 
-    public function test_a_client_with_an_email_also_receives_an_invite_email(): void
-    {
-        Mail::fake();
-
-        $company = Company::factory()->create();
-        $doctor = User::factory()->create(['company_id' => $company->id]);
-        $client = Client::create([
-            'company_id' => $company->id,
-            'client_code' => 'CL-'.fake()->unique()->numberBetween(1000, 9999),
-            'name' => 'Test Patient',
-            'phone' => fake()->unique()->e164PhoneNumber(),
-            'email' => 'patient@example.com',
-            'gender' => 'male',
-            'status' => 'new',
-        ]);
-
-        Visit::create([
-            'client_id' => $client->id, 'doctor_id' => $doctor->id,
-            'visit_date' => now()->toDateString(), 'start_time' => '10:00:00', 'duration_minutes' => 30,
-            'attendance_status' => 'attended',
-        ]);
-
-        Mail::assertSent(SatisfactionSurveyInviteMail::class);
-    }
-
     public function test_submitting_optional_category_ratings_are_stored(): void
     {
         $company = Company::factory()->create();
@@ -286,16 +280,16 @@ class SatisfactionSurveyTest extends TestCase
     public function test_summary_and_index_are_scoped_by_doctor_and_specialty(): void
     {
         $company = Company::factory()->create();
-        $this->seed(\Database\Seeders\SpecialtySeeder::class);
-        $dental = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::DENTAL)->firstOrFail();
-        $nutrition = \App\Models\Specialty::query()->where('key', \App\Models\Specialty::NUTRITION)->firstOrFail();
+        $this->seed(SpecialtySeeder::class);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
 
         $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
         $nutritionDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id]);
         $admin = User::factory()->create(['company_id' => $company->id]);
 
         $dentalClient = $this->makeClient($company);
-        \App\Models\ClientSpecialtyRecord::create([
+        ClientSpecialtyRecord::create([
             'company_id' => $company->id, 'client_id' => $dentalClient->id,
             'specialty_id' => $dental->id, 'primary_doctor_id' => $dentalDoctor->id,
         ]);
@@ -308,7 +302,7 @@ class SatisfactionSurveyTest extends TestCase
         $this->post("/survey/{$dentalSurvey->token}", ['rating' => 5]);
 
         $nutritionClient = $this->makeClient($company);
-        \App\Models\ClientSpecialtyRecord::create([
+        ClientSpecialtyRecord::create([
             'company_id' => $company->id, 'client_id' => $nutritionClient->id,
             'specialty_id' => $nutrition->id, 'primary_doctor_id' => $nutritionDoctor->id,
         ]);

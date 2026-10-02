@@ -6,9 +6,10 @@ use App\Http\Controllers\Api\Nutrition\BodyMetricController;
 use App\Http\Controllers\Api\Nutrition\ClientController;
 use App\Http\Controllers\Api\Nutrition\ClientProfileController;
 use App\Http\Controllers\Api\Nutrition\DashboardController;
+use App\Http\Controllers\Api\Nutrition\DietExercisePlanController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic'])->group(function () {
+Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic', 'terms.accepted'])->group(function () {
     Route::apiResource('clients', ClientController::class)->names('nutrition.clients');
     Route::get('clients/{client}/profile', [ClientProfileController::class, 'show'])->name('nutrition.clients.profile.show');
     Route::put('clients/{client}/profile', [ClientProfileController::class, 'update'])->name('nutrition.clients.profile.update');
@@ -18,6 +19,8 @@ Route::prefix('nutrition')->middleware(['auth:sanctum', 'active.clinic'])->group
     Route::delete('body-metrics/{bodyMetric:uuid}', [BodyMetricController::class, 'destroy'])->name('nutrition.body-metrics.destroy');
     Route::apiResource('appointments', AppointmentController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->names('nutrition.appointments');
     Route::get('dashboard/stats', [DashboardController::class, 'stats'])->name('nutrition.dashboard.stats');
+    Route::post('clients/{client}/diet-exercise-plans', [DietExercisePlanController::class, 'store'])->name('nutrition.diet-exercise-plans.store');
+    Route::put('diet-exercise-plans/{carePlan:uuid}', [DietExercisePlanController::class, 'update'])->name('nutrition.diet-exercise-plans.update');
 
     Route::get('clients/{client}/ai-conversation', [AiConversationController::class, 'conversationHistory'])->name('nutrition.ai.history');
     Route::middleware('kvkk.consent')->group(function () {

@@ -8,6 +8,7 @@
             <div class="actions-row">
                 <a class="btn-link" href="{{ route('admin.companies.index') }}">Back to Companies</a>
                 <button class="btn btn-soft" type="button" data-open-modal="company-restore-modal">Restore Company</button>
+                <button class="btn btn-danger" type="button" data-open-modal="company-force-delete-modal">Delete Permanently</button>
             </div>
         @else
             <div class="actions-row">
@@ -37,7 +38,7 @@
             <div>
                 @if ($company->currentSubscription)
                     {{ $company->currentSubscription->plan_name }}<br>
-                    <span class="muted">{{ $company->currentSubscription->active_users }}/{{ $company->currentSubscription->max_users }} users</span><br>
+                    <span class="muted">{{ $company->currentSubscription->active_users }} users · {{ $company->currentSubscription->max_doctors ?? '∞' }} doctors + {{ $company->currentSubscription->max_assistants ?? '∞' }} assistants</span><br>
                     <span class="muted">{{ $company->branches()->count() }}/{{ $company->currentSubscription->max_branches }} branches</span><br>
                     <span class="muted">{{ $company->currentSubscription->ai_tokens_used }}/{{ $company->currentSubscription->max_ai_tokens ?? '∞' }} AI tokens</span>
                 @else
@@ -88,6 +89,7 @@
                             <div class="actions-row table-actions">
                                 @if ($user->trashed())
                                     <button class="btn btn-soft" type="button" data-open-modal="restore-user-{{ $user->id }}">Restore</button>
+                                    <button class="btn btn-danger" type="button" data-open-modal="force-delete-user-{{ $user->id }}">Delete Permanently</button>
                                 @else
                                     <button class="btn-muted" type="button" data-open-modal="toggle-user-{{ $user->id }}">
                                         Make {{ ($user->status->value ?? $user->status) === 'active' ? 'Inactive' : 'Active' }}
@@ -137,12 +139,16 @@
                             {{ $subscription->starts_at?->format('Y-m-d') }}<br>
                             <small>{{ $subscription->ends_at?->format('Y-m-d') ?? 'Open end' }}</small>
                         </td>
-                        <td>{{ $subscription->active_users }}/{{ $subscription->max_users }}</td>
+                        <td>
+                            {{ $subscription->active_users }} active
+                            <br><small>{{ $subscription->max_doctors ?? '∞' }} doctors + {{ $subscription->max_assistants ?? '∞' }} assistants</small>
+                        </td>
                         <td>{{ $subscription->ai_tokens_used }}/{{ $subscription->max_ai_tokens ?? '∞' }}</td>
                         <td>
                             <div class="actions-row table-actions">
                                 @if ($subscription->trashed())
                                     <button class="btn btn-soft" type="button" data-open-modal="restore-subscription-{{ $subscription->id }}">Restore</button>
+                                    <button class="btn btn-danger" type="button" data-open-modal="force-delete-subscription-{{ $subscription->id }}">Delete Permanently</button>
                                 @else
                                     <button class="btn-muted" type="button" data-open-modal="toggle-subscription-{{ $subscription->id }}">
                                         Make {{ ($subscription->status->value ?? $subscription->status) === 'active' ? 'Inactive' : 'Active' }}
@@ -185,6 +191,18 @@
                     <option value="inactive" @selected(old('status', $company->status) === 'inactive')>inactive</option>
                 </select>
                 @error('status', 'company-update-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <select name="currency" required>
+                    <option value="SYP" @selected(old('currency', $company->currency?->value) === 'SYP')>Syrian Pound (SYP)</option>
+                    <option value="TRY" @selected(old('currency', $company->currency?->value) === 'TRY')>Turkish Lira (TRY)</option>
+                    <option value="USD" @selected(old('currency', $company->currency?->value) === 'USD')>US Dollar (USD)</option>
+                </select>
+                @error('currency', 'company-update-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <select name="language" required>
+                    <option value="ar" @selected(old('language', $company->language?->value) === 'ar')>العربية (Arabic)</option>
+                    <option value="tr" @selected(old('language', $company->language?->value) === 'tr')>Türkçe (Turkish)</option>
+                    <option value="en" @selected(old('language', $company->language?->value) === 'en')>English</option>
+                </select>
+                @error('language', 'company-update-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <textarea name="notes">{{ old('notes', $company->notes) }}</textarea>
                 @error('notes', 'company-update-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <button class="btn" type="submit">Update Company</button>
@@ -203,6 +221,21 @@
                 @csrf
                 @method('PATCH')
                 <button class="btn" type="submit">Restore Company</button>
+            </form>
+        </div>
+    </dialog>
+
+    <dialog id="company-force-delete-modal" class="modal">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Permanently Delete Company</h3>
+                <button class="close-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <p><strong>This cannot be undone.</strong> Permanently delete <strong>{{ $company->name }}</strong>? This erases it from the database for good, along with its users, subscriptions, and every patient, appointment, visit, payment, and invoice that belonged to it.</p>
+            <form method="POST" action="{{ route('admin.companies.force-delete', $company) }}">
+                @csrf
+                @method('DELETE')
+                <button class="btn btn-danger" type="submit">Delete Permanently</button>
             </form>
         </div>
     </dialog>
@@ -302,8 +335,11 @@
                 @error('starts_at', 'create-subscription-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <input type="date" name="ends_at" value="{{ old('ends_at') }}">
                 @error('ends_at', 'create-subscription-modal') <span class="field-error">{{ $message }}</span> @enderror
-                <input type="number" min="1" name="max_users" placeholder="Max users" value="{{ old('max_users') }}" required>
-                @error('max_users', 'create-subscription-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <input type="number" min="0" name="max_doctors" placeholder="Max doctors" value="{{ old('max_doctors') }}" required>
+                @error('max_doctors', 'create-subscription-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <input type="number" min="0" name="max_assistants" placeholder="Max assistant (non-doctor) users" value="{{ old('max_assistants') }}" required>
+                @error('max_assistants', 'create-subscription-modal') <span class="field-error">{{ $message }}</span> @enderror
+                @include('admin.subscriptions._features', ['selected' => null, 'useOld' => old('_modal_id') === 'create-subscription-modal'])
                 <input type="number" min="1" name="max_branches" placeholder="Max branches" value="{{ old('max_branches', 1) }}" required>
                 @error('max_branches', 'create-subscription-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <input type="number" min="0" name="max_ai_tokens" placeholder="Max AI tokens (blank = unlimited)" value="{{ old('max_ai_tokens') }}">
@@ -439,6 +475,21 @@
                 </form>
             </div>
         </dialog>
+
+        <dialog id="force-delete-user-{{ $user->id }}" class="modal">
+            <div class="modal-card">
+                <div class="modal-head">
+                    <h3>Permanently Delete User</h3>
+                    <button class="close-btn" type="button" data-close-modal>&times;</button>
+                </div>
+                <p><strong>This cannot be undone.</strong> Permanently delete <strong>{{ $user->name }}</strong>? This will fail if they still have appointments, visits, or other clinical records on file.</p>
+                <form method="POST" action="{{ route('admin.users.force-delete', $user) }}">
+                    @csrf
+                    @method('DELETE')
+                    <button class="btn btn-danger" type="submit">Delete Permanently</button>
+                </form>
+            </div>
+        </dialog>
     @endforeach
 
     @foreach ($subscriptions as $subscription)
@@ -495,8 +546,11 @@
                     @error('starts_at', $subscriptionModalId) <span class="field-error">{{ $message }}</span> @enderror
                     <input type="date" name="ends_at" value="{{ $subscriptionReopened ? old('ends_at') : $subscription->ends_at?->format('Y-m-d') }}">
                     @error('ends_at', $subscriptionModalId) <span class="field-error">{{ $message }}</span> @enderror
-                    <input type="number" min="1" name="max_users" value="{{ $subscriptionReopened ? old('max_users') : $subscription->max_users }}" required>
-                    @error('max_users', $subscriptionModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <input type="number" min="0" name="max_doctors" value="{{ $subscriptionReopened ? old('max_doctors') : $subscription->max_doctors }}" placeholder="Max doctors" required>
+                    @error('max_doctors', $subscriptionModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    <input type="number" min="0" name="max_assistants" value="{{ $subscriptionReopened ? old('max_assistants') : $subscription->max_assistants }}" placeholder="Max assistant (non-doctor) users" required>
+                    @error('max_assistants', $subscriptionModalId) <span class="field-error">{{ $message }}</span> @enderror
+                    @include('admin.subscriptions._features', ['selected' => $subscription->features, 'useOld' => $subscriptionReopened])
                     <input type="number" min="1" name="max_branches" value="{{ $subscriptionReopened ? old('max_branches') : $subscription->max_branches }}" placeholder="Max branches" required>
                     @error('max_branches', $subscriptionModalId) <span class="field-error">{{ $message }}</span> @enderror
                     <input type="number" min="0" name="max_ai_tokens" value="{{ $subscriptionReopened ? old('max_ai_tokens') : $subscription->max_ai_tokens }}" placeholder="Max AI tokens (blank = unlimited)">
@@ -535,6 +589,21 @@
                     @csrf
                     @method('PATCH')
                     <button class="btn" type="submit">Restore Subscription</button>
+                </form>
+            </div>
+        </dialog>
+
+        <dialog id="force-delete-subscription-{{ $subscription->id }}" class="modal">
+            <div class="modal-card">
+                <div class="modal-head">
+                    <h3>Permanently Delete Subscription</h3>
+                    <button class="close-btn" type="button" data-close-modal>&times;</button>
+                </div>
+                <p><strong>This cannot be undone.</strong> Permanently delete <strong>{{ $subscription->plan_name }}</strong>? This erases it from the database for good.</p>
+                <form method="POST" action="{{ route('admin.subscriptions.force-delete', $subscription) }}">
+                    @csrf
+                    @method('DELETE')
+                    <button class="btn btn-danger" type="submit">Delete Permanently</button>
                 </form>
             </div>
         </dialog>

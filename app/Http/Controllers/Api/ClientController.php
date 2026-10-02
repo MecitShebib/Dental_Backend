@@ -9,11 +9,13 @@ use App\Http\Requests\Client\StoreClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Resources\ClientListResource;
 use App\Http\Resources\ClientResource;
+use App\Http\Resources\TreatmentChargeResource;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Specialty;
 use App\Services\ClientSpecialtyEnrollmentService;
 use App\Services\Clinical\ClientQueryService;
+use App\Services\MessageTemplateVariableBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -108,5 +110,59 @@ class ClientController extends Controller
         $client->delete();
 
         return $this->success(null, 'Client deleted successfully.');
+    }
+
+    /**
+     * The "Service Log" -- every treatment_charges line item for this
+     * client (manual fees, AI plan sessions, visits, appointments,
+     * inventory sales), newest first, so the Payments tab can show not just
+     * what they've paid but where a balance actually came from.
+     */
+    public function treatmentCharges(Request $request, Client $client)
+    {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
+        $charges = $client->treatmentCharges()
+            ->with('creator')
+            ->latest('created_at')
+            ->latest('id')
+            ->get();
+
+        return $this->success(TreatmentChargeResource::collection($charges));
+    }
+
+    /**
+     * Every variable the "#" picker (Settings > Message Templates and its
+     * Custom WhatsApp Messages section) can insert, resolved for THIS client
+     * right now -- reuses MessageTemplateVariableBuilder, the exact same
+     * resolution the automated send pathways (reminders, recalls, booking
+     * confirmations, satisfaction surveys) already use, so a token inserted
+     * here behaves identically to one in a built-in template. date/time have
+     * no real appointment to anchor to in this ad-hoc context, so they
+     * resolve to right now.
+     */
+    public function messageVariables(Request $request, Client $client, MessageTemplateVariableBuilder $templateVariables)
+    {
+        $this->assertActingDoctorOwnsClient($request, $client);
+
+        $specialtyKey = $request->filled('specialty') ? $request->string('specialty')->value() : null;
+        $specialtyId = $specialtyKey ? Specialty::query()->where('key', $specialtyKey)->value('id') : null;
+
+        $doctor = $specialtyId
+            ? $client->specialtyRecords()->where('specialty_id', $specialtyId)->first()?->primaryDoctor
+            : null;
+
+        $variables = $templateVariables->build(
+            $client,
+            $doctor,
+            $client->company,
+            $specialtyKey,
+            [
+                'date' => now()->format('d/m/Y'),
+                'time' => now()->format('H:i'),
+            ],
+        );
+
+        return $this->success($variables);
     }
 }

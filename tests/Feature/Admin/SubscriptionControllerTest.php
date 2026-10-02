@@ -3,9 +3,11 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Company;
+use App\Models\MessageGroup;
 use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\SystemMessageService;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -41,7 +43,8 @@ class SubscriptionControllerTest extends TestCase
             'plan_name' => 'Test Plan',
             'status' => 'active',
             'starts_at' => now()->subDay()->toDateString(),
-            'max_users' => 10,
+            'max_doctors' => 5,
+            'max_assistants' => 5,
             'max_branches' => 1,
         ], $overrides);
     }
@@ -81,6 +84,27 @@ class SubscriptionControllerTest extends TestCase
             'specialty_id' => $gynecology->id,
             'plan_name' => 'Test Plan',
         ]);
+    }
+
+    public function test_creating_a_subscription_seeds_the_system_messages_group_with_every_message(): void
+    {
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+
+        $this->actingAs($this->adminUser())
+            ->post(route('admin.subscriptions.store'), $this->baseSubscriptionPayload($company, $dental))
+            ->assertRedirect(route('admin.companies.show', $company));
+
+        $group = MessageGroup::query()
+            ->where('company_id', $company->id)
+            ->where('specialty_id', $dental->id)
+            ->where('name', SystemMessageService::GROUP_NAME)
+            ->firstOrFail();
+
+        $expected = count(SystemMessageService::KEYS) * count(SystemMessageService::LANGUAGES);
+        $this->assertSame($expected, $group->messages()->count());
+        $this->assertSame(0, $group->messages()->where('body', '')->count());
     }
 
     public function test_creating_a_subscription_seeds_that_specialtys_treatment_catalog(): void
@@ -213,7 +237,8 @@ class SubscriptionControllerTest extends TestCase
             'plan_name' => $subscription->plan_name,
             'status' => 'active',
             'starts_at' => $subscription->starts_at->toDateString(),
-            'max_users' => $subscription->max_users,
+            'max_doctors' => $subscription->max_doctors ?? 5,
+            'max_assistants' => $subscription->max_assistants ?? 5,
             'max_branches' => $subscription->max_branches,
         ], $overrides);
     }

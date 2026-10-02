@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Services\WhatsAppService;
+use App\Support\LegalContent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\URL;
@@ -15,6 +17,10 @@ class UserResource extends JsonResource
             'uuid' => $this->uuid,
             'company_id' => $this->company_id,
             'company_name' => optional($this->whenLoaded('company'))->name,
+            // Drives formatCurrency app-wide on the frontend -- see
+            // LanguageContext.jsx's setCompanyCurrency.
+            'company_currency' => $this->whenLoaded('company', fn () => $this->company?->currency?->value),
+            'company_language' => $this->whenLoaded('company', fn () => $this->company?->language?->value),
             'name' => $this->name,
             'email' => $this->email,
             'mobile' => $this->phone,
@@ -43,13 +49,34 @@ class UserResource extends JsonResource
             // AppLayout can redirect correctly on every render, not just
             // the one right after login.
             'requires_specialty_selection' => (bool) ($this->requires_specialty_selection ?? false),
+            // Personal Terms of Service acceptance (see EnsureTermsAccepted):
+            // while true the SPA shows only its acceptance screen, since
+            // every other clinic endpoint answers 403 terms_not_accepted.
+            'requires_terms_acceptance' => ! $this->resource->hasAcceptedCurrentTerms(),
+            'terms_version' => LegalContent::TERMS_VERSION,
+            'terms_accepted_at' => $this->terms_accepted_at?->toIso8601String(),
             // Global (not per-company) env-driven toggles the frontend needs
             // on every render -- baked into this payload rather than a
             // separate endpoint since it's the one response already fetched
             // once at bootstrap and persisted into authUser. See
             // config/features.php.
+            // Optional features the clinic's subscription includes
+            // (Subscription::FEATURES: consent_templates, api_tokens,
+            // whatsapp, crm, call_webhook) -- the SPA hides everything
+            // belonging to a feature not listed here. Only present when the
+            // company is loaded (login / auth/me), so list views don't pay
+            // for it.
+            'subscription_features' => $this->whenLoaded('company', fn () => $this->company?->enabledFeatures() ?? []),
+            // True when WhatsApp messages/documents/reminders go out through
+            // the clinic's own WhatsApp Business number (subscription feature
+            // + connected integration); otherwise the app opens wa.me tabs.
+            // Decided up front so the click can open a tab synchronously.
+            'whatsapp_api_active' => $this->whenLoaded('company', fn () => $this->company ? app(WhatsAppService::class)->enabledFor($this->company) : false),
             'feature_flags' => [
                 'three_d_odontogram_enabled' => (bool) config('features.three_d_odontogram'),
+                // "email" | "sms" (MOBILE_OTP_CHANNEL) -- lets Settings >
+                // Change Password say where the code will go before it's sent.
+                'otp_channel' => config('services.otp.channel', 'sms'),
             ],
             'notes' => $this->notes,
             // A doctor's own signature/stamp image, pasted onto their

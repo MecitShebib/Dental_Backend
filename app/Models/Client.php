@@ -58,6 +58,116 @@ class Client extends Model
         return $this->hasOne(TreatmentRecord::class);
     }
 
+    public function gynecologyProfile(): HasOne
+    {
+        return $this->hasOne(GynecologyClientProfile::class);
+    }
+
+    public function gynecologyUltrasoundExams(): HasMany
+    {
+        return $this->hasMany(GynecologyUltrasoundExam::class)->orderByDesc('exam_date')->orderByDesc('id');
+    }
+
+    public function internalMedicineProfile(): HasOne
+    {
+        return $this->hasOne(InternalMedicineClientProfile::class);
+    }
+
+    public function internalMedicineVitals(): HasMany
+    {
+        return $this->hasMany(InternalMedicineVital::class)->orderByDesc('measured_at')->orderByDesc('id');
+    }
+
+    public function orthopedicsProfile(): HasOne
+    {
+        return $this->hasOne(OrthopedicsClientProfile::class);
+    }
+
+    public function orthopedicsAssessments(): HasMany
+    {
+        return $this->hasMany(OrthopedicsAssessment::class)->orderByDesc('assessed_at')->orderByDesc('id');
+    }
+
+    public function cosmeticProfile(): HasOne
+    {
+        return $this->hasOne(CosmeticClientProfile::class);
+    }
+
+    public function cosmeticProcedureLogs(): HasMany
+    {
+        return $this->hasMany(CosmeticProcedureLog::class)->orderByDesc('performed_at')->orderByDesc('id');
+    }
+
+    public function pediatricsProfile(): HasOne
+    {
+        return $this->hasOne(PediatricsClientProfile::class);
+    }
+
+    public function pediatricsGrowthMeasurements(): HasMany
+    {
+        return $this->hasMany(PediatricsGrowthMeasurement::class)->orderByDesc('measured_at')->orderByDesc('id');
+    }
+
+    public function pediatricsVaccinations(): HasMany
+    {
+        return $this->hasMany(PediatricsVaccination::class)->orderByDesc('administered_at')->orderByDesc('id');
+    }
+
+    public function physiotherapyProfile(): HasOne
+    {
+        return $this->hasOne(PhysiotherapyClientProfile::class);
+    }
+
+    public function physiotherapySessions(): HasMany
+    {
+        return $this->hasMany(PhysiotherapySession::class)->orderByDesc('session_date')->orderByDesc('id');
+    }
+
+    public function hematologyProfile(): HasOne
+    {
+        return $this->hasOne(HematologyClientProfile::class);
+    }
+
+    public function hematologyBloodCounts(): HasMany
+    {
+        return $this->hasMany(HematologyBloodCount::class)->orderByDesc('measured_at')->orderByDesc('id');
+    }
+
+    public function hematologyTransfusions(): HasMany
+    {
+        return $this->hasMany(HematologyTransfusion::class)->orderByDesc('transfused_at')->orderByDesc('id');
+    }
+
+    public function generalSurgeryProfile(): HasOne
+    {
+        return $this->hasOne(GeneralSurgeryClientProfile::class);
+    }
+
+    public function generalSurgeryOperations(): HasMany
+    {
+        return $this->hasMany(GeneralSurgeryOperation::class)->orderByDesc('operated_at')->orderByDesc('id');
+    }
+
+    public function generalSurgeryFollowups(): HasMany
+    {
+        return $this->hasMany(GeneralSurgeryFollowup::class)->orderByDesc('followup_date')->orderByDesc('id');
+    }
+
+    public function generalPracticeProfile(): HasOne
+    {
+        return $this->hasOne(GeneralPracticeClientProfile::class);
+    }
+
+    public function generalPracticeVitals(): HasMany
+    {
+        return $this->hasMany(GeneralPracticeVital::class)->orderByDesc('measured_at')->orderByDesc('id');
+    }
+
+    public function generalPracticeReferrals(): HasMany
+    {
+        return $this->hasMany(GeneralPracticeReferral::class)->orderByDesc('referred_at')->orderByDesc('id');
+    }
+
     public function nutritionProfile(): HasOne
     {
         return $this->hasOne(NutritionClientProfile::class);

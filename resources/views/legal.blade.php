@@ -32,11 +32,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>{{ $legal['title'] }} — Dentavaria</title>
+    <title>{{ $legal['title'] }} — Doctovaria</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <script>
         (function () {
-            var stored = localStorage.getItem('dentavaria-theme');
+            var stored = localStorage.getItem('doctovaria-theme');
             if (stored === 'light' || stored === 'dark') {
                 document.documentElement.setAttribute('data-theme', stored);
             }
@@ -82,15 +82,12 @@
         html[data-theme="light"] .theme-toggle-btn:hover { background: rgba(15, 23, 42, 0.08); }
     </style>
 </head>
-<body class="bg-[#05070a] text-slate-200 font-sans antialiased selection:bg-emerald-500/30 selection:text-white">
+<body class="bg-[#05070a] text-slate-200 font-sans antialiased selection:bg-blue-500/30 selection:text-white">
 
     <header class="sticky top-0 z-50 border-b border-white/5 bg-[#05070a]/70 backdrop-blur-xl">
         <div class="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
             <a href="{{ route('home', $locale) }}" class="flex items-center gap-2.5">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/20">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3c-3 0-5 2-5 5 0 2.5 1 4 1 7 0 2 .8 3.5 2 3.5s1.5-2 2-4c.3-1.2.7-1.2 1 0 .5 2 .8 4 2 4s2-1.5 2-3.5c0-3 1-4.5 1-7 0-3-2-5-5-5-.7 0-1 .3-1.5.6-.5-.3-.8-.6-1.5-.6Z" fill="white"/></svg>
-                </span>
-                <span class="text-lg font-semibold tracking-tight text-white">Dentavaria</span>
+                <img src="/brand/doctovaria_logo.png" alt="Doctovaria" class="block w-auto" style="height: 36px; width: auto;">
             </a>
 
             <div class="flex items-center gap-3">
@@ -114,9 +111,17 @@
 
         <p class="mt-8 text-lg leading-relaxed text-slate-400">{{ $legal['intro'] }}</p>
 
+        <nav class="mt-10 rounded-xl border border-white/10 p-5 text-sm">
+            <ol class="grid gap-1.5 sm:grid-cols-2">
+                @foreach ($legal['sections'] as $i => $section)
+                    <li><a href="#s{{ $i + 1 }}" class="text-slate-400 transition hover:text-white">{{ $section['heading'] }}</a></li>
+                @endforeach
+            </ol>
+        </nav>
+
         <div class="mt-14 space-y-12">
-            @foreach ($legal['sections'] as $section)
-                <section>
+            @foreach ($legal['sections'] as $i => $section)
+                <section id="s{{ $i + 1 }}" class="scroll-mt-24">
                     <h2 class="text-xl font-semibold text-white">{{ $section['heading'] }}</h2>
                     <div class="mt-3 space-y-4 text-base leading-relaxed text-slate-400">
                         @foreach ($section['body'] as $paragraph)
@@ -129,9 +134,9 @@
 
         <div class="mt-16 flex flex-wrap items-center gap-4 border-t border-white/5 pt-8 text-sm">
             @if ($page === 'terms')
-                <a href="{{ route('privacy', $locale) }}" class="font-medium text-emerald-400 transition hover:text-emerald-300">{{ $ui['other_doc_privacy'] }}</a>
+                <a href="{{ route('privacy', $locale) }}" class="font-medium text-blue-400 transition hover:text-blue-300">{{ $ui['other_doc_privacy'] }}</a>
             @else
-                <a href="{{ route('terms', $locale) }}" class="font-medium text-emerald-400 transition hover:text-emerald-300">{{ $ui['other_doc_terms'] }}</a>
+                <a href="{{ route('terms', $locale) }}" class="font-medium text-blue-400 transition hover:text-blue-300">{{ $ui['other_doc_terms'] }}</a>
             @endif
             <span class="text-slate-700">·</span>
             <a href="{{ route('home', $locale) }}" class="font-medium text-slate-300 transition hover:text-white">{{ $ui['back_home'] }}</a>
@@ -140,7 +145,7 @@
 
     <footer class="border-t border-white/5 px-6 py-10">
         <div class="mx-auto flex max-w-3xl flex-col items-center justify-between gap-4 text-xs text-slate-600 sm:flex-row">
-            <p>&copy; {{ date('Y') }} Dentavaria. {{ $ui['footer_rights'] }}</p>
+            <p>&copy; {{ date('Y') }} {{ config('services.legal.entity_name') ?: 'Doctovaria' }}. {{ $ui['footer_rights'] }}</p>
             <a href="{{ $frontendLoginUrl }}" class="transition hover:text-slate-400">{{ $ui['nav_login'] }}</a>
         </div>
     </footer>
@@ -151,7 +156,7 @@
             themeToggle.addEventListener('click', () => {
                 const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', next);
-                localStorage.setItem('dentavaria-theme', next);
+                localStorage.setItem('doctovaria-theme', next);
             });
         }
     </script>

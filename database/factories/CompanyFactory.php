@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CompanyCurrency;
 use App\Models\Company;
 use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,6 +25,13 @@ class CompanyFactory extends Factory
             'phone' => fake()->phoneNumber(),
             'address' => fake()->address(),
             'status' => 'active',
+            // Set explicitly (matching the companies.currency column's own
+            // default) rather than left to the DB default -- otherwise the
+            // in-memory model right after create() reads null until
+            // fresh()'d, since Eloquent never sends an omitted attribute in
+            // the INSERT and doesn't reload DB-computed defaults on its own.
+            'currency' => CompanyCurrency::Try,
+            'language' => 'tr',
             'notes' => null,
         ];
     }

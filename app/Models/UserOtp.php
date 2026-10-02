@@ -14,6 +14,8 @@ class UserOtp extends Model
 
     public const PURPOSE_FORGOT_PASSWORD = 'forgot_password';
 
+    public const PURPOSE_ADMIN_LOGIN = 'admin_login';
+
     public const MAX_ATTEMPTS = 5;
 
     protected $fillable = [

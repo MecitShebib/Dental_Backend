@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\MobileOtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -37,6 +39,7 @@ class AdminSingleSessionTest extends TestCase
 
     public function test_logging_into_admin_from_a_new_browser_signs_out_the_previous_session(): void
     {
+        Mail::fake();
         $admin = $this->adminUser();
 
         DB::table('sessions')->insert([
@@ -48,10 +51,21 @@ class AdminSingleSessionTest extends TestCase
             'last_activity' => now()->subMinutes(10)->timestamp,
         ]);
 
+        $this->partialMock(MobileOtpService::class, function ($mock) {
+            $mock->shouldAllowMockingProtectedMethods()->shouldReceive('generateOtp')->andReturn('147258');
+        });
+
         $this->post('/admin/login', [
             'phone' => '963955000001',
             'password' => 'secret',
-        ])->assertRedirect(route('admin.dashboard'));
+        ])->assertRedirect(route('admin.login.otp'));
+
+        // Password alone never creates a session -- the stale one is only
+        // cleared once the OTP step below actually completes the login.
+        $this->assertDatabaseHas('sessions', ['id' => 'stale-admin-session']);
+
+        $this->post('/admin/login/otp', ['otp' => '147258'])
+            ->assertRedirect(route('admin.dashboard'));
 
         $this->assertDatabaseMissing('sessions', ['id' => 'stale-admin-session']);
         $this->assertSame(1, DB::table('sessions')->where('user_id', $admin->id)->count());

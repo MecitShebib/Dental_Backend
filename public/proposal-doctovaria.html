@@ -133,7 +133,7 @@
   .trust-list li svg { width: 15px; height: 15px; margin-top: 3px; color: var(--accent-strong); }
   .trust-list li span { font-size: 14px; color: var(--ink); }
 
-  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
   .price-card { border: 1px solid var(--rule); border-radius: 10px; padding: 18px 16px; break-inside: avoid; display: flex; flex-direction: column; gap: 8px; }
   .price-card.featured { border-color: var(--accent); background: var(--accent-wash); }
   .price-card .tier-name { font-size: 13px; font-weight: 700; }
@@ -249,12 +249,12 @@
 <div class="doc-lang" data-doc-lang="en" lang="en" dir="ltr">
   <div class="doc-shell">
     <section class="cover">
-      <p class="cover-eyebrow">One Platform, Six Medical Specialties</p>
+      <p class="cover-eyebrow">One Platform, Eleven Medical Specialties</p>
       <div class="cover-mark">
         <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:68px;width:auto;display:block;">
       </div>
-      <h1>Six specialties. One platform. A confirmed care plan in minutes, not days.</h1>
-      <p class="lede">Doctovaria is the clinical operating system behind Dentavaria, Gynevaria, Medivaria, Orthovaria, Estevaria, and Dietavaria — one secure platform that runs scheduling, clinical records, billing, and AI-assisted care planning for dental, gynecology &amp; obstetrics, internal medicine, orthopedics, cosmetic medicine, and dietetics &amp; nutrition practices.</p>
+      <h1>Eleven specialties. One platform. A confirmed care plan in minutes, not days.</h1>
+      <p class="lede">Doctovaria is the clinical operating system behind Dentavaria, Gynevaria, Medivaria, Orthovaria, Estevaria, Dietavaria, Pediavaria, Physiovaria, Hemavaria, Surgivaria, and Genervaria — one secure platform that runs scheduling, clinical records, billing, and AI-assisted care planning for dental, gynecology &amp; obstetrics, internal medicine, orthopedics, cosmetic medicine, dietetics &amp; nutrition, pediatrics, physiotherapy, hematology, general surgery, and general practice.</p>
 
       <div class="cover-meta">
         <div class="field"><label>Prepared for</label><input type="text" placeholder="Clinic, hospital or group name"></div>
@@ -284,7 +284,7 @@
       <div class="sec-marker"><span class="sec-num">02</span><span class="sec-eyebrow">The AI assistant</span></div>
       <div class="sec-body">
         <h2>From a case description to a confirmed plan — in every specialty</h2>
-        <p class="sec-intro">The same AI Care Plan Assistant runs across all six specialties, shaped to fit how each one actually plans care.</p>
+        <p class="sec-intro">The same AI Care Plan Assistant runs across all eleven specialties, shaped to fit how each one actually plans care.</p>
         <div class="ai-flow">
           <div class="ai-step"><span class="num-circle">01</span><div><h3>Describe the case</h3><p>Type it, or speak it — the assistant transcribes the recording and reads it as clinical input. No forms, no data entry.</p></div></div>
           <div class="ai-step"><span class="num-circle">02</span><div><h3>The AI drafts the plan</h3><p>A structured plan is generated instantly, shaped for that specialty — procedure-by-procedure for dental, prenatal milestones for gynecology, a chronic-care or rehab or session schedule for the rest.</p></div></div>
@@ -298,7 +298,7 @@
     <section class="doc-section">
       <div class="sec-marker"><span class="sec-num">03</span><span class="sec-eyebrow">The platform</span></div>
       <div class="sec-body">
-        <h2>Built into a complete system, not six separate tools</h2>
+        <h2>Built into a complete system, not eleven separate tools</h2>
         <p class="sec-intro">Every specialty shares the same underlying platform:</p>
         <div class="feature-grid">
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Smart scheduling</h3><p>Conflict-free booking across doctors, locations, and specialties, with a real-time availability grid.</p></article>
@@ -307,7 +307,7 @@
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Multi-clinic, multi-specialty</h3><p>One login for every branch and every specialty a group runs, each with its own subscription, limits, and staff.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Secure mobile access</h3><p>OTP-verified sign-in on every device, token-based sessions, never a shared password.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Accounting &amp; payroll</h3><p>One company fund ledger across every clinic, plus payroll that adds each doctor's revenue-share commission automatically.</p></article>
-          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Lab &amp; test tracking</h3><p>Dental lab cases from sent to delivered, or lab and test results for the other four specialties — reflected in your books automatically.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Lab &amp; test tracking</h3><p>Dental lab cases from sent to delivered, or lab and test results for every other specialty — reflected in your books automatically.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Open API &amp; integrations</h3><p>Generate API tokens from Settings and connect outside equipment straight into a patient's chart, in any specialty.</p></article>
         </div>
       </div>
@@ -316,15 +316,20 @@
     <section class="doc-section">
       <div class="sec-marker"><span class="sec-num">04</span><span class="sec-eyebrow">The specialties</span></div>
       <div class="sec-body">
-        <h2>Six specialties, one platform</h2>
+        <h2>Eleven specialties, one platform</h2>
         <p class="sec-intro">Each product runs the same platform underneath, shaped to how that specialty actually plans and delivers care.</p>
         <div class="specialty-grid">
           <div class="specialty-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tagline" style="color:#1f4e8c">DENTAL</p><p>Odontogram-based charting and procedure-by-procedure AI treatment plans.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tagline" style="color:#a6295e">GYNECOLOGY &amp; OBSTETRICS</p><p>Milestone-based prenatal care plans that track a full pregnancy journey.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#1f7a5c"></div><p class="name">Medivaria</p><p class="tagline" style="color:#1f7a5c">INTERNAL MEDICINE</p><p>Chronic-care follow-up plans scheduled automatically after an anchor visit.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tagline" style="color:#b56a1f">ORTHOPEDICS</p><p>Rehabilitation and follow-up visit plans built around a procedure date.</p></div>
-          <div class="specialty-card wide"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">COSMETIC MEDICINE</p><p>Session-based treatment plans for multi-visit cosmetic programs.</p></div>
-          <div class="specialty-card wide"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tagline" style="color:#1f8ca6">DIETETICS &amp; NUTRITION</p><p>Follow-up program tracking for multi-session nutrition plans.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">COSMETIC MEDICINE</p><p>Session-based treatment plans for multi-visit cosmetic programs.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tagline" style="color:#1f8ca6">DIETETICS &amp; NUTRITION</p><p>Follow-up program tracking for multi-session nutrition plans.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#3a86ff"></div><p class="name">Pediavaria</p><p class="tagline" style="color:#3a86ff">PEDIATRICS</p><p>Well-child and vaccination follow-up plans with growth tracking.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#5c8a1f"></div><p class="name">Physiovaria</p><p class="tagline" style="color:#5c8a1f">PHYSIOTHERAPY</p><p>Physiotherapy session series with re-evaluations and progress tracking.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#b3261e"></div><p class="name">Hemavaria</p><p class="tagline" style="color:#b3261e">HEMATOLOGY</p><p>Blood count follow-up plans with CBC and transfusion tracking.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#37474f"></div><p class="name">Surgivaria</p><p class="tagline" style="color:#37474f">GENERAL SURGERY</p><p>Perioperative care plans from pre-op evaluation to post-op control.</p></div>
+          <div class="specialty-card wide"><div class="bar" style="background:#8a6d1f"></div><p class="name">Genervaria</p><p class="tagline" style="color:#8a6d1f">GENERAL PRACTICE</p><p>General follow-up plans with vital signs and referral tracking.</p></div>
         </div>
       </div>
     </section>
@@ -335,7 +340,7 @@
         <h2>What the first month looks like</h2>
         <div class="outcome-grid">
           <div class="outcome-card"><div class="stat-rule"></div><h3>Plans in seconds, not a callback tomorrow</h3><p>A consultation that used to end with "we'll send you a written plan" can now end with a confirmed one — in every specialty.</p></div>
-          <div class="outcome-card"><div class="stat-rule"></div><h3>One dashboard for the whole group</h3><p>Owners and managers see every clinic and every specialty's numbers in one place, not six spreadsheets.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>One dashboard for the whole group</h3><p>Owners and managers see every clinic and every specialty's numbers in one place, not eleven spreadsheets.</p></div>
           <div class="outcome-card"><div class="stat-rule"></div><h3>Nothing slips through after confirmation</h3><p>Confirming a plan books every session and records its fee in the same step — nothing left to do by hand.</p></div>
           <div class="outcome-card"><div class="stat-rule"></div><h3>More time with patients, less at the keyboard</h3><p>The time doctors get back goes to patients, not to writing up plans or reconciling books.</p></div>
         </div>
@@ -360,10 +365,13 @@
       <div class="sec-body">
         <h2>Pricing that scales with the group</h2>
         <div class="pricing-grid">
-          <div class="price-card"><span class="tier-name">Essentials</span><span class="tier-price">$74<small>/mo</small></span><p>The full toolkit, without AI. Up to 3 doctors per specialty — scheduling, records, billing, accounting, lab tracking, reports, and API access.</p></div>
-          <div class="price-card featured"><span class="tier-flag">Recommended</span><span class="tier-name">Growth</span><span class="tier-price">$249<small>/mo</small></span><p>Everything in Essentials, plus AI. Up to 10 doctors, the AI Care Plan Assistant, priority support.</p></div>
-          <div class="price-card"><span class="tier-name">Enterprise</span><span class="tier-price">Custom</span><p>Groups running several specialties at scale. Unlimited doctors, dedicated onboarding, custom integrations, volume pricing.</p></div>
+          <div data-plan="starter" class="price-card"><span class="tier-name">Starter</span><span class="tier-price">$30<small>/mo</small></span><p>For solo practitioners — the full Essentials toolkit for 1 doctor + 1 assistant user (non-doctor staff). $24/mo when billed yearly.</p></div>
+          <div data-plan="essentials" class="price-card"><span class="tier-name">Essentials</span><span class="tier-price">$75<small>/mo</small></span><p>The full toolkit. Up to 3 doctors + 2 assistant users per specialty — scheduling, records, billing, accounting, lab tracking, reports, and API access. $60/mo when billed yearly.</p></div>
+          <div data-plan="professional" class="price-card featured"><span class="tier-flag">Most popular</span><span class="tier-name">Professional</span><span class="tier-price">$140<small>/mo</small></span><p>Everything in Essentials, for established clinics. Up to 6 doctors + 3 assistant users (non-doctor staff), priority support. $112/mo when billed yearly.</p></div>
+          <div data-plan="growth" class="price-card"><span class="tier-name">Growth</span><span class="tier-price">$220<small>/mo</small></span><p>Everything in Professional, with more seats for larger teams. Up to 10 doctors + 5 assistant users (non-doctor staff), priority support. $176/mo when billed yearly.</p></div>
+          <div data-plan="enterprise" class="price-card"><span class="tier-name">Enterprise</span><span class="tier-price">Custom</span><p>Groups running several specialties at scale. Unlimited doctors, dedicated onboarding, custom integrations, volume pricing.</p></div>
         </div>
+        <p class="pricing-note"><strong>AI assistant — pay as you go.</strong> AI is not bundled into any plan. Top up AI tokens from inside the app whenever you need them, on any plan: <strong>$10 per 1,000,000 tokens</strong>.</p>
         <p class="pricing-note">Each specialty is its own subscription, priced independently — activate the ones your group needs, add another any time. Every plan can be trialled with your own schedule, doctors, and services, no credit card required.</p>
       </div>
     </section>
@@ -393,7 +401,7 @@
     </section>
 
     <footer class="doc-footer">
-      <span>Doctovaria — the clinical operating system for six medical specialties.</span>
+      <span>Doctovaria — the clinical operating system for eleven medical specialties.</span>
       <span>© 2026 Doctovaria. Confidential proposal.</span>
     </footer>
   </div>
@@ -403,12 +411,12 @@
 <div class="doc-lang" data-doc-lang="ar" lang="ar" dir="rtl" style="display:none">
   <div class="doc-shell">
     <section class="cover">
-      <p class="cover-eyebrow">منصة واحدة، ستة تخصصات طبية</p>
+      <p class="cover-eyebrow">منصة واحدة، أحد عشر تخصصاً طبياً</p>
       <div class="cover-mark">
         <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:68px;width:auto;display:block;">
       </div>
-      <h1>ستة تخصصات. منصة واحدة. خطة رعاية مؤكدة خلال دقائق، لا أيام.</h1>
-      <p class="lede">Doctovaria هو نظام التشغيل السريري خلف Dentavaria وGynevaria وMedivaria وOrthovaria وEstevaria وDietavaria — منصة آمنة واحدة تدير الجدولة والسجلات السريرية والفوترة وتخطيط الرعاية المدعوم بالذكاء الاصطناعي لممارسات طب الأسنان وأمراض النساء والتوليد والطب الباطني وجراحة العظام والطب التجميلي والتغذية العلاجية.</p>
+      <h1>أحد عشر تخصصاً. منصة واحدة. خطة رعاية مؤكدة خلال دقائق، لا أيام.</h1>
+      <p class="lede">Doctovaria هو نظام التشغيل السريري خلف Dentavaria وGynevaria وMedivaria وOrthovaria وEstevaria وDietavaria وPediavaria وPhysiovaria وHemavaria وSurgivaria وGenervaria — منصة آمنة واحدة تدير الجدولة والسجلات السريرية والفوترة وتخطيط الرعاية المدعوم بالذكاء الاصطناعي لممارسات طب الأسنان وأمراض النساء والتوليد والطب الباطني وجراحة العظام والطب التجميلي والتغذية العلاجية وطب الأطفال والعلاج الفيزيائي وأمراض الدم والجراحة العامة والطب العام.</p>
 
       <div class="cover-meta">
         <div class="field"><label>مُعدّ لـ</label><input type="text" placeholder="اسم العيادة أو المستشفى أو المجموعة"></div>
@@ -438,7 +446,7 @@
       <div class="sec-marker"><span class="sec-num">02</span><span class="sec-eyebrow">مساعد الذكاء الاصطناعي</span></div>
       <div class="sec-body">
         <h2>من وصف الحالة إلى خطة مؤكدة — في كل تخصص</h2>
-        <p class="sec-intro">مساعد خطة الرعاية بالذكاء الاصطناعي نفسه يعمل عبر التخصصات الستة، بشكل يناسب كيفية تخطيط الرعاية في كل منها.</p>
+        <p class="sec-intro">مساعد خطة الرعاية بالذكاء الاصطناعي نفسه يعمل عبر التخصصات الأحد عشر، بشكل يناسب كيفية تخطيط الرعاية في كل منها.</p>
         <div class="ai-flow">
           <div class="ai-step"><span class="num-circle">01</span><div><h3>صف الحالة</h3><p>اكتبها أو انطق بها — يقوم المساعد بتفريغ التسجيل الصوتي وقراءته كمُدخل سريري، دون نماذج أو إدخال بيانات.</p></div></div>
           <div class="ai-step"><span class="num-circle">02</span><div><h3>يصيغ الذكاء الاصطناعي الخطة</h3><p>تُولَّد خطة منظمة فوراً، بشكل يناسب ذلك التخصص — إجراءً بإجراء لطب الأسنان، مراحل ما قبل الولادة لأمراض النساء، وجدول رعاية مزمنة أو تأهيل أو جلسات لبقية التخصصات.</p></div></div>
@@ -461,7 +469,7 @@
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>إدارة متعددة العيادات والتخصصات</h3><p>تسجيل دخول واحد لكل فرع وكل تخصص تديره المجموعة، لكل منها اشتراكه وحدوده وطاقمه.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>وصول آمن عبر الجوال</h3><p>تسجيل دخول موثّق برمز تحقق لكل جهاز، وجلسات قائمة على الرموز، دون كلمة مرور مشتركة أبداً.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>المحاسبة والرواتب</h3><p>دفتر صندوق واحد للشركة عبر كل عيادة، ورواتب تضيف نسبة عمولة كل طبيب تلقائياً.</p></article>
-          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>تتبع المخبر والتحاليل</h3><p>حالات مخبر الأسنان من الإرسال حتى التسليم، أو نتائج التحاليل لبقية التخصصات الأربعة — تنعكس تلقائياً في حساباتك.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>تتبع المخبر والتحاليل</h3><p>حالات مخبر الأسنان من الإرسال حتى التسليم، أو نتائج التحاليل لبقية التخصصات — تنعكس تلقائياً في حساباتك.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>واجهة برمجية مفتوحة وتكاملات</h3><p>أنشئ رموز API من الإعدادات وصِل أجهزة خارجية مباشرة بملف المريض، في أي تخصص.</p></article>
         </div>
       </div>
@@ -470,15 +478,20 @@
     <section class="doc-section">
       <div class="sec-marker"><span class="sec-num">04</span><span class="sec-eyebrow">التخصصات</span></div>
       <div class="sec-body">
-        <h2>ستة تخصصات، منصة واحدة</h2>
+        <h2>أحد عشر تخصصاً، منصة واحدة</h2>
         <p class="sec-intro">كل منتج يعمل على المنصة نفسها، بشكل يناسب كيفية تخطيط وتقديم الرعاية في ذلك التخصص.</p>
         <div class="specialty-grid">
           <div class="specialty-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tagline" style="color:#1f4e8c">طب الأسنان</p><p>سجلات مبنية على مخطط الأسنان وخطط علاج بالذكاء الاصطناعي إجراءً بإجراء.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tagline" style="color:#a6295e">أمراض النساء والتوليد</p><p>خطط رعاية ما قبل الولادة مبنية على مراحل تتابع رحلة الحمل الكاملة.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#1f7a5c"></div><p class="name">Medivaria</p><p class="tagline" style="color:#1f7a5c">الطب الباطني</p><p>خطط متابعة رعاية مزمنة تُجدول تلقائياً بعد زيارة مرجعية.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tagline" style="color:#b56a1f">جراحة العظام</p><p>خطط تأهيل ومتابعة تُبنى حول تاريخ الإجراء.</p></div>
-          <div class="specialty-card wide"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">الطب التجميلي</p><p>خطط علاج مبنية على جلسات لبرامج تجميلية متعددة الزيارات.</p></div>
-          <div class="specialty-card wide"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tagline" style="color:#1f8ca6">التغذية والحمية</p><p>تتبع برامج المتابعة لخطط تغذية متعددة الجلسات.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">الطب التجميلي</p><p>خطط علاج مبنية على جلسات لبرامج تجميلية متعددة الزيارات.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tagline" style="color:#1f8ca6">التغذية والحمية</p><p>تتبع برامج المتابعة لخطط تغذية متعددة الجلسات.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#3a86ff"></div><p class="name">Pediavaria</p><p class="tagline" style="color:#3a86ff">طب الأطفال</p><p>خطط متابعة الطفل والتطعيم مع تتبع النمو.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#5c8a1f"></div><p class="name">Physiovaria</p><p class="tagline" style="color:#5c8a1f">العلاج الفيزيائي</p><p>سلاسل جلسات علاج فيزيائي مع إعادة التقييم وتتبع التقدم.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#b3261e"></div><p class="name">Hemavaria</p><p class="tagline" style="color:#b3261e">أمراض الدم</p><p>خطط متابعة تعداد الدم مع تتبع التحاليل ونقل الدم.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#37474f"></div><p class="name">Surgivaria</p><p class="tagline" style="color:#37474f">الجراحة العامة</p><p>خطط رعاية محيطة بالجراحة من تقييم ما قبل العملية حتى متابعة ما بعدها.</p></div>
+          <div class="specialty-card wide"><div class="bar" style="background:#8a6d1f"></div><p class="name">Genervaria</p><p class="tagline" style="color:#8a6d1f">الطب العام</p><p>خطط متابعة عامة مع تتبع العلامات الحيوية والإحالات.</p></div>
         </div>
       </div>
     </section>
@@ -489,7 +502,7 @@
         <h2>هكذا يبدو الشهر الأول</h2>
         <div class="outcome-grid">
           <div class="outcome-card"><div class="stat-rule"></div><h3>خطط خلال ثوانٍ، لا اتصال غداً</h3><p>الاستشارة التي كانت تنتهي بـ"سنرسل لك خطة مكتوبة" باتت تنتهي بخطة مؤكدة — في كل تخصص.</p></div>
-          <div class="outcome-card"><div class="stat-rule"></div><h3>لوحة تحكم واحدة للمجموعة كاملة</h3><p>يرى الملّاك والمدراء أرقام كل عيادة وكل تخصص في مكان واحد، لا ستة جداول بيانات.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>لوحة تحكم واحدة للمجموعة كاملة</h3><p>يرى الملّاك والمدراء أرقام كل عيادة وكل تخصص في مكان واحد، لا أحد عشر جدول بيانات.</p></div>
           <div class="outcome-card"><div class="stat-rule"></div><h3>لا شيء يفوت بعد التأكيد</h3><p>تأكيد الخطة يحجز كل جلسة ويسجّل رسومها في الخطوة نفسها — لا شيء يُترك يدوياً.</p></div>
           <div class="outcome-card"><div class="stat-rule"></div><h3>وقت أكبر مع المرضى، أقل على لوحة المفاتيح</h3><p>الوقت الذي يستعيده الأطباء يذهب للمرضى، لا لكتابة الخطط أو تسوية الحسابات.</p></div>
         </div>
@@ -514,10 +527,13 @@
       <div class="sec-body">
         <h2>تسعير يتناسب مع نمو المجموعة</h2>
         <div class="pricing-grid">
-          <div class="price-card"><span class="tier-name">أساسيات</span><span class="tier-price">$74<small>/شهرياً</small></span><p>كل الأدوات، بدون الذكاء الاصطناعي. حتى 3 أطباء لكل تخصص — جدولة، سجلات، فوترة، محاسبة، تتبع مخبر، تقارير، ووصول API.</p></div>
-          <div class="price-card featured"><span class="tier-flag">الأكثر شيوعاً</span><span class="tier-name">نمو</span><span class="tier-price">$249<small>/شهرياً</small></span><p>كل ما في أساسيات، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء، مساعد خطة الرعاية بالذكاء الاصطناعي، دعم ذو أولوية.</p></div>
-          <div class="price-card"><span class="tier-name">مؤسسات</span><span class="tier-price">مخصص</span><p>للمجموعات التي تدير عدة تخصصات بمقياس واسع. أطباء بلا حدود، تأهيل مخصص، تكاملات مخصصة، تسعير بالجملة.</p></div>
+          <div data-plan="starter" class="price-card"><span class="tier-name">بداية</span><span class="tier-price">$30<small>/شهرياً</small></span><p>للطبيب المستقل — كامل أدوات أساسيات لطبيب واحد ومستخدم مساعد واحد (من غير الأطباء). 24$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="essentials" class="price-card"><span class="tier-name">أساسيات</span><span class="tier-price">$75<small>/شهرياً</small></span><p>كل الأدوات. حتى 3 أطباء و2 من المستخدمين المساعدين لكل تخصص — جدولة، سجلات، فوترة، محاسبة، تتبع مخبر، تقارير، ووصول API. 60$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="professional" class="price-card featured"><span class="tier-flag">الأكثر شيوعاً</span><span class="tier-name">احترافي</span><span class="tier-price">$140<small>/شهرياً</small></span><p>كل ما في أساسيات، للعيادات الراسخة. حتى 6 أطباء و3 مستخدمين مساعدين (من غير الأطباء)، دعم ذو أولوية. 112$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="growth" class="price-card"><span class="tier-name">نمو</span><span class="tier-price">$220<small>/شهرياً</small></span><p>كل ما في احترافي، مع مقاعد أكثر للفرق الأكبر. حتى 10 أطباء و5 مستخدمين مساعدين (من غير الأطباء)، دعم ذو أولوية. 176$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="enterprise" class="price-card"><span class="tier-name">مؤسسات</span><span class="tier-price">مخصص</span><p>للمجموعات التي تدير عدة تخصصات بمقياس واسع. أطباء بلا حدود، تأهيل مخصص، تكاملات مخصصة، تسعير بالجملة.</p></div>
         </div>
+        <p class="pricing-note"><strong>مساعد الذكاء الاصطناعي — ادفع حسب الاستخدام.</strong> الذكاء الاصطناعي غير مشمول في أي باقة. اشحن رصيد التوكنات من داخل التطبيق متى احتجت، مع أي باقة: <strong>10$ لكل 1,000,000 توكن</strong>.</p>
         <p class="pricing-note">كل تخصص هو اشتراك مستقل بسعره الخاص — فعّل ما تحتاجه مجموعتك، وأضف تخصصاً آخر في أي وقت. يمكن تجربة كل خطة بجدولك وأطبائك وخدماتك الفعلية، دون الحاجة لبطاقة ائتمان.</p>
       </div>
     </section>
@@ -547,7 +563,7 @@
     </section>
 
     <footer class="doc-footer">
-      <span>Doctovaria — نظام التشغيل السريري لستة تخصصات طبية.</span>
+      <span>Doctovaria — نظام التشغيل السريري لأحد عشر تخصصاً طبياً.</span>
       <span>© 2026 Doctovaria. مقترح سري.</span>
     </footer>
   </div>
@@ -557,12 +573,12 @@
 <div class="doc-lang" data-doc-lang="tr" lang="tr" dir="ltr" style="display:none">
   <div class="doc-shell">
     <section class="cover">
-      <p class="cover-eyebrow">Tek Platform, Altı Tıbbi Uzmanlık Alanı</p>
+      <p class="cover-eyebrow">Tek Platform, On Bir Tıbbi Uzmanlık Alanı</p>
       <div class="cover-mark">
         <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:68px;width:auto;display:block;">
       </div>
-      <h1>Altı uzmanlık alanı. Tek platform. Dakikalar içinde onaylı bir bakım planı, günler değil.</h1>
-      <p class="lede">Doctovaria; Dentavaria, Gynevaria, Medivaria, Orthovaria, Estevaria ve Dietavaria'nın arkasındaki klinik işletim sistemidir — diş hekimliği, kadın hastalıkları &amp; doğum, dahiliye, ortopedi, estetik tıp ve diyetisyenlik pratikleri için randevu planlamasını, klinik kayıtları, faturalandırmayı ve yapay zeka destekli bakım planlamasını tek güvenli platformda yürütür.</p>
+      <h1>On bir uzmanlık alanı. Tek platform. Dakikalar içinde onaylı bir bakım planı, günler değil.</h1>
+      <p class="lede">Doctovaria; Dentavaria, Gynevaria, Medivaria, Orthovaria, Estevaria, Dietavaria, Pediavaria, Physiovaria, Hemavaria, Surgivaria ve Genervaria'nın arkasındaki klinik işletim sistemidir — diş hekimliği, kadın hastalıkları &amp; doğum, dahiliye, ortopedi, estetik tıp, diyetisyenlik, pediatri, fizyoterapi, hematoloji, genel cerrahi ve pratisyen hekimlik pratikleri için randevu planlamasını, klinik kayıtları, faturalandırmayı ve yapay zeka destekli bakım planlamasını tek güvenli platformda yürütür.</p>
 
       <div class="cover-meta">
         <div class="field"><label>Hazırlanan</label><input type="text" placeholder="Klinik, hastane veya grup adı"></div>
@@ -592,7 +608,7 @@
       <div class="sec-marker"><span class="sec-num">02</span><span class="sec-eyebrow">Yapay zeka asistanı</span></div>
       <div class="sec-body">
         <h2>Vaka tarifinden onaylı bir plana — her uzmanlık alanında</h2>
-        <p class="sec-intro">Aynı Yapay Zeka Bakım Planı Asistanı altı uzmanlık alanının tümünde çalışır, her birinin bakımı gerçekte nasıl planladığına uyacak şekilde biçimlenir.</p>
+        <p class="sec-intro">Aynı Yapay Zeka Bakım Planı Asistanı on bir uzmanlık alanının tümünde çalışır, her birinin bakımı gerçekte nasıl planladığına uyacak şekilde biçimlenir.</p>
         <div class="ai-flow">
           <div class="ai-step"><span class="num-circle">01</span><div><h3>Vakayı tarif edin</h3><p>Yazın ya da söyleyin — asistan kaydı yazıya döker ve klinik girdi olarak okur. Form yok, veri girişi yok.</p></div></div>
           <div class="ai-step"><span class="num-circle">02</span><div><h3>Yapay zeka planı hazırlar</h3><p>O uzmanlık alanına uygun biçimde, yapılandırılmış bir plan anında oluşturulur — diş hekimliği için işlem işlem, kadın hastalıkları için doğum öncesi kilometre taşları, diğerleri için kronik bakım, rehabilitasyon ya da seans takvimi.</p></div></div>
@@ -606,7 +622,7 @@
     <section class="doc-section">
       <div class="sec-marker"><span class="sec-num">03</span><span class="sec-eyebrow">Platform</span></div>
       <div class="sec-body">
-        <h2>Altı ayrı araç değil, eksiksiz tek bir sistem</h2>
+        <h2>On bir ayrı araç değil, eksiksiz tek bir sistem</h2>
         <p class="sec-intro">Her uzmanlık alanı aynı temel platformu paylaşır:</p>
         <div class="feature-grid">
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Akıllı randevu planlama</h3><p>Doktorlar, lokasyonlar ve uzmanlık alanları arasında çakışmasız randevu, gerçek zamanlı müsaitlik ızgarasıyla.</p></article>
@@ -615,7 +631,7 @@
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21H3m16 0h-5v-4a2 2 0 00-2-2h0a2 2 0 00-2 2v4H5"/></svg></span><h3>Çoklu klinik, çoklu uzmanlık</h3><p>Grubun işlettiği her şube ve her uzmanlık alanı için tek giriş, her biri kendi aboneliği, limitleri ve personeliyle.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span><h3>Güvenli mobil erişim</h3><p>Her cihazda OTP ile doğrulanmış giriş, token tabanlı oturumlar, asla paylaşılan şifre yok.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></span><h3>Muhasebe ve bordro</h3><p>Her klinik genelinde tek bir şirket kasa defteri, her doktorun komisyonunu otomatik ekleyen bordro.</p></article>
-          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Laboratuvar ve test takibi</h3><p>Diş laboratuvarı vakaları gönderimden teslime kadar, ya da diğer dört uzmanlık alanı için laboratuvar ve test sonuçları — defterlerinize otomatik yansır.</p></article>
+          <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v4a1 1 0 001 1h4M6 21h12a2 2 0 002-2V8l-5-5H6a2 2 0 00-2 2v14a2 2 0 002 2zm3-8s1 2 3 2 3-2 3-2m-6 4s1 2 3 2 3-2 3-2"/></svg></span><h3>Laboratuvar ve test takibi</h3><p>Diş laboratuvarı vakaları gönderimden teslime kadar, ya da diğer uzmanlık alanları için laboratuvar ve test sonuçları — defterlerinize otomatik yansır.</p></article>
           <article class="feature-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-6-9l-2 12"/></svg></span><h3>Açık API ve entegrasyonlar</h3><p>Ayarlar'dan API token oluşturun ve hangi uzmanlık alanında olursa olsun harici cihazları doğrudan hasta dosyasına bağlayın.</p></article>
         </div>
       </div>
@@ -624,15 +640,20 @@
     <section class="doc-section">
       <div class="sec-marker"><span class="sec-num">04</span><span class="sec-eyebrow">Uzmanlık alanları</span></div>
       <div class="sec-body">
-        <h2>Altı uzmanlık alanı, tek platform</h2>
+        <h2>On bir uzmanlık alanı, tek platform</h2>
         <p class="sec-intro">Her ürün aynı platform üzerinde çalışır, o uzmanlık alanının bakımı gerçekte nasıl planlayıp sunduğuna uygun biçimde.</p>
         <div class="specialty-grid">
           <div class="specialty-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tagline" style="color:#1f4e8c">DİŞ HEKİMLİĞİ</p><p>Odontogram tabanlı kayıt tutma ve işlem işlem yapay zeka tedavi planları.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tagline" style="color:#a6295e">KADIN HASTALIKLARI VE DOĞUM</p><p>Tüm hamilelik sürecini takip eden kilometre taşı tabanlı doğum öncesi bakım planları.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#1f7a5c"></div><p class="name">Medivaria</p><p class="tagline" style="color:#1f7a5c">DAHİLİYE</p><p>Bir referans ziyaretten sonra otomatik olarak planlanan kronik bakım takip planları.</p></div>
           <div class="specialty-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tagline" style="color:#b56a1f">ORTOPEDİ</p><p>Bir işlem tarihi etrafında kurulan rehabilitasyon ve takip ziyareti planları.</p></div>
-          <div class="specialty-card wide"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">ESTETİK TIP</p><p>Çok seanslı estetik programlar için seans tabanlı tedavi planları.</p></div>
-          <div class="specialty-card wide"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tagline" style="color:#1f8ca6">DİYETİSYENLİK VE BESLENME</p><p>Çok seanslı beslenme programları için takip programı takibi.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tagline" style="color:#7a4fb5">ESTETİK TIP</p><p>Çok seanslı estetik programlar için seans tabanlı tedavi planları.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tagline" style="color:#1f8ca6">DİYETİSYENLİK VE BESLENME</p><p>Çok seanslı beslenme programları için takip programı takibi.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#3a86ff"></div><p class="name">Pediavaria</p><p class="tagline" style="color:#3a86ff">PEDİATRİ</p><p>Büyüme takibiyle çocuk izlem ve aşı planları.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#5c8a1f"></div><p class="name">Physiovaria</p><p class="tagline" style="color:#5c8a1f">FİZYOTERAPİ</p><p>Ara değerlendirmeli fizyoterapi seans serileri ve ilerleme takibi.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#b3261e"></div><p class="name">Hemavaria</p><p class="tagline" style="color:#b3261e">HEMATOLOJİ</p><p>Hemogram ve transfüzyon takibiyle kan sayımı takip planları.</p></div>
+          <div class="specialty-card"><div class="bar" style="background:#37474f"></div><p class="name">Surgivaria</p><p class="tagline" style="color:#37474f">GENEL CERRAHİ</p><p>Ameliyat öncesi değerlendirmeden ameliyat sonrası kontrole perioperatif bakım planları.</p></div>
+          <div class="specialty-card wide"><div class="bar" style="background:#8a6d1f"></div><p class="name">Genervaria</p><p class="tagline" style="color:#8a6d1f">PRATİSYEN HEKİMLİK</p><p>Vital bulgu ve sevk takibiyle genel takip planları.</p></div>
         </div>
       </div>
     </section>
@@ -643,7 +664,7 @@
         <h2>İlk ay nasıl görünür</h2>
         <div class="outcome-grid">
           <div class="outcome-card"><div class="stat-rule"></div><h3>Yarın geri arama değil, saniyeler içinde plan</h3><p>"Size yazılı bir plan göndereceğiz" ile biten görüşme, hangi uzmanlık alanında olursa olsun artık onaylı bir planla bitiyor.</p></div>
-          <div class="outcome-card"><div class="stat-rule"></div><h3>Tüm grup için tek panel</h3><p>Sahipler ve yöneticiler her klinik ve her uzmanlık alanının rakamlarını altı ayrı tabloda değil, tek yerde görür.</p></div>
+          <div class="outcome-card"><div class="stat-rule"></div><h3>Tüm grup için tek panel</h3><p>Sahipler ve yöneticiler her klinik ve her uzmanlık alanının rakamlarını on bir ayrı tabloda değil, tek yerde görür.</p></div>
           <div class="outcome-card"><div class="stat-rule"></div><h3>Onaydan sonra hiçbir şey atlanmaz</h3><p>Bir planı onaylamak aynı adımda her seansı ayırtır ve ücretini kaydeder — elle yapılacak hiçbir şey kalmaz.</p></div>
           <div class="outcome-card"><div class="stat-rule"></div><h3>Hastalarla daha fazla, klavyede daha az zaman</h3><p>Hekimlerin geri kazandığı zaman, plan yazmaya ya da defter tutmaya değil hastalara ayrılır.</p></div>
         </div>
@@ -668,10 +689,13 @@
       <div class="sec-body">
         <h2>Grupla birlikte ölçeklenen fiyatlandırma</h2>
         <div class="pricing-grid">
-          <div class="price-card"><span class="tier-name">Temel</span><span class="tier-price">$74<small>/ay</small></span><p>Yapay zeka olmadan tüm araç seti. Uzmanlık alanı başına 3 doktora kadar — planlama, kayıtlar, faturalama, muhasebe, laboratuvar takibi, raporlar ve API erişimi.</p></div>
-          <div class="price-card featured"><span class="tier-flag">Önerilen</span><span class="tier-name">Büyüme</span><span class="tier-price">$249<small>/ay</small></span><p>Temel'deki her şeye ek olarak yapay zeka. 10 doktora kadar, Yapay Zeka Bakım Planı Asistanı, öncelikli destek.</p></div>
-          <div class="price-card"><span class="tier-name">Kurumsal</span><span class="tier-price">Özel</span><p>Büyük ölçekte birden fazla uzmanlık alanı işleten gruplar için. Sınırsız doktor, özel katılım, özel entegrasyonlar, toplu fiyatlandırma.</p></div>
+          <div data-plan="starter" class="price-card"><span class="tier-name">Başlangıç</span><span class="tier-price">$30<small>/ay</small></span><p>Bireysel hekimler için — 1 doktor ve 1 asistan kullanıcı (doktor olmayan personel) için Temel'in tüm araç seti. Yıllık ödemede aylık $24.</p></div>
+          <div data-plan="essentials" class="price-card"><span class="tier-name">Temel</span><span class="tier-price">$75<small>/ay</small></span><p>Tüm araç seti. Uzmanlık alanı başına 3 doktor ve 2 asistan kullanıcıya kadar — planlama, kayıtlar, faturalama, muhasebe, laboratuvar takibi, raporlar ve API erişimi. Yıllık ödemede aylık $60.</p></div>
+          <div data-plan="professional" class="price-card featured"><span class="tier-flag">En popüler</span><span class="tier-name">Profesyonel</span><span class="tier-price">$140<small>/ay</small></span><p>Temel'deki her şey, yerleşik klinikler için. 6 doktor ve 3 asistan kullanıcıya (doktor olmayan personel) kadar, öncelikli destek. Yıllık ödemede aylık $112.</p></div>
+          <div data-plan="growth" class="price-card"><span class="tier-name">Büyüme</span><span class="tier-price">$220<small>/ay</small></span><p>Profesyonel'deki her şey, daha büyük ekipler için daha fazla kullanıcıyla. 10 doktor ve 5 asistan kullanıcıya (doktor olmayan personel) kadar, öncelikli destek. Yıllık ödemede aylık $176.</p></div>
+          <div data-plan="enterprise" class="price-card"><span class="tier-name">Kurumsal</span><span class="tier-price">Özel</span><p>Büyük ölçekte birden fazla uzmanlık alanı işleten gruplar için. Sınırsız doktor, özel katılım, özel entegrasyonlar, toplu fiyatlandırma.</p></div>
         </div>
+        <p class="pricing-note"><strong>Yapay zeka asistanı — kullandıkça öde.</strong> Yapay zeka hiçbir pakete dahil değildir. İhtiyaç duyduğunuzda, her pakette, uygulama içinden token yükleyin: <strong>1.000.000 token için $10</strong>.</p>
         <p class="pricing-note">Her uzmanlık alanı, kendi fiyatıyla bağımsız bir abonelik olarak çalışır — grubunuzun ihtiyaç duyduklarını etkinleştirin, istediğiniz zaman bir tane daha ekleyin. Her plan, kendi programınız, doktorlarınız ve hizmetlerinizle denenebilir, kredi kartı gerekmez.</p>
       </div>
     </section>
@@ -701,7 +725,7 @@
     </section>
 
     <footer class="doc-footer">
-      <span>Doctovaria — altı tıbbi uzmanlık alanı için klinik işletim sistemi.</span>
+      <span>Doctovaria — on bir tıbbi uzmanlık alanı için klinik işletim sistemi.</span>
       <span>© 2026 Doctovaria. Gizli teklif.</span>
     </footer>
   </div>
@@ -725,6 +749,14 @@
       b.addEventListener('click', function () { setLang(b.dataset.lang); });
     });
   })();
+</script>
+<script>
+  // Hide pricing plans switched off in Admin > Landing Page.
+  fetch('/api/public/plan-visibility').then(function (r) { return r.json(); }).then(function (d) {
+    Object.keys(d.plans || {}).forEach(function (plan) {
+      if (!d.plans[plan]) document.querySelectorAll('[data-plan="' + plan + '"]').forEach(function (el) { el.style.display = 'none'; });
+    });
+  }).catch(function () {});
 </script>
 </body>
 </html>

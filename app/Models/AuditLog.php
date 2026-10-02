@@ -65,7 +65,7 @@ class AuditLog extends Model
      * access-history purposes; that trail is still queryable directly, just
      * not through this screen.
      */
-    public const ACTIONS = ['created', 'updated', 'deleted', 'password_changed', 'exported', 'erasure_requested'];
+    public const ACTIONS = ['created', 'updated', 'deleted', 'password_changed', 'exported', 'erasure_requested', 'terms_accepted'];
 
     protected $fillable = [
         'uuid',

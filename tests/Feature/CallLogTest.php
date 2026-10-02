@@ -108,6 +108,17 @@ class CallLogTest extends TestCase
         $this->assertDatabaseMissing('call_logs', ['id' => $log->id]);
     }
 
+    public function test_call_logs_are_forbidden_when_the_subscription_lacks_the_call_webhook_feature(): void
+    {
+        $company = Company::factory()->create();
+        $company->subscriptions()->update(['features' => json_encode(['whatsapp'])]);
+        $user = User::factory()->create(['company_id' => $company->id]);
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/call-logs')->assertStatus(403);
+        $this->getJson('/api/call-logs/summary')->assertStatus(403);
+    }
+
     public function test_a_malformed_phone_number_is_rejected(): void
     {
         $company = Company::factory()->create();

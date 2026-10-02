@@ -236,7 +236,7 @@ class BranchTest extends TestCase
 
         $this->post(route('admin.subscriptions.store'), [
             'company_id' => $company->id, 'specialty_id' => $dental->id, 'plan_name' => 'Growth', 'status' => 'active',
-            'starts_at' => now()->toDateString(), 'max_users' => 5,
+            'starts_at' => now()->toDateString(), 'max_doctors' => 5, 'max_assistants' => 5,
         ])->assertSessionHasErrors('max_branches');
     }
 
@@ -254,7 +254,7 @@ class BranchTest extends TestCase
 
         $this->put(route('admin.subscriptions.update', $subscription), [
             'company_id' => $company->id, 'specialty_ids' => [$subscription->specialty_id], 'plan_name' => $subscription->plan_name, 'status' => 'active',
-            'starts_at' => $subscription->starts_at->toDateString(), 'max_users' => $subscription->max_users,
+            'starts_at' => $subscription->starts_at->toDateString(), 'max_doctors' => 5, 'max_assistants' => 5,
             'max_branches' => 1,
         ])->assertSessionHasErrors('max_branches');
     }

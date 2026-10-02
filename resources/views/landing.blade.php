@@ -8,25 +8,25 @@
     $ui = [
         'en' => [
             'meta_title' => 'Doctovaria — The clinical operating system for modern healthcare practices',
-            'meta_description' => 'Doctovaria is the clinical operating system for modern healthcare practices — dental, gynecology, internal medicine, orthopedics, cosmetic, and dietetics & nutrition. Pick your specialty to see its own workflow, features, and pricing.',
+            'meta_description' => 'Doctovaria is the clinical operating system for modern healthcare practices — dental, gynecology, internal medicine, orthopedics, cosmetic, dietetics & nutrition, pediatrics, physiotherapy, hematology, general surgery, and general practice. Pick your specialty to see its own workflow, features, and pricing.',
             'nav_login' => 'Log in', 'nav_cta' => 'Book a demo', 'nav_admin' => 'Go to admin panel', 'nav_dashboard' => 'Go to dashboard',
-            'nav_api_docs' => 'API Documentation', 'nav_options' => 'Options',
+            'nav_options' => 'Options',
             'view_product' => 'View',
             'footer_rights' => 'All rights reserved.',
         ],
         'ar' => [
             'meta_title' => 'Doctovaria — نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة',
-            'meta_description' => 'Doctovaria هو نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة — طب الأسنان وأمراض النساء والطب الباطني وجراحة العظام والطب التجميلي والتغذية العلاجية. اختر تخصصك لترى سير عمله ومزاياه وأسعاره الخاصة.',
+            'meta_description' => 'Doctovaria هو نظام التشغيل السريري لممارسات الرعاية الصحية الحديثة — طب الأسنان وأمراض النساء والطب الباطني وجراحة العظام والطب التجميلي والتغذية العلاجية وطب الأطفال والعلاج الفيزيائي وأمراض الدم والجراحة العامة والطب العام. اختر تخصصك لترى سير عمله ومزاياه وأسعاره الخاصة.',
             'nav_login' => 'تسجيل الدخول', 'nav_cta' => 'احجز عرضًا توضيحيًا', 'nav_admin' => 'الذهاب إلى لوحة التحكم', 'nav_dashboard' => 'الذهاب إلى لوحة القيادة',
-            'nav_api_docs' => 'وثائق API', 'nav_options' => 'خيارات',
+            'nav_options' => 'خيارات',
             'view_product' => 'عرض',
             'footer_rights' => 'جميع الحقوق محفوظة.',
         ],
         'tr' => [
             'meta_title' => 'Doctovaria — Modern sağlık pratiklerinin klinik işletim sistemi',
-            'meta_description' => "Doctovaria, modern sağlık pratiklerinin klinik işletim sistemidir — diş hekimliği, kadın hastalıkları, dahiliye, ortopedi, estetik tıp ve diyetisyenlik. Kendi uzmanlık alanınızın iş akışını, özelliklerini ve fiyatlandırmasını görmek için seçin.",
+            'meta_description' => "Doctovaria, modern sağlık pratiklerinin klinik işletim sistemidir — diş hekimliği, kadın hastalıkları, dahiliye, ortopedi, estetik tıp, diyetisyenlik, pediatri, fizyoterapi, hematoloji, genel cerrahi ve pratisyen hekimlik. Kendi uzmanlık alanınızın iş akışını, özelliklerini ve fiyatlandırmasını görmek için seçin.",
             'nav_login' => 'Giriş yap', 'nav_cta' => 'Demo talep edin', 'nav_admin' => 'Yönetim paneline git', 'nav_dashboard' => 'Panele git',
-            'nav_api_docs' => 'API Dokümantasyonu', 'nav_options' => 'Seçenekler',
+            'nav_options' => 'Seçenekler',
             'view_product' => 'Görüntüle',
             'footer_rights' => 'Tüm hakları saklıdır.',
         ],
@@ -274,6 +274,11 @@
                             'orthopedics' => 'orthovaria_logo.png',
                             'cosmetic' => 'estevaria_logo.png',
                             'nutrition' => 'dietavaria_logo.png',
+                            'pediatrics' => 'pediavaria_logo.png?v=20260928',
+                            'physiotherapy' => 'physiovaria_logo.png?v=20260928',
+                            'hematology' => 'hemavaria_logo.png?v=20260928',
+                            'general_surgery' => 'surgivaria_logo.png?v=20260928',
+                            'general_practice' => 'genervaria_logo.png?v=20260928',
                             default => 'doctovaria_logo.png',
                         };
                     @endphp
@@ -294,10 +299,12 @@
 
     {{-- Footer --}}
     <footer class="border-t border-white/5 px-6 py-10">
+        <ul class="mx-auto mb-6 flex max-w-6xl flex-wrap items-center justify-center gap-3 text-sm text-slate-500" style="column-gap: 1.75rem;">
+            @include('partials.landing-contact-links', ['locale' => $locale, 'linkClass' => 'transition hover:text-slate-300'])
+        </ul>
         <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-slate-600 sm:flex-row">
             <p>&copy; {{ date('Y') }} {{ $content['footer']['copyright_name'] }}. {{ $ui['footer_rights'] }}</p>
             <div class="flex items-center gap-5">
-                <a href="{{ route('api-docs', ['specialty' => 'dental']) }}" class="transition hover:text-slate-400">{{ $ui['nav_api_docs'] }}</a>
                 <a href="{{ route('privacy', $locale === 'en' ? 'en' : $locale) }}" class="transition hover:text-slate-400">{{ $locale === 'ar' ? 'سياسة الخصوصية' : ($locale === 'tr' ? 'Gizlilik politikası' : 'Privacy policy') }}</a>
                 <a href="{{ route('terms', $locale === 'en' ? 'en' : $locale) }}" class="transition hover:text-slate-400">{{ $locale === 'ar' ? 'شروط الخدمة' : ($locale === 'tr' ? 'Kullanım şartları' : 'Terms of service') }}</a>
             </div>

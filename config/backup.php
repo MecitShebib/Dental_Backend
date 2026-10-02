@@ -27,6 +27,9 @@ return [
                  */
                 'include' => [
                     base_path(),
+                    // Uploaded files live outside the project when FILES_ROOT
+                    // is set (config/filesystems.php) -- back them up too.
+                    ...array_filter([rtrim((string) env('FILES_ROOT', ''), '/\\')]),
                     // storage_path(),  // Include if you use zero downtime deployments and don't follow symlinks
                 ],
 
@@ -41,6 +44,13 @@ return [
                     base_path('public/app'),
                     storage_path('framework'),
                     storage_path('logs'),
+                    // Backups are written to the `local` disk, i.e. into
+                    // <local root>/<APP_NAME>/ -- never zip old backups into
+                    // new ones (with FILES_ROOT that folder is inside an
+                    // included path, and every backup would contain all the
+                    // previous ones).
+                    storage_path('app/private/'.env('APP_NAME', 'laravel-backup')),
+                    ...array_filter([env('FILES_ROOT') ? rtrim((string) env('FILES_ROOT'), '/\\').'/private/'.env('APP_NAME', 'laravel-backup') : null]),
                 ],
 
                 /*

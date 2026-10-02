@@ -70,8 +70,8 @@
   .feat-card h3 { font-size: clamp(13px, 1.05vw, 15px); font-weight: 700; margin: 0 0 4px; }
   .feat-card p { font-size: clamp(11.5px, 0.95vw, 12.5px); color: var(--ink-soft); margin: 0; line-height: 1.45; }
 
-  .spec-grid { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .spec-card { border-radius: 12px; padding: 20px; background: var(--paper-raised); }
+  .spec-grid { margin-top: 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .spec-card { border-radius: 12px; padding: 14px 16px; background: var(--paper-raised); }
   .spec-card .bar { width: 24px; height: 4px; border-radius: 2px; margin-bottom: 12px; }
   .spec-card .name { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 2px; }
   .spec-card .tag { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; margin: 0 0 8px; }
@@ -86,13 +86,14 @@
   .trust-row li { list-style: none; display: flex; gap: 12px; align-items: flex-start; font-size: clamp(13.5px, 1.1vw, 15px); }
   .trust-row svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; color: var(--accent); }
 
-  .price-row { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; }
+  .price-row { margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; max-width: 1100px; }
   .price-tile { border: 1px solid var(--rule); border-radius: 14px; padding: 22px 20px; }
   .price-tile.hi { border-color: var(--accent); background: var(--accent-wash); }
   .price-tile .tn { font-size: 13px; font-weight: 700; }
   .price-tile .tp { font-family: var(--font-mono); font-size: 26px; margin-top: 6px; display: block; }
   .price-tile .tp small { font-size: 11px; color: var(--ink-faint); font-family: var(--font-body); }
   .price-tile p { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; line-height: 1.5; }
+  .price-ai { margin: 18px 0 0; max-width: 900px; font-size: 13px; line-height: 1.5; color: var(--ink-soft); border-inline-start: 3px solid var(--accent); padding: 6px 12px; }
 
   .cta-slide .glyph { width: 54px; height: 54px; border-radius: 14px; background: var(--accent); display: grid; place-items: center; margin-bottom: 22px; }
   .cta-slide .glyph svg { width: 26px; height: 26px; }
@@ -151,8 +152,8 @@
     <section class="slide dark cover-slide is-active" data-slide>
       <div class="slide-inner">
         <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
-        <h1 class="slide-h">Six specialties.<br>One platform.</h1>
-        <p class="slide-lede">The clinical operating system for dental, gynecology &amp; obstetrics, internal medicine, orthopedics, and cosmetic medicine — one secure platform, one AI care plan assistant, one billing ledger.</p>
+        <h1 class="slide-h">Eleven specialties.<br>One platform.</h1>
+        <p class="slide-lede">The clinical operating system for dental, gynecology &amp; obstetrics, internal medicine, orthopedics, cosmetic medicine, nutrition, pediatrics, physiotherapy, hematology, general surgery, and general practice — one secure platform, one AI care plan assistant, one billing ledger.</p>
         <div class="cover-meta-row">
           <div class="m">PREPARED FOR<b>—</b></div>
           <div class="m">PREPARED BY<b>Doctovaria</b></div>
@@ -192,7 +193,7 @@
     <section class="slide" data-slide>
       <div class="slide-inner">
         <p class="k">03 — The platform</p>
-        <h2 class="slide-h">One system, not six.</h2>
+        <h2 class="slide-h">One system, not eleven.</h2>
         <div class="feat-grid">
           <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Smart scheduling</h3><p>Conflict-free, across doctors and clinics.</p></div>
           <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Clinical records</h3><p>Odontogram or milestone plans, per specialty.</p></div>
@@ -209,7 +210,7 @@
     <section class="slide" data-slide>
       <div class="slide-inner">
         <p class="k">04 — The specialties</p>
-        <h2 class="slide-h">Six products. One brand.</h2>
+        <h2 class="slide-h">Eleven products. One brand.</h2>
         <div class="spec-grid">
           <div class="spec-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tag" style="color:#1f4e8c">DENTAL</p><p>Odontogram charting, procedure-based AI plans.</p></div>
           <div class="spec-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tag" style="color:#a6295e">GYNECOLOGY &amp; OBSTETRICS</p><p>Milestone-based prenatal care plans.</p></div>
@@ -217,6 +218,11 @@
           <div class="spec-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tag" style="color:#b56a1f">ORTHOPEDICS</p><p>Rehab and follow-up visit plans.</p></div>
           <div class="spec-card"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tag" style="color:#7a4fb5">COSMETIC MEDICINE</p><p>Session-based treatment plans.</p></div>
           <div class="spec-card"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tag" style="color:#1f8ca6">DIETETICS &amp; NUTRITION</p><p>Follow-up program tracking.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#3a86ff"></div><p class="name">Pediavaria</p><p class="tag" style="color:#3a86ff">PEDIATRICS</p><p>Well-child and vaccination plans.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#5c8a1f"></div><p class="name">Physiovaria</p><p class="tag" style="color:#5c8a1f">PHYSIOTHERAPY</p><p>Session plans and progress tracking.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#b3261e"></div><p class="name">Hemavaria</p><p class="tag" style="color:#b3261e">HEMATOLOGY</p><p>Blood count follow-up plans.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#37474f"></div><p class="name">Surgivaria</p><p class="tag" style="color:#37474f">GENERAL SURGERY</p><p>Perioperative care plans.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#8a6d1f"></div><p class="name">Genervaria</p><p class="tag" style="color:#8a6d1f">GENERAL PRACTICE</p><p>General follow-up plans.</p></div>
         </div>
       </div>
     </section>
@@ -252,10 +258,13 @@
         <p class="k">07 — Investment</p>
         <h2 class="slide-h">Pricing that scales with the group.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">Essentials</span><span class="tp">$74<small>/mo</small></span><p>Full toolkit, no AI. Up to 3 doctors per specialty.</p></div>
-          <div class="price-tile hi"><span class="tn">Growth</span><span class="tp">$249<small>/mo</small></span><p>Everything, plus AI. Up to 10 doctors. Recommended.</p></div>
-          <div class="price-tile"><span class="tn">Enterprise</span><span class="tp">Custom</span><p>Unlimited doctors, dedicated onboarding.</p></div>
+          <div data-plan="starter" class="price-tile"><span class="tn">Starter</span><span class="tp">$30<small>/mo</small></span><p>Solo practice. 1 doctor + 1 assistant. $24/mo billed yearly.</p></div>
+          <div data-plan="essentials" class="price-tile"><span class="tn">Essentials</span><span class="tp">$75<small>/mo</small></span><p>Full toolkit. Up to 3 doctors + 2 assistants per specialty. $60/mo billed yearly.</p></div>
+          <div data-plan="professional" class="price-tile hi"><span class="tn">Professional</span><span class="tp">$140<small>/mo</small></span><p>Everything in Essentials. Up to 6 doctors + 3 assistants. $112/mo billed yearly. Most popular.</p></div>
+          <div data-plan="growth" class="price-tile"><span class="tn">Growth</span><span class="tp">$220<small>/mo</small></span><p>Everything in Professional. Up to 10 doctors + 5 assistants. $176/mo billed yearly.</p></div>
+          <div data-plan="enterprise" class="price-tile"><span class="tn">Enterprise</span><span class="tp">Custom</span><p>Unlimited doctors, dedicated onboarding.</p></div>
         </div>
+        <p class="price-ai"><strong>AI is pay-as-you-go</strong> — not bundled in any plan. Top up tokens inside the app: <strong>$10 per 1M tokens</strong>.</p>
       </div>
     </section>
 
@@ -287,8 +296,8 @@
     <section class="slide dark cover-slide is-active" data-slide>
       <div class="slide-inner">
         <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
-        <h1 class="slide-h">ستة تخصصات.<br>منصة واحدة.</h1>
-        <p class="slide-lede">نظام التشغيل السريري لطب الأسنان وأمراض النساء والتوليد والطب الباطني وجراحة العظام والطب التجميلي — منصة آمنة واحدة، مساعد رعاية بالذكاء الاصطناعي واحد، دفتر فوترة واحد.</p>
+        <h1 class="slide-h">أحد عشر تخصصاً.<br>منصة واحدة.</h1>
+        <p class="slide-lede">نظام التشغيل السريري لطب الأسنان وأمراض النساء والتوليد والطب الباطني وجراحة العظام والطب التجميلي والتغذية وطب الأطفال والعلاج الفيزيائي وأمراض الدم والجراحة العامة والطب العام — منصة آمنة واحدة، مساعد رعاية بالذكاء الاصطناعي واحد، دفتر فوترة واحد.</p>
         <div class="cover-meta-row">
           <div class="m">مُعدّ لـ<b>—</b></div>
           <div class="m">مُعدّ من قبل<b>Doctovaria</b></div>
@@ -328,7 +337,7 @@
     <section class="slide" data-slide>
       <div class="slide-inner">
         <p class="k">03 — المنصة</p>
-        <h2 class="slide-h">نظام واحد، لا ستة.</h2>
+        <h2 class="slide-h">نظام واحد، لا أحد عشر.</h2>
         <div class="feat-grid">
           <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>جدولة ذكية</h3><p>بلا تعارض، بين الأطباء والعيادات.</p></div>
           <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>سجلات سريرية</h3><p>مخطط أسنان أو خطط مراحل، لكل تخصص.</p></div>
@@ -345,7 +354,7 @@
     <section class="slide" data-slide>
       <div class="slide-inner">
         <p class="k">04 — التخصصات</p>
-        <h2 class="slide-h">ستة منتجات. علامة واحدة.</h2>
+        <h2 class="slide-h">أحد عشر منتجاً. علامة واحدة.</h2>
         <div class="spec-grid">
           <div class="spec-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tag" style="color:#1f4e8c">طب الأسنان</p><p>سجلات مخطط الأسنان، خطط ذكاء اصطناعي إجرائية.</p></div>
           <div class="spec-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tag" style="color:#a6295e">أمراض النساء والتوليد</p><p>خطط رعاية ما قبل الولادة مبنية على مراحل.</p></div>
@@ -353,6 +362,11 @@
           <div class="spec-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tag" style="color:#b56a1f">جراحة العظام</p><p>خطط تأهيل ومتابعة.</p></div>
           <div class="spec-card"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tag" style="color:#7a4fb5">الطب التجميلي</p><p>خطط علاج مبنية على جلسات.</p></div>
           <div class="spec-card"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tag" style="color:#1f8ca6">التغذية والحمية</p><p>تتبع برامج المتابعة.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#3a86ff"></div><p class="name">Pediavaria</p><p class="tag" style="color:#3a86ff">طب الأطفال</p><p>خطط متابعة الطفل والتطعيم.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#5c8a1f"></div><p class="name">Physiovaria</p><p class="tag" style="color:#5c8a1f">العلاج الفيزيائي</p><p>خطط الجلسات وتتبع التقدم.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#b3261e"></div><p class="name">Hemavaria</p><p class="tag" style="color:#b3261e">أمراض الدم</p><p>خطط متابعة تعداد الدم.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#37474f"></div><p class="name">Surgivaria</p><p class="tag" style="color:#37474f">الجراحة العامة</p><p>خطط الرعاية المحيطة بالجراحة.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#8a6d1f"></div><p class="name">Genervaria</p><p class="tag" style="color:#8a6d1f">الطب العام</p><p>خطط المتابعة العامة.</p></div>
         </div>
       </div>
     </section>
@@ -388,10 +402,13 @@
         <p class="k">07 — الاستثمار</p>
         <h2 class="slide-h">تسعير يتناسب مع نمو المجموعة.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">أساسيات</span><span class="tp">$74<small>/شهرياً</small></span><p>كل الأدوات، بدون ذكاء اصطناعي. حتى 3 أطباء لكل تخصص.</p></div>
-          <div class="price-tile hi"><span class="tn">نمو</span><span class="tp">$249<small>/شهرياً</small></span><p>كل شيء، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء. موصى به.</p></div>
-          <div class="price-tile"><span class="tn">مؤسسات</span><span class="tp">مخصص</span><p>أطباء بلا حدود، تأهيل مخصص.</p></div>
+          <div data-plan="starter" class="price-tile"><span class="tn">بداية</span><span class="tp">$30<small>/شهرياً</small></span><p>للطبيب المستقل. طبيب واحد ومساعد واحد. 24$ شهرياً بالدفع السنوي.</p></div>
+          <div data-plan="essentials" class="price-tile"><span class="tn">أساسيات</span><span class="tp">$75<small>/شهرياً</small></span><p>كل الأدوات. حتى 3 أطباء و2 من المساعدين لكل تخصص. 60$ شهرياً بالدفع السنوي.</p></div>
+          <div data-plan="professional" class="price-tile hi"><span class="tn">احترافي</span><span class="tp">$140<small>/شهرياً</small></span><p>كل ما في أساسيات. حتى 6 أطباء و3 مساعدين. 112$ شهرياً بالدفع السنوي. الأكثر شيوعاً.</p></div>
+          <div data-plan="growth" class="price-tile"><span class="tn">نمو</span><span class="tp">$220<small>/شهرياً</small></span><p>كل ما في احترافي. حتى 10 أطباء و5 مساعدين. 176$ شهرياً بالدفع السنوي.</p></div>
+          <div data-plan="enterprise" class="price-tile"><span class="tn">مؤسسات</span><span class="tp">مخصص</span><p>أطباء بلا حدود، تأهيل مخصص.</p></div>
         </div>
+        <p class="price-ai"><strong>الذكاء الاصطناعي حسب الاستخدام</strong> — غير مشمول في أي باقة. اشحن التوكنات من داخل التطبيق: <strong>10$ لكل مليون توكن</strong>.</p>
       </div>
     </section>
 
@@ -423,8 +440,8 @@
     <section class="slide dark cover-slide is-active" data-slide>
       <div class="slide-inner">
         <img src="/brand/doctovaria_logo.png" alt="Doctovaria" style="height:104px;width:auto;display:block;margin-bottom:22px;">
-        <h1 class="slide-h">Altı uzmanlık alanı.<br>Tek platform.</h1>
-        <p class="slide-lede">Diş hekimliği, kadın hastalıkları &amp; doğum, dahiliye, ortopedi ve estetik tıp için klinik işletim sistemi — tek güvenli platform, tek yapay zeka bakım asistanı, tek faturalandırma defteri.</p>
+        <h1 class="slide-h">On bir uzmanlık alanı.<br>Tek platform.</h1>
+        <p class="slide-lede">Diş hekimliği, kadın hastalıkları &amp; doğum, dahiliye, ortopedi, estetik tıp, diyetisyenlik, pediatri, fizyoterapi, hematoloji, genel cerrahi ve pratisyen hekimlik için klinik işletim sistemi — tek güvenli platform, tek yapay zeka bakım asistanı, tek faturalandırma defteri.</p>
         <div class="cover-meta-row">
           <div class="m">HAZIRLANAN<b>—</b></div>
           <div class="m">HAZIRLAYAN<b>Doctovaria</b></div>
@@ -464,7 +481,7 @@
     <section class="slide" data-slide>
       <div class="slide-inner">
         <p class="k">03 — Platform</p>
-        <h2 class="slide-h">Altı değil, tek bir sistem.</h2>
+        <h2 class="slide-h">On bir değil, tek bir sistem.</h2>
         <div class="feat-grid">
           <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span><h3>Akıllı randevu</h3><p>Doktorlar ve klinikler arasında çakışmasız.</p></div>
           <div class="feat-card"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span><h3>Klinik kayıtlar</h3><p>Uzmanlık alanına göre odontogram ya da kilometre taşı planları.</p></div>
@@ -481,7 +498,7 @@
     <section class="slide" data-slide>
       <div class="slide-inner">
         <p class="k">04 — Uzmanlık alanları</p>
-        <h2 class="slide-h">Altı ürün. Tek marka.</h2>
+        <h2 class="slide-h">On bir ürün. Tek marka.</h2>
         <div class="spec-grid">
           <div class="spec-card"><div class="bar" style="background:#1f4e8c"></div><p class="name">Dentavaria</p><p class="tag" style="color:#1f4e8c">DİŞ HEKİMLİĞİ</p><p>Odontogram kayıt, işlem bazlı yapay zeka planları.</p></div>
           <div class="spec-card"><div class="bar" style="background:#a6295e"></div><p class="name">Gynevaria</p><p class="tag" style="color:#a6295e">KADIN HASTALIKLARI VE DOĞUM</p><p>Kilometre taşı tabanlı doğum öncesi planlar.</p></div>
@@ -489,6 +506,11 @@
           <div class="spec-card"><div class="bar" style="background:#b56a1f"></div><p class="name">Orthovaria</p><p class="tag" style="color:#b56a1f">ORTOPEDİ</p><p>Rehabilitasyon ve takip planları.</p></div>
           <div class="spec-card"><div class="bar" style="background:#7a4fb5"></div><p class="name">Estevaria</p><p class="tag" style="color:#7a4fb5">ESTETİK TIP</p><p>Seans bazlı tedavi planları.</p></div>
           <div class="spec-card"><div class="bar" style="background:#1f8ca6"></div><p class="name">Dietavaria</p><p class="tag" style="color:#1f8ca6">DİYETİSYENLİK VE BESLENME</p><p>Takip programı takibi.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#3a86ff"></div><p class="name">Pediavaria</p><p class="tag" style="color:#3a86ff">PEDİATRİ</p><p>Çocuk izlem ve aşı planları.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#5c8a1f"></div><p class="name">Physiovaria</p><p class="tag" style="color:#5c8a1f">FİZYOTERAPİ</p><p>Seans planları ve ilerleme takibi.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#b3261e"></div><p class="name">Hemavaria</p><p class="tag" style="color:#b3261e">HEMATOLOJİ</p><p>Kan sayımı takip planları.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#37474f"></div><p class="name">Surgivaria</p><p class="tag" style="color:#37474f">GENEL CERRAHİ</p><p>Perioperatif bakım planları.</p></div>
+          <div class="spec-card"><div class="bar" style="background:#8a6d1f"></div><p class="name">Genervaria</p><p class="tag" style="color:#8a6d1f">PRATİSYEN HEKİMLİK</p><p>Genel takip planları.</p></div>
         </div>
       </div>
     </section>
@@ -524,10 +546,13 @@
         <p class="k">07 — Yatırım</p>
         <h2 class="slide-h">Grupla birlikte ölçeklenen fiyatlandırma.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">Temel</span><span class="tp">$74<small>/ay</small></span><p>Yapay zeka olmadan tam araç seti. Uzmanlık alanı başına 3 doktora kadar.</p></div>
-          <div class="price-tile hi"><span class="tn">Büyüme</span><span class="tp">$249<small>/ay</small></span><p>Her şey, artı yapay zeka. 10 doktora kadar. Önerilen.</p></div>
-          <div class="price-tile"><span class="tn">Kurumsal</span><span class="tp">Özel</span><p>Sınırsız doktor, özel katılım.</p></div>
+          <div data-plan="starter" class="price-tile"><span class="tn">Başlangıç</span><span class="tp">$30<small>/ay</small></span><p>Bireysel hekim. 1 doktor ve 1 asistan. Yıllık ödemede $24/ay.</p></div>
+          <div data-plan="essentials" class="price-tile"><span class="tn">Temel</span><span class="tp">$75<small>/ay</small></span><p>Tam araç seti. Uzmanlık alanı başına 3 doktor ve 2 asistana kadar. Yıllık ödemede $60/ay.</p></div>
+          <div data-plan="professional" class="price-tile hi"><span class="tn">Profesyonel</span><span class="tp">$140<small>/ay</small></span><p>Temel'deki her şey. 6 doktor ve 3 asistana kadar. Yıllık ödemede $112/ay. En popüler.</p></div>
+          <div data-plan="growth" class="price-tile"><span class="tn">Büyüme</span><span class="tp">$220<small>/ay</small></span><p>Profesyonel'deki her şey. 10 doktor ve 5 asistana kadar. Yıllık ödemede $176/ay.</p></div>
+          <div data-plan="enterprise" class="price-tile"><span class="tn">Kurumsal</span><span class="tp">Özel</span><p>Sınırsız doktor, özel katılım.</p></div>
         </div>
+        <p class="price-ai"><strong>Yapay zeka kullandıkça öde</strong> — hiçbir pakete dahil değil. Uygulama içinden token yükleyin: <strong>1 milyon token $10</strong>.</p>
       </div>
     </section>
 
@@ -628,6 +653,14 @@
       b.addEventListener('click', function () { setLang(b.dataset.lang); });
     });
   })();
+</script>
+<script>
+  // Hide pricing plans switched off in Admin > Landing Page.
+  fetch('/api/public/plan-visibility').then(function (r) { return r.json(); }).then(function (d) {
+    Object.keys(d.plans || {}).forEach(function (plan) {
+      if (!d.plans[plan]) document.querySelectorAll('[data-plan="' + plan + '"]').forEach(function (el) { el.style.display = 'none'; });
+    });
+  }).catch(function () {});
 </script>
 </body>
 </html>

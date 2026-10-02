@@ -79,13 +79,14 @@
   .trust-row li { list-style: none; display: flex; gap: 12px; align-items: flex-start; font-size: clamp(13.5px, 1.1vw, 15px); }
   .trust-row svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; color: var(--accent); }
 
-  .price-row { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; }
+  .price-row { margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; max-width: 1100px; }
   .price-tile { border: 1px solid var(--rule); border-radius: 14px; padding: 22px 20px; }
   .price-tile.hi { border-color: var(--accent); background: var(--accent-wash); }
   .price-tile .tn { font-size: 13px; font-weight: 700; }
   .price-tile .tp { font-family: var(--font-mono); font-size: 26px; margin-top: 6px; display: block; }
   .price-tile .tp small { font-size: 11px; color: var(--ink-faint); font-family: var(--font-body); }
   .price-tile p { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; line-height: 1.5; }
+  .price-ai { margin: 18px 0 0; max-width: 900px; font-size: 13px; line-height: 1.5; color: var(--ink-soft); border-inline-start: 3px solid var(--accent); padding: 6px 12px; }
 
   .cta-slide .glyph { width: 54px; height: 54px; border-radius: 14px; background: var(--accent); display: grid; place-items: center; margin-bottom: 22px; }
   .cta-slide .glyph svg { width: 26px; height: 26px; }
@@ -230,10 +231,13 @@
         <p class="k">06 — Investment</p>
         <h2 class="slide-h">Pricing that scales with your practice.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">Essentials</span><span class="tp">$74<small>/mo</small></span><p>Full toolkit, no AI. Up to 3 doctors.</p></div>
-          <div class="price-tile hi"><span class="tn">Growth</span><span class="tp">$249<small>/mo</small></span><p>Everything, plus AI. Up to 10 doctors. Recommended.</p></div>
-          <div class="price-tile"><span class="tn">Enterprise</span><span class="tp">Custom</span><p>Unlimited doctors, dedicated onboarding.</p></div>
+          <div data-plan="starter" class="price-tile"><span class="tn">Starter</span><span class="tp">$30<small>/mo</small></span><p>Solo practice. 1 doctor + 1 assistant. $24/mo billed yearly.</p></div>
+          <div data-plan="essentials" class="price-tile"><span class="tn">Essentials</span><span class="tp">$75<small>/mo</small></span><p>Full toolkit. Up to 3 doctors + 2 assistants. $60/mo billed yearly.</p></div>
+          <div data-plan="professional" class="price-tile hi"><span class="tn">Professional</span><span class="tp">$140<small>/mo</small></span><p>Everything in Essentials. Up to 6 doctors + 3 assistants. $112/mo billed yearly. Most popular.</p></div>
+          <div data-plan="growth" class="price-tile"><span class="tn">Growth</span><span class="tp">$220<small>/mo</small></span><p>Everything in Professional. Up to 10 doctors + 5 assistants. $176/mo billed yearly.</p></div>
+          <div data-plan="enterprise" class="price-tile"><span class="tn">Enterprise</span><span class="tp">Custom</span><p>Unlimited doctors, dedicated onboarding.</p></div>
         </div>
+        <p class="price-ai"><strong>AI is pay-as-you-go</strong> — not bundled in any plan. Top up tokens inside the app: <strong>$10 per 1M tokens</strong>.</p>
       </div>
     </section>
 
@@ -351,10 +355,13 @@
         <p class="k">06 — الاستثمار</p>
         <h2 class="slide-h">تسعير يتناسب مع نمو ممارستك.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">أساسيات</span><span class="tp">$74<small>/شهرياً</small></span><p>كل الأدوات، بدون ذكاء اصطناعي. حتى 3 أطباء.</p></div>
-          <div class="price-tile hi"><span class="tn">نمو</span><span class="tp">$249<small>/شهرياً</small></span><p>كل شيء، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء. موصى به.</p></div>
-          <div class="price-tile"><span class="tn">مؤسسات</span><span class="tp">مخصص</span><p>أطباء بلا حدود، تأهيل مخصص.</p></div>
+          <div data-plan="starter" class="price-tile"><span class="tn">بداية</span><span class="tp">$30<small>/شهرياً</small></span><p>للطبيب المستقل. طبيب واحد ومساعد واحد. 24$ شهرياً بالدفع السنوي.</p></div>
+          <div data-plan="essentials" class="price-tile"><span class="tn">أساسيات</span><span class="tp">$75<small>/شهرياً</small></span><p>كل الأدوات. حتى 3 أطباء و2 من المساعدين. 60$ شهرياً بالدفع السنوي.</p></div>
+          <div data-plan="professional" class="price-tile hi"><span class="tn">احترافي</span><span class="tp">$140<small>/شهرياً</small></span><p>كل ما في أساسيات. حتى 6 أطباء و3 مساعدين. 112$ شهرياً بالدفع السنوي. الأكثر شيوعاً.</p></div>
+          <div data-plan="growth" class="price-tile"><span class="tn">نمو</span><span class="tp">$220<small>/شهرياً</small></span><p>كل ما في احترافي. حتى 10 أطباء و5 مساعدين. 176$ شهرياً بالدفع السنوي.</p></div>
+          <div data-plan="enterprise" class="price-tile"><span class="tn">مؤسسات</span><span class="tp">مخصص</span><p>أطباء بلا حدود، تأهيل مخصص.</p></div>
         </div>
+        <p class="price-ai"><strong>الذكاء الاصطناعي حسب الاستخدام</strong> — غير مشمول في أي باقة. اشحن التوكنات من داخل التطبيق: <strong>10$ لكل مليون توكن</strong>.</p>
       </div>
     </section>
 
@@ -472,10 +479,13 @@
         <p class="k">06 — Yatırım</p>
         <h2 class="slide-h">Pratiğinizle birlikte ölçeklenen fiyatlandırma.</h2>
         <div class="price-row">
-          <div class="price-tile"><span class="tn">Temel</span><span class="tp">$74<small>/ay</small></span><p>Yapay zeka olmadan tam araç seti. 3 doktora kadar.</p></div>
-          <div class="price-tile hi"><span class="tn">Büyüme</span><span class="tp">$249<small>/ay</small></span><p>Her şey, artı yapay zeka. 10 doktora kadar. Önerilen.</p></div>
-          <div class="price-tile"><span class="tn">Kurumsal</span><span class="tp">Özel</span><p>Sınırsız doktor, özel katılım.</p></div>
+          <div data-plan="starter" class="price-tile"><span class="tn">Başlangıç</span><span class="tp">$30<small>/ay</small></span><p>Bireysel hekim. 1 doktor ve 1 asistan. Yıllık ödemede $24/ay.</p></div>
+          <div data-plan="essentials" class="price-tile"><span class="tn">Temel</span><span class="tp">$75<small>/ay</small></span><p>Tam araç seti. 3 doktor ve 2 asistana kadar. Yıllık ödemede $60/ay.</p></div>
+          <div data-plan="professional" class="price-tile hi"><span class="tn">Profesyonel</span><span class="tp">$140<small>/ay</small></span><p>Temel'deki her şey. 6 doktor ve 3 asistana kadar. Yıllık ödemede $112/ay. En popüler.</p></div>
+          <div data-plan="growth" class="price-tile"><span class="tn">Büyüme</span><span class="tp">$220<small>/ay</small></span><p>Profesyonel'deki her şey. 10 doktor ve 5 asistana kadar. Yıllık ödemede $176/ay.</p></div>
+          <div data-plan="enterprise" class="price-tile"><span class="tn">Kurumsal</span><span class="tp">Özel</span><p>Sınırsız doktor, özel katılım.</p></div>
         </div>
+        <p class="price-ai"><strong>Yapay zeka kullandıkça öde</strong> — hiçbir pakete dahil değil. Uygulama içinden token yükleyin: <strong>1 milyon token $10</strong>.</p>
       </div>
     </section>
 
@@ -576,6 +586,14 @@
       b.addEventListener('click', function () { setLang(b.dataset.lang); });
     });
   })();
+</script>
+<script>
+  // Hide pricing plans switched off in Admin > Landing Page.
+  fetch('/api/public/plan-visibility').then(function (r) { return r.json(); }).then(function (d) {
+    Object.keys(d.plans || {}).forEach(function (plan) {
+      if (!d.plans[plan]) document.querySelectorAll('[data-plan="' + plan + '"]').forEach(function (el) { el.style.display = 'none'; });
+    });
+  }).catch(function () {});
 </script>
 </body>
 </html>

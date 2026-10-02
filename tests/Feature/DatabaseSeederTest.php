@@ -27,7 +27,7 @@ class DatabaseSeederTest extends TestCase
     {
         $this->seed();
 
-        $this->assertSame(6, Specialty::query()->count());
+        $this->assertSame(11, Specialty::query()->count());
         $this->assertNotNull(Specialty::query()->where('key', Specialty::DENTAL)->value('uuid'));
 
         $company = Company::query()->where('code', 'DENTAL-HQ')->firstOrFail();

@@ -10,7 +10,10 @@ use App\Models\Company;
 use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Services\CompanyUserLimitService;
+use App\Services\SystemMessageService;
 use App\Specialties\SpecialtyModuleRegistry;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +22,7 @@ class SubscriptionController extends Controller
     public function __construct(
         protected CompanyUserLimitService $companyUserLimit,
         protected SpecialtyModuleRegistry $specialtyModules,
+        protected SystemMessageService $systemMessages,
     ) {}
 
     /**
@@ -37,6 +41,20 @@ class SubscriptionController extends Controller
         $module?->seedCatalog($company);
     }
 
+    /**
+     * The "System Messages" WhatsApp group (appointment reminder/patient
+     * recall/booking confirmation/satisfaction survey, all 3 languages) --
+     * same "only place a company newly gains a specialty" trigger as
+     * seedSpecialtyCatalog() above. See SystemMessageService.
+     */
+    protected function seedSystemMessages(Company $company, int $specialtyId): void
+    {
+        $specialty = Specialty::find($specialtyId);
+        if ($specialty) {
+            $this->systemMessages->seedForCompanySpecialty($company, $specialty);
+        }
+    }
+
     public function index()
     {
         return view('admin.subscriptions.index', [
@@ -51,11 +69,7 @@ class SubscriptionController extends Controller
         $company = Company::findOrFail($request->validated('company_id'));
         $activeUsers = $company->users()->where('status', 'active')->count();
 
-        if ($request->integer('max_users') < $activeUsers) {
-            throw ValidationException::withMessages([
-                'max_users' => ['Max users cannot be less than the company active users count.'],
-            ])->errorBag($request->input('_modal_id') ?: 'default');
-        }
+        $this->assertSeatCapsCoverCurrentUsage($request, $company);
 
         $specialtyIds = $request->validated('specialty_ids');
         foreach ($specialtyIds as $specialtyId) {
@@ -72,6 +86,7 @@ class SubscriptionController extends Controller
             ]);
             $this->companyUserLimit->syncSubscription($subscription);
             $this->seedSpecialtyCatalog($company, $specialtyId);
+            $this->seedSystemMessages($company, $specialtyId);
 
             return $subscription;
         }));
@@ -88,11 +103,7 @@ class SubscriptionController extends Controller
         $company = Company::findOrFail($request->validated('company_id'));
         $activeUsers = $company->users()->where('status', 'active')->count();
 
-        if ($request->integer('max_users') < $activeUsers) {
-            throw ValidationException::withMessages([
-                'max_users' => ['Max users cannot be less than the company active users count.'],
-            ])->errorBag($request->input('_modal_id') ?: 'default');
-        }
+        $this->assertSeatCapsCoverCurrentUsage($request, $company);
 
         if ($request->integer('max_branches') < $company->branches()->count()) {
             throw ValidationException::withMessages([
@@ -137,6 +148,7 @@ class SubscriptionController extends Controller
                 ]);
                 $this->companyUserLimit->syncSubscription($newSubscription);
                 $this->seedSpecialtyCatalog($company, $specialtyId);
+                $this->seedSystemMessages($company, $specialtyId);
             }
         });
 
@@ -200,6 +212,32 @@ class SubscriptionController extends Controller
         return redirect()->route('admin.companies.show', $company)->with('status', 'Subscription restored successfully.');
     }
 
+    /**
+     * The real, irreversible version of destroy() -- only reachable for an
+     * already soft-deleted subscription (the view only shows this next to
+     * Restore; the guard below protects the route itself). The only table
+     * referencing a subscription row (ai_usage_logs.subscription_id) does so
+     * with nullOnDelete, so this is a plain hard delete with no cascade
+     * concerns -- the try/catch is just defensive symmetry with the
+     * company/user versions.
+     */
+    public function forceDestroy(Subscription $subscription)
+    {
+        $company = Company::withTrashed()->find($subscription->company_id);
+
+        if (! $subscription->trashed()) {
+            return redirect()->route('admin.companies.show', $company)->with('error', 'Only an already-deleted subscription can be permanently deleted.');
+        }
+
+        try {
+            $subscription->forceDelete();
+        } catch (QueryException $e) {
+            return redirect()->route('admin.companies.show', $company)->with('error', 'Subscription could not be permanently deleted.');
+        }
+
+        return redirect()->route('admin.companies.show', $company)->with('status', 'Subscription permanently deleted.');
+    }
+
     public function toggleStatus(Subscription $subscription)
     {
         $subscription->update([
@@ -207,5 +245,23 @@ class SubscriptionController extends Controller
         ]);
 
         return redirect()->route('admin.companies.show', $subscription->company)->with('status', 'Subscription status updated successfully.');
+    }
+
+    /**
+     * Per seat type: a cap can't be set below the
+     * company's current active doctors / assistant (non-doctor) users, or
+     * every later edit of an existing user would start failing validation.
+     */
+    protected function assertSeatCapsCoverCurrentUsage(Request $request, Company $company): void
+    {
+        $usage = $this->companyUserLimit->seatUsage($company);
+
+        foreach (['max_doctors' => 'doctors', 'max_assistants' => 'assistants'] as $field => $key) {
+            if ($request->filled($field) && $request->integer($field) < $usage[$key]['used']) {
+                throw ValidationException::withMessages([
+                    $field => ["Cannot be less than the company's current active {$key} count ({$usage[$key]['used']})."],
+                ])->errorBag($request->input('_modal_id') ?: 'default');
+            }
+        }
     }
 }

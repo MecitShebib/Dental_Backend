@@ -2,15 +2,19 @@
 
 namespace App\Providers;
 
+use App\Models\Appointment;
 use App\Models\CariParty;
 use App\Models\Client;
 use App\Models\LabPartner;
 use App\Models\User;
 use App\Models\Visit;
+use App\Observers\AppointmentObserver;
 use App\Observers\ClientObserver;
 use App\Observers\VisitObserver;
+use App\Queue\SafeSignalsWorker;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Queue\Worker;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -23,7 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // The production host loads pcntl but disables its functions --
+        // see SafeSignalsWorker.
+        $this->app->extend('queue.worker', fn (Worker $worker) => SafeSignalsWorker::fromWorker($worker));
     }
 
     /**
@@ -39,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureRateLimiting();
 
+        Appointment::observe(AppointmentObserver::class);
         Client::observe(ClientObserver::class);
         Visit::observe(VisitObserver::class);
 
@@ -75,9 +82,26 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('admin-login', function ($request) {
-            $email = (string) $request->input('email');
+            $phone = (string) $request->input('phone');
 
-            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+            return Limit::perMinute(5)->by($phone.'|'.$request->ip());
+        });
+
+        // The OTP step of admin login has no phone/email to key on (the
+        // pending identity lives in the session, not the request body), so
+        // these key on IP alone. Verify is a bit more generous than resend
+        // since a slow/typo-prone admin shouldn't get locked out typing a
+        // code; resend is tighter since each one sends a real email to a
+        // shared inbox.
+        RateLimiter::for('admin-login-otp-verify', function ($request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('admin-login-otp-resend', function ($request) {
+            return [
+                Limit::perMinute(2)->by($request->ip()),
+                Limit::perHour(5)->by($request->ip()),
+            ];
         });
 
         // Blanket abuse/scraping cap for the rest of the authenticated API.

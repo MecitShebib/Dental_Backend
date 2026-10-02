@@ -20,14 +20,14 @@ class WhatsAppService
     {
         $integration = $company->whatsappIntegration;
 
-        return (bool) ($integration && $integration->status === 'active');
+        return (bool) ($integration && $integration->status === 'active') && $company->hasFeature('whatsapp');
     }
 
     public function send(Company $company, string $to, string $text): bool
     {
         $integration = $company->whatsappIntegration;
 
-        if (! $integration || $integration->status !== 'active') {
+        if (! $integration || ! $this->enabledFor($company)) {
             return false;
         }
 
@@ -82,6 +82,65 @@ class WhatsAppService
         $integration->update(['last_error' => Str::limit($e->getMessage(), 500)]);
 
         return false;
+    }
+
+    /**
+     * Sends a PDF as a real WhatsApp document message: uploads it to the
+     * clinic's WhatsApp media store, then messages the media id. Same
+     * "returns false, never throws" contract as send(). Note Meta only
+     * delivers free-form (non-template) messages inside the 24h customer
+     * service window -- outside it this fails and the caller falls back.
+     */
+    public function sendDocument(Company $company, string $to, string $contents, string $filename, ?string $caption = null): bool
+    {
+        $integration = $company->whatsappIntegration;
+
+        if (! $integration || ! $this->enabledFor($company)) {
+            return false;
+        }
+
+        $baseUrl = rtrim((string) config('services.whatsapp.graph_base_url'), '/');
+
+        try {
+            $upload = Http::withToken($integration->access_token)
+                ->timeout(30)
+                ->attach('file', $contents, $filename, ['Content-Type' => 'application/pdf'])
+                ->post("{$baseUrl}/{$integration->phone_number_id}/media", [
+                    'messaging_product' => 'whatsapp',
+                    'type' => 'application/pdf',
+                ]);
+
+            $mediaId = $upload->successful() ? $upload->json('id') : null;
+
+            $response = $mediaId
+                ? Http::withToken($integration->access_token)
+                    ->timeout(15)
+                    ->post("{$baseUrl}/{$integration->phone_number_id}/messages", [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $this->normalizePhone($to),
+                        'type' => 'document',
+                        'document' => array_filter(['id' => $mediaId, 'filename' => $filename, 'caption' => $caption]),
+                    ])
+                : $upload;
+        } catch (ConnectionException $e) {
+            return $this->fail($company, $integration, 'WhatsApp document send failed: could not reach the WhatsApp Cloud API.', $e);
+        } catch (\Throwable $e) {
+            return $this->fail($company, $integration, 'WhatsApp document send failed unexpectedly.', $e);
+        }
+
+        if (! $response->successful()) {
+            Log::error('WhatsApp document send failed.', [
+                'company_id' => $company->id,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            $integration->update(['last_error' => Str::limit((string) $response->body(), 500)]);
+
+            return false;
+        }
+
+        return true;
     }
 
     protected function normalizePhone(string $phone): string

@@ -45,12 +45,18 @@ class PublicBookingController extends Controller
     {
         $this->assertBookable($company);
 
-        $phone = $request->validated()['client_phone'];
-        $challenge = $otp->issue($company, $phone);
+        $phone = $request->validated('client_phone');
+        $email = $request->validated('client_email');
+        $challenge = $otp->issue($company, $phone, $email);
+        $channel = $otp->channel();
+        $maskedDestination = $channel === 'email' ? $otp->maskEmail((string) $email) : $otp->maskMobile((string) $phone);
 
         return $this->success([
             'otp_reference' => $challenge->reference,
-            'masked_mobile' => $otp->maskMobile($phone),
+            'otp_channel' => $channel,
+            'masked_destination' => $maskedDestination,
+            // Kept for older copies of the booking page.
+            'masked_mobile' => $maskedDestination,
             'expires_at' => $challenge->expires_at?->toIso8601String(),
         ], 'Verification code sent.');
     }

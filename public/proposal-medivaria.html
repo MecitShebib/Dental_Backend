@@ -132,7 +132,7 @@
   .trust-list li svg { width: 15px; height: 15px; margin-top: 3px; color: var(--accent-strong); }
   .trust-list li span { font-size: 14px; color: var(--ink); }
 
-  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
   .price-card { border: 1px solid var(--rule); border-radius: 10px; padding: 18px 16px; break-inside: avoid; display: flex; flex-direction: column; gap: 8px; }
   .price-card.featured { border-color: var(--accent); background: var(--accent-wash); }
   .price-card .tier-name { font-size: 13px; font-weight: 700; }
@@ -341,10 +341,13 @@
       <div class="sec-body">
         <h2>Pricing that scales with the practice</h2>
         <div class="pricing-grid">
-          <div class="price-card"><span class="tier-name">Essentials</span><span class="tier-price">$74<small>/mo</small></span><p>The full toolkit, without AI. Up to 3 doctors — scheduling, chronic care records, billing, accounting, lab tracking, reports, and API access.</p></div>
-          <div class="price-card featured"><span class="tier-flag">Recommended</span><span class="tier-name">Growth</span><span class="tier-price">$249<small>/mo</small></span><p>Everything in Essentials, plus AI. Up to 10 doctors, the AI Care Plan Assistant, priority support.</p></div>
-          <div class="price-card"><span class="tier-name">Enterprise</span><span class="tier-price">Custom</span><p>Groups with compliance requirements. Unlimited doctors, dedicated onboarding, custom integrations, volume pricing.</p></div>
+          <div data-plan="starter" class="price-card"><span class="tier-name">Starter</span><span class="tier-price">$30<small>/mo</small></span><p>For solo practitioners — the full Essentials toolkit for 1 doctor + 1 assistant user (non-doctor staff). $24/mo when billed yearly.</p></div>
+          <div data-plan="essentials" class="price-card"><span class="tier-name">Essentials</span><span class="tier-price">$75<small>/mo</small></span><p>The full toolkit. Up to 3 doctors + 2 assistant users — scheduling, chronic care records, billing, accounting, lab tracking, reports, and API access. $60/mo when billed yearly.</p></div>
+          <div data-plan="professional" class="price-card featured"><span class="tier-flag">Most popular</span><span class="tier-name">Professional</span><span class="tier-price">$140<small>/mo</small></span><p>Everything in Essentials, for established clinics. Up to 6 doctors + 3 assistant users (non-doctor staff), priority support. $112/mo when billed yearly.</p></div>
+          <div data-plan="growth" class="price-card"><span class="tier-name">Growth</span><span class="tier-price">$220<small>/mo</small></span><p>Everything in Professional, with more seats for larger teams. Up to 10 doctors + 5 assistant users (non-doctor staff), priority support. $176/mo when billed yearly.</p></div>
+          <div data-plan="enterprise" class="price-card"><span class="tier-name">Enterprise</span><span class="tier-price">Custom</span><p>Groups with compliance requirements. Unlimited doctors, dedicated onboarding, custom integrations, volume pricing.</p></div>
         </div>
+        <p class="pricing-note"><strong>AI assistant — pay as you go.</strong> AI is not bundled into any plan. Top up AI tokens from inside the app whenever you need them, on any plan: <strong>$10 per 1,000,000 tokens</strong>.</p>
         <p class="pricing-note">Every plan can be trialled with your own schedule, doctors, and services — no credit card required.</p>
       </div>
     </section>
@@ -479,10 +482,13 @@
       <div class="sec-body">
         <h2>تسعير يتناسب مع نمو الممارسة</h2>
         <div class="pricing-grid">
-          <div class="price-card"><span class="tier-name">أساسيات</span><span class="tier-price">$74<small>/شهرياً</small></span><p>كل الأدوات، بدون الذكاء الاصطناعي. حتى 3 أطباء — جدولة، سجلات الرعاية المزمنة، فوترة، محاسبة، تتبع مخبر، تقارير، ووصول API.</p></div>
-          <div class="price-card featured"><span class="tier-flag">الأكثر شيوعاً</span><span class="tier-name">نمو</span><span class="tier-price">$249<small>/شهرياً</small></span><p>كل ما في أساسيات، بالإضافة إلى الذكاء الاصطناعي. حتى 10 أطباء، مساعد خطة الرعاية بالذكاء الاصطناعي، دعم ذو أولوية.</p></div>
-          <div class="price-card"><span class="tier-name">مؤسسات</span><span class="tier-price">مخصص</span><p>للمجموعات ذات متطلبات الامتثال. أطباء بلا حدود، تأهيل مخصص، تكاملات مخصصة، تسعير بالجملة.</p></div>
+          <div data-plan="starter" class="price-card"><span class="tier-name">بداية</span><span class="tier-price">$30<small>/شهرياً</small></span><p>للطبيب المستقل — كامل أدوات أساسيات لطبيب واحد ومستخدم مساعد واحد (من غير الأطباء). 24$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="essentials" class="price-card"><span class="tier-name">أساسيات</span><span class="tier-price">$75<small>/شهرياً</small></span><p>كل الأدوات. حتى 3 أطباء و2 من المستخدمين المساعدين — جدولة، سجلات الرعاية المزمنة، فوترة، محاسبة، تتبع مخبر، تقارير، ووصول API. 60$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="professional" class="price-card featured"><span class="tier-flag">الأكثر شيوعاً</span><span class="tier-name">احترافي</span><span class="tier-price">$140<small>/شهرياً</small></span><p>كل ما في أساسيات، للعيادات الراسخة. حتى 6 أطباء و3 مستخدمين مساعدين (من غير الأطباء)، دعم ذو أولوية. 112$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="growth" class="price-card"><span class="tier-name">نمو</span><span class="tier-price">$220<small>/شهرياً</small></span><p>كل ما في احترافي، مع مقاعد أكثر للفرق الأكبر. حتى 10 أطباء و5 مستخدمين مساعدين (من غير الأطباء)، دعم ذو أولوية. 176$ شهرياً عند الدفع السنوي.</p></div>
+          <div data-plan="enterprise" class="price-card"><span class="tier-name">مؤسسات</span><span class="tier-price">مخصص</span><p>للمجموعات ذات متطلبات الامتثال. أطباء بلا حدود، تأهيل مخصص، تكاملات مخصصة، تسعير بالجملة.</p></div>
         </div>
+        <p class="pricing-note"><strong>مساعد الذكاء الاصطناعي — ادفع حسب الاستخدام.</strong> الذكاء الاصطناعي غير مشمول في أي باقة. اشحن رصيد التوكنات من داخل التطبيق متى احتجت، مع أي باقة: <strong>10$ لكل 1,000,000 توكن</strong>.</p>
         <p class="pricing-note">يمكن تجربة كل خطة بجدولك وأطبائك وخدماتك الفعلية — دون الحاجة لبطاقة ائتمان.</p>
       </div>
     </section>
@@ -617,10 +623,13 @@
       <div class="sec-body">
         <h2>Klinikle birlikte ölçeklenen fiyatlandırma</h2>
         <div class="pricing-grid">
-          <div class="price-card"><span class="tier-name">Temel</span><span class="tier-price">$74<small>/ay</small></span><p>Yapay zeka olmadan tüm araç seti. 3 doktora kadar — planlama, kronik bakım kayıtları, faturalama, muhasebe, laboratuvar takibi, raporlar ve API erişimi.</p></div>
-          <div class="price-card featured"><span class="tier-flag">Önerilen</span><span class="tier-name">Büyüme</span><span class="tier-price">$249<small>/ay</small></span><p>Temel'deki her şeye ek olarak yapay zeka. 10 doktora kadar, Yapay Zeka Bakım Planı Asistanı, öncelikli destek.</p></div>
-          <div class="price-card"><span class="tier-name">Kurumsal</span><span class="tier-price">Özel</span><p>Özel uyumluluk gereksinimleri olan gruplar için. Sınırsız doktor, özel katılım, özel entegrasyonlar, toplu fiyatlandırma.</p></div>
+          <div data-plan="starter" class="price-card"><span class="tier-name">Başlangıç</span><span class="tier-price">$30<small>/ay</small></span><p>Bireysel hekimler için — 1 doktor ve 1 asistan kullanıcı (doktor olmayan personel) için Temel'in tüm araç seti. Yıllık ödemede aylık $24.</p></div>
+          <div data-plan="essentials" class="price-card"><span class="tier-name">Temel</span><span class="tier-price">$75<small>/ay</small></span><p>Tüm araç seti. 3 doktor ve 2 asistan kullanıcıya kadar — planlama, kronik bakım kayıtları, faturalama, muhasebe, laboratuvar takibi, raporlar ve API erişimi. Yıllık ödemede aylık $60.</p></div>
+          <div data-plan="professional" class="price-card featured"><span class="tier-flag">En popüler</span><span class="tier-name">Profesyonel</span><span class="tier-price">$140<small>/ay</small></span><p>Temel'deki her şey, yerleşik klinikler için. 6 doktor ve 3 asistan kullanıcıya (doktor olmayan personel) kadar, öncelikli destek. Yıllık ödemede aylık $112.</p></div>
+          <div data-plan="growth" class="price-card"><span class="tier-name">Büyüme</span><span class="tier-price">$220<small>/ay</small></span><p>Profesyonel'deki her şey, daha büyük ekipler için daha fazla kullanıcıyla. 10 doktor ve 5 asistan kullanıcıya (doktor olmayan personel) kadar, öncelikli destek. Yıllık ödemede aylık $176.</p></div>
+          <div data-plan="enterprise" class="price-card"><span class="tier-name">Kurumsal</span><span class="tier-price">Özel</span><p>Özel uyumluluk gereksinimleri olan gruplar için. Sınırsız doktor, özel katılım, özel entegrasyonlar, toplu fiyatlandırma.</p></div>
         </div>
+        <p class="pricing-note"><strong>Yapay zeka asistanı — kullandıkça öde.</strong> Yapay zeka hiçbir pakete dahil değildir. İhtiyaç duyduğunuzda, her pakette, uygulama içinden token yükleyin: <strong>1.000.000 token için $10</strong>.</p>
         <p class="pricing-note">Her plan, kendi programınız, doktorlarınız ve hizmetlerinizle denenebilir — kredi kartı gerekmez.</p>
       </div>
     </section>
@@ -674,6 +683,14 @@
       b.addEventListener('click', function () { setLang(b.dataset.lang); });
     });
   })();
+</script>
+<script>
+  // Hide pricing plans switched off in Admin > Landing Page.
+  fetch('/api/public/plan-visibility').then(function (r) { return r.json(); }).then(function (d) {
+    Object.keys(d.plans || {}).forEach(function (plan) {
+      if (!d.plans[plan]) document.querySelectorAll('[data-plan="' + plan + '"]').forEach(function (el) { el.style.display = 'none'; });
+    });
+  }).catch(function () {});
 </script>
 </body>
 </html>

@@ -13,13 +13,16 @@ class BookPublicAppointmentRequest extends FormRequest
 
     public function rules(): array
     {
+        // Same channel rule as RequestBookingOtpRequest.
+        $emailChannel = config('services.otp.channel') === 'email';
+
         return [
             'doctor_id' => ['required', 'integer'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'start_time' => ['required', 'date_format:H:i'],
             'client_name' => ['required', 'string', 'max:255'],
-            'client_phone' => ['required', 'string', 'max:50'],
-            'client_email' => ['nullable', 'email', 'max:255'],
+            'client_phone' => [$emailChannel ? 'nullable' : 'required', 'string', 'max:50'],
+            'client_email' => [$emailChannel ? 'required' : 'nullable', 'email', 'max:255'],
             'otp' => ['required', 'string'],
             'otp_reference' => ['required', 'string'],
             // Honeypot: a real visitor never sees or fills this field (hidden

@@ -14,7 +14,7 @@ class LandingPageContentSmokeTest extends TestCase
     {
         foreach (LandingPageContent::LOCALES as $locale) {
             $hub = LandingPageContent::hub($locale);
-            $this->assertCount(6, $hub['products'], "hub products count wrong for {$locale}");
+            $this->assertCount(11, $hub['products'], "hub products count wrong for {$locale}");
             $this->assertNotEmpty($hub['hero']['headline']);
         }
 
@@ -23,7 +23,7 @@ class LandingPageContentSmokeTest extends TestCase
                 $content = LandingPageContent::specialty($specialty, $locale);
                 $this->assertNotEmpty($content['hero']['headline'], "{$specialty}/{$locale} hero missing");
                 $this->assertGreaterThanOrEqual(9, count($content['features']), "{$specialty}/{$locale} features too few");
-                $this->assertCount(3, $content['pricing'], "{$specialty}/{$locale} pricing tiers wrong");
+                $this->assertCount(5, $content['pricing'], "{$specialty}/{$locale} pricing tiers wrong");
                 $this->assertCount(3, $content['testimonials'], "{$specialty}/{$locale} testimonials wrong");
                 $this->assertCount(6, $content['faq'], "{$specialty}/{$locale} faq wrong");
                 $this->assertNotEmpty($content['footer']['contact_email']);
@@ -33,7 +33,7 @@ class LandingPageContentSmokeTest extends TestCase
         }
     }
 
-    public function test_specialty_key_for_slug_resolves_all_six(): void
+    public function test_specialty_key_for_slug_resolves_every_specialty(): void
     {
         $this->assertSame('dental', LandingPageContent::specialtyKeyForSlug('dentavaria'));
         $this->assertSame('gynecology', LandingPageContent::specialtyKeyForSlug('gynevaria'));
@@ -41,6 +41,11 @@ class LandingPageContentSmokeTest extends TestCase
         $this->assertSame('orthopedics', LandingPageContent::specialtyKeyForSlug('orthovaria'));
         $this->assertSame('cosmetic', LandingPageContent::specialtyKeyForSlug('estevaria'));
         $this->assertSame('nutrition', LandingPageContent::specialtyKeyForSlug('dietavaria'));
+        $this->assertSame('pediatrics', LandingPageContent::specialtyKeyForSlug('pediavaria'));
+        $this->assertSame('physiotherapy', LandingPageContent::specialtyKeyForSlug('physiovaria'));
+        $this->assertSame('hematology', LandingPageContent::specialtyKeyForSlug('hemavaria'));
+        $this->assertSame('general_surgery', LandingPageContent::specialtyKeyForSlug('surgivaria'));
+        $this->assertSame('general_practice', LandingPageContent::specialtyKeyForSlug('genervaria'));
         $this->assertNull(LandingPageContent::specialtyKeyForSlug('nonexistent'));
     }
 }

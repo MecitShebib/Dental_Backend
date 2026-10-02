@@ -1,2 +1,8 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /app
+Disallow: /api
+Disallow: /d/
+Disallow: /files/
+Disallow: /survey/
+Disallow: /migrate.php

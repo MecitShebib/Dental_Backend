@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\User;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -53,5 +55,28 @@ class CompanySubscriptionsApiTest extends TestCase
 
         $response->assertJsonPath('data.0.max_ai_tokens', null)
             ->assertJsonPath('data.0.ai_tokens_used', 0);
+    }
+
+    public function test_subscriptions_endpoint_exposes_which_specialty_each_row_belongs_to(): void
+    {
+        $this->seed(SpecialtySeeder::class);
+
+        $company = Company::factory()->create();
+        $company->subscriptions()->delete();
+        $user = User::factory()->create(['company_id' => $company->id]);
+        $specialty = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        Subscription::create([
+            'company_id' => $company->id,
+            'specialty_id' => $specialty->id,
+            'plan_name' => 'Test Plan',
+            'status' => 'active',
+            'starts_at' => now()->subDay()->toDateString(),
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson("/api/companies/{$company->id}/subscriptions")->assertOk();
+
+        $response->assertJsonPath('data.0.specialty_id', $specialty->id)
+            ->assertJsonPath('data.0.specialty_key', 'dental');
     }
 }

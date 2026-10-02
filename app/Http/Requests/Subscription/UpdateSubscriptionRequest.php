@@ -4,6 +4,7 @@ namespace App\Http\Requests\Subscription;
 
 use App\Enums\SubscriptionStatus;
 use App\Http\Requests\Concerns\ScopesErrorsToModal;
+use App\Models\Subscription;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,6 +15,18 @@ class UpdateSubscriptionRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * The admin form sends `features_submitted` next to its checkboxes, so an
+     * all-unticked form still means "no optional features" (an empty list)
+     * rather than "field not sent" (which leaves the column untouched).
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->boolean('features_submitted')) {
+            $this->merge(['features' => array_values((array) $this->input('features', []))]);
+        }
     }
 
     public function rules(): array
@@ -30,7 +43,12 @@ class UpdateSubscriptionRequest extends FormRequest
             'status' => ['required', Rule::enum(SubscriptionStatus::class)],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
-            'max_users' => ['required', 'integer', 'min:1'],
+            // Seat caps per type -- the only user limits (max_users was removed 2026-09-28).
+            'max_doctors' => ['required', 'integer', 'min:0'],
+            'max_assistants' => ['required', 'integer', 'min:0'],
+            // Optional features (Subscription::FEATURES) -- see prepareForValidation().
+            'features' => ['sometimes', 'array'],
+            'features.*' => [Rule::in(Subscription::FEATURES)],
             'active_users' => ['nullable', 'integer', 'min:0'],
             'max_branches' => ['required', 'integer', 'min:1'],
             'max_ai_tokens' => ['nullable', 'integer', 'min:0'],

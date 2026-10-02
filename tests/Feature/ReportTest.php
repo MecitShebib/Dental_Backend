@@ -139,11 +139,13 @@ class ReportTest extends TestCase
 
         $this->getJson("/api/reports/patient-debts?doctor_id={$dentalDoctor->id}")
             ->assertOk()->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.client_name', 'Dental Patient');
+            ->assertJsonPath('data.0.client_name', 'Dental Patient')
+            ->assertJsonPath('data.0.specialty_key', 'dental');
 
         $this->getJson('/api/reports/patient-debts?specialty=gynecology')
             ->assertOk()->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.client_name', 'Gynecology Patient');
+            ->assertJsonPath('data.0.client_name', 'Gynecology Patient')
+            ->assertJsonPath('data.0.specialty_key', 'gynecology');
     }
 
     public function test_lab_debts_report_lists_only_lab_partners_with_a_positive_balance_highest_first(): void
@@ -273,7 +275,7 @@ class ReportTest extends TestCase
         ]);
 
         $client = $this->makeClient($company, 'Buyer');
-        app(InventorySaleService::class)->create($client, [
+        app(InventorySaleService::class)->create($company, $client, true, [
             ['inventory_item_id' => $item->id, 'quantity' => 3],
         ], $manager->id);
 

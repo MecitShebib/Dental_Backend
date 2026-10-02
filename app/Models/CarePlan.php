@@ -40,8 +40,19 @@ class CarePlan extends Model
         'summary',
         'diet_plan',
         'exercise_plan',
+        'diet_plan_data',
+        'exercise_plan_data',
         'status',
     ];
+
+    /** Table-shaped plans, see App\Specialties\Nutrition\NutritionPlanStructure. */
+    protected function casts(): array
+    {
+        return [
+            'diet_plan_data' => 'array',
+            'exercise_plan_data' => 'array',
+        ];
+    }
 
     public function company(): BelongsTo
     {

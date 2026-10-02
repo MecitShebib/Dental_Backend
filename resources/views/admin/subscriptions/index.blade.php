@@ -33,7 +33,9 @@
                 </select>
                 <input type="date" name="starts_at" required>
                 <input type="date" name="ends_at">
-                <input type="number" min="1" name="max_users" placeholder="Max users" required>
+                <input type="number" min="0" name="max_doctors" placeholder="Max doctors" required>
+                <input type="number" min="0" name="max_assistants" placeholder="Max assistant (non-doctor) users" required>
+                @include('admin.subscriptions._features', ['selected' => null])
                 <input type="number" min="1" name="max_branches" placeholder="Max branches" value="1" required>
                 <input type="number" min="0" name="max_ai_tokens" placeholder="Max AI tokens (blank = unlimited)">
                 <input type="number" step="0.01" min="0" name="price" placeholder="Price">
@@ -67,7 +69,7 @@
                             <td>
                                 {{ $subscription->starts_at?->format('Y-m-d') }}<br>
                                 <small>{{ $subscription->ends_at?->format('Y-m-d') ?? 'Open end' }}</small><br>
-                                <small>{{ $subscription->active_users }}/{{ $subscription->max_users }} active users</small><br>
+                                <small>{{ $subscription->active_users }} active users · {{ $subscription->max_doctors ?? '∞' }} doctors + {{ $subscription->max_assistants ?? '∞' }} assistants</small><br>
                                 <small>{{ $subscription->ai_tokens_used }}/{{ $subscription->max_ai_tokens ?? '∞' }} AI tokens</small>
                             </td>
                             <td><span class="status">{{ $subscription->status->value ?? $subscription->status }}</span></td>
@@ -96,7 +98,9 @@
                                     </select>
                                     <input type="date" name="starts_at" value="{{ $subscription->starts_at?->format('Y-m-d') }}" required>
                                     <input type="date" name="ends_at" value="{{ $subscription->ends_at?->format('Y-m-d') }}">
-                                    <input type="number" min="1" name="max_users" value="{{ $subscription->max_users }}" required>
+                                    <input type="number" min="0" name="max_doctors" value="{{ $subscription->max_doctors }}" placeholder="Max doctors" required>
+                                    <input type="number" min="0" name="max_assistants" value="{{ $subscription->max_assistants }}" placeholder="Max assistant (non-doctor) users" required>
+                                    @include('admin.subscriptions._features', ['selected' => $subscription->features])
                                     <input type="number" min="1" name="max_branches" value="{{ $subscription->max_branches }}" placeholder="Max branches" required>
                                     <input type="number" min="0" name="max_ai_tokens" value="{{ $subscription->max_ai_tokens }}" placeholder="Max AI tokens (blank = unlimited)">
                                     <input type="number" step="0.01" min="0" name="price" value="{{ $subscription->price }}">

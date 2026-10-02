@@ -13,6 +13,9 @@ class InventorySaleResource extends JsonResource
             'id' => $this->id,
             'uuid' => $this->uuid,
             'client_id' => $this->client_id,
+            'client_name' => $this->whenLoaded('client', fn () => $this->client?->name),
+            'is_paid' => $this->is_paid,
+            'posted_to_fund' => $this->client_id === null || (bool) $this->is_paid,
             'total' => (float) $this->items->sum('line_total'),
             'items' => $this->items->map(fn ($item) => [
                 'id' => $item->id,

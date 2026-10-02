@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Specialty;
 use App\Models\User;
+use App\Services\SystemMessageService;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -35,6 +36,19 @@ class WhatsAppReminderCandidatesTest extends TestCase
         ]);
     }
 
+    /**
+     * A doctor with a real specialty_id, and the "System Messages" group
+     * seeded for that company+specialty -- the SMS body
+     * AppointmentReminderService::smsText() resolves only exists once this
+     * has run (see Admin\SubscriptionController in production).
+     */
+    protected function makeDoctor(Company $company, Specialty $specialty, array $overrides = []): User
+    {
+        app(SystemMessageService::class)->seedForCompanySpecialty($company, $specialty);
+
+        return User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $specialty->id, ...$overrides]);
+    }
+
     protected function makeAppointment(Company $company, User $doctor, Client $client, string $date, string $status = 'scheduled'): Appointment
     {
         return Appointment::create([
@@ -55,8 +69,8 @@ class WhatsAppReminderCandidatesTest extends TestCase
         $manager = User::factory()->create(['company_id' => $company->id]);
         $nutrition = Specialty::query()->where('key', Specialty::NUTRITION)->firstOrFail();
         $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
-        $nutritionDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $nutrition->id, 'name' => 'Dr. Nutrition']);
-        $dentalDoctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'specialty_id' => $dental->id]);
+        $nutritionDoctor = $this->makeDoctor($company, $nutrition, ['name' => 'Dr. Nutrition']);
+        $dentalDoctor = $this->makeDoctor($company, $dental);
 
         $tomorrow = now()->addDay()->toDateString();
         $nutritionClient = $this->makeClient($company, ['name' => 'Nutrition Patient', 'phone' => '+90 555 111 22 33']);
@@ -128,7 +142,8 @@ class WhatsAppReminderCandidatesTest extends TestCase
     {
         $company = Company::factory()->create();
         $manager = User::factory()->create(['company_id' => $company->id]);
-        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true]);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        $doctor = $this->makeDoctor($company, $dental);
         $tomorrow = now()->addDay()->toDateString();
 
         $arabicClient = $this->makeClient($company, ['name' => 'Arabic Client', 'preferred_language' => 'ar']);

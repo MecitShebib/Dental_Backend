@@ -69,7 +69,7 @@
                             <td>
                                 @if ($user->company?->currentSubscription)
                                     <strong>{{ $user->company->currentSubscription->plan_name }}</strong><br>
-                                    <small>{{ $user->company->currentSubscription->active_users }}/{{ $user->company->currentSubscription->max_users }}</small>
+                                    <small>{{ $user->company->currentSubscription->active_users }} · {{ $user->company->currentSubscription->max_doctors ?? '∞' }} doctors + {{ $user->company->currentSubscription->max_assistants ?? '∞' }} assistants</small>
                                 @else
                                     <small>No active subscription</small>
                                 @endif

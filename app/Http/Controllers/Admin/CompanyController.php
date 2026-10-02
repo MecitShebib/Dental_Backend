@@ -11,8 +11,10 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Specialty;
 use App\Services\CompanyUserLimitService;
+use App\Services\SystemMessageService;
 use Database\Seeders\KvkkConsentTemplateSeeder;
 use Database\Seeders\TreatmentCatalogSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -94,6 +96,10 @@ class CompanyController extends Controller
     {
         $company->update($request->validated());
 
+        if ($company->wasChanged('language')) {
+            app(SystemMessageService::class)->retitleForCompany($company);
+        }
+
         return redirect()->route('admin.companies.index')->with('status', 'Company updated successfully.');
     }
 
@@ -146,5 +152,54 @@ class CompanyController extends Controller
         $this->companyUserLimit->syncActiveUsers($company);
 
         return redirect()->route('admin.companies.show', $company)->with('status', 'Company restored successfully.');
+    }
+
+    /**
+     * The real, irreversible version of destroy() -- only reachable for a
+     * company that's already soft-deleted (the view only shows this next to
+     * Restore; the guard below protects the route itself from a direct
+     * call). A hard DELETE on the company row cascades at the database level
+     * through every company_id foreign key in the schema (clients,
+     * appointments, visits, payments, invoices, inventory, branches,
+     * subscriptions, ...), not just users/subscriptions -- there's no way to
+     * hard-delete a company without also erasing everything scoped to it.
+     * Users still need deleting explicitly afterward since users.company_id
+     * is nullOnDelete, not cascade -- and must come AFTER the company itself
+     * (not before), since appointments/prescriptions/lab records restrict-
+     * delete their doctor_id and only the company's own cascade clears those
+     * out first. withoutEvents(): the Auditable trait (see
+     * app/Models/Concerns/Auditable.php) writes a fresh AuditLog row on every
+     * model deletion, including this one -- but by the time these users are
+     * force-deleted the company row is already gone, so AuditLog::record()'s
+     * company_id fallback would try to insert a row referencing a company
+     * that no longer exists and fail its own foreign key. There's nothing
+     * worth auditing here anyway: the whole point of an audit trail is
+     * tracing activity on a company's data, and that company is being
+     * erased in this same request. Wrapped in a transaction + caught: a
+     * handful of tables restrict-delete their doctor_id (appointments,
+     * prescriptions, ...), which would otherwise surface as a raw 500 for
+     * the rare row that escaped the company_id cascade (e.g. a legacy row
+     * with a null company_id).
+     */
+    public function forceDestroy(Company $company)
+    {
+        if (! $company->trashed()) {
+            return redirect()->route('admin.companies.index')->with('error', 'Only an already-deleted company can be permanently deleted.');
+        }
+
+        $users = $company->users()->withTrashed()->get();
+
+        try {
+            DB::transaction(function () use ($company, $users) {
+                Company::withoutEvents(function () use ($company, $users) {
+                    $company->forceDelete();
+                    $users->each(fn ($user) => $user->forceDelete());
+                });
+            });
+        } catch (QueryException $e) {
+            return redirect()->route('admin.companies.index')->with('error', 'Company could not be permanently deleted -- other records still reference it.');
+        }
+
+        return redirect()->route('admin.companies.index')->with('status', 'Company permanently deleted.');
     }
 }

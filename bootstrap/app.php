@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\EnsureActiveClinicAccess;
 use App\Http\Middleware\EnsureAdminUser;
+use App\Http\Middleware\EnsureSubscriptionFeature;
+use App\Http\Middleware\EnsureTermsAccepted;
 use App\Http\Middleware\RequiresKvkkConsent;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
@@ -20,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdminUser::class,
             'active.clinic' => EnsureActiveClinicAccess::class,
             'kvkk.consent' => RequiresKvkkConsent::class,
+            'subscription.feature' => EnsureSubscriptionFeature::class,
+            'terms.accepted' => EnsureTermsAccepted::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('admin.login'));

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AiTreatmentPlanController;
 use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BloodCountCarePlanController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\CallLogController;
 use App\Http\Controllers\Api\CallLogWebhookController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\CariPartyController;
 use App\Http\Controllers\Api\CariTransactionController;
 use App\Http\Controllers\Api\ChronicCarePlanController;
 use App\Http\Controllers\Api\ClientAppointmentController;
+use App\Http\Controllers\Api\ClientAssignedDoctorController;
 use App\Http\Controllers\Api\ClientCarePlanController;
 use App\Http\Controllers\Api\ClientConsentController;
 use App\Http\Controllers\Api\ClientController;
@@ -21,20 +23,24 @@ use App\Http\Controllers\Api\ClientDataRequestController;
 use App\Http\Controllers\Api\ClientPaymentController;
 use App\Http\Controllers\Api\ClientTreatmentRecordController;
 use App\Http\Controllers\Api\ClientVisitController;
+use App\Http\Controllers\Api\ClientWhatsAppMessageController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\CompanyFundController;
 use App\Http\Controllers\Api\CompanyTreatmentProductController;
 use App\Http\Controllers\Api\ConsentTemplateController;
+use App\Http\Controllers\Api\Cosmetic\ProcedureLogController as CosmeticProcedureLogController;
 use App\Http\Controllers\Api\CosmeticCarePlanController;
 use App\Http\Controllers\Api\CrmSettingsController;
-use App\Http\Controllers\Api\Nutrition\BodyMetricController as NutritionBodyMetricController;
+use App\Http\Controllers\Api\CustomMessageController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DicomStudyController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
-use App\Http\Controllers\Api\DoctorSignatureController;
 use App\Http\Controllers\Api\DoctorScheduleController;
+use App\Http\Controllers\Api\DoctorSignatureController;
 use App\Http\Controllers\Api\EmployeeSalaryController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\GeneralFollowupCarePlanController;
+use App\Http\Controllers\Api\Gynecology\UltrasoundExamController as GynecologyUltrasoundExamController;
 use App\Http\Controllers\Api\InventoryItemController;
 use App\Http\Controllers\Api\InventoryPurchaseOrderController;
 use App\Http\Controllers\Api\InventorySaleController;
@@ -42,10 +48,13 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\LabPartnerController;
 use App\Http\Controllers\Api\LabPaymentController;
-use App\Http\Controllers\Api\MessageTemplateController;
+use App\Http\Controllers\Api\Nutrition\BodyMetricController as NutritionBodyMetricController;
 use App\Http\Controllers\Api\NutritionCarePlanController;
 use App\Http\Controllers\Api\PatientLabResultController;
 use App\Http\Controllers\Api\PatientRecallController;
+use App\Http\Controllers\Api\PerioperativeCarePlanController;
+use App\Http\Controllers\Api\PhysioSessionCarePlanController;
+use App\Http\Controllers\Api\PlanVisibilityController;
 use App\Http\Controllers\Api\PrenatalCarePlanController;
 use App\Http\Controllers\Api\PrescriptionController;
 use App\Http\Controllers\Api\PublicBookingController;
@@ -54,12 +63,17 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalaryAdvanceController;
 use App\Http\Controllers\Api\SalaryPaymentController;
 use App\Http\Controllers\Api\SatisfactionSurveyController;
+use App\Http\Controllers\Api\SharedDocumentController;
 use App\Http\Controllers\Api\SpecialtyController;
+use App\Http\Controllers\Api\SupportRequestController;
 use App\Http\Controllers\Api\TreatmentCatalogInventoryLinkController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WellChildCarePlanController;
 use App\Http\Controllers\Api\WhatsAppSettingsController;
 use App\Http\Controllers\Api\XrayImageController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('public/plan-visibility', PlanVisibilityController::class);
 
 Route::prefix('public/companies/{company:booking_slug}')->group(function () {
     Route::middleware('throttle:public-booking-read')->group(function () {
@@ -99,11 +113,16 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
         Route::get('me', [AuthController::class, 'me']);
+        Route::post('accept-terms', [AuthController::class, 'acceptTerms']);
     });
 });
 
-Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
+Route::middleware(['auth:sanctum', 'active.clinic', 'terms.accepted'])->group(function () {
     Route::get('specialties', [SpecialtyController::class, 'index']);
+    Route::post('shared-documents', [SharedDocumentController::class, 'store'])->middleware('throttle:30,1');
+    Route::post('clients/{client}/whatsapp-message', [ClientWhatsAppMessageController::class, 'send'])->middleware('throttle:30,1');
+    Route::get('support/info', [SupportRequestController::class, 'info']);
+    Route::post('support/requests', [SupportRequestController::class, 'store'])->middleware('throttle:5,1');
     Route::get('doctors', [UserController::class, 'doctors']);
     Route::get('activity-log', [ActivityLogController::class, 'index']);
     Route::get('companies/{company}', [CompanyController::class, 'show']);
@@ -121,6 +140,8 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::put('clients/{client}/treatment-record', [ClientTreatmentRecordController::class, 'update']);
 
     Route::get('clients/{client}/care-plans', [ClientCarePlanController::class, 'index']);
+    Route::get('clients/{client}/assigned-doctor', [ClientAssignedDoctorController::class, 'show']);
+    Route::put('clients/{client}/assigned-doctor', [ClientAssignedDoctorController::class, 'update']);
     Route::get('clients/{client}/visits', [ClientVisitController::class, 'index']);
     Route::post('clients/{client}/visits', [ClientVisitController::class, 'store']);
     Route::put('visits/{visit}', [ClientVisitController::class, 'update']);
@@ -131,17 +152,20 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::put('payments/{payment}', [ClientPaymentController::class, 'update']);
     Route::delete('payments/{payment}', [ClientPaymentController::class, 'destroy']);
 
+    Route::get('clients/{client}/treatment-charges', [ClientController::class, 'treatmentCharges']);
+    Route::get('clients/{client}/message-variables', [ClientController::class, 'messageVariables']);
+
     Route::get('invoices/{invoice}', [InvoiceController::class, 'show']);
 
     Route::get('clients/{client}/appointments', [ClientAppointmentController::class, 'index']);
-    Route::get('clients/{client}/consents', [ClientConsentController::class, 'index']);
-    Route::post('clients/{client}/consents', [ClientConsentController::class, 'store']);
+    Route::get('clients/{client}/consents', [ClientConsentController::class, 'index'])->middleware('subscription.feature:consent_templates');
+    Route::post('clients/{client}/consents', [ClientConsentController::class, 'store'])->middleware('subscription.feature:consent_templates');
     Route::get('clients/{client}/data-export', [ClientDataRequestController::class, 'export']);
     Route::delete('clients/{client}/personal-data', [ClientDataRequestController::class, 'destroy']);
-    Route::get('consent-templates', [ConsentTemplateController::class, 'index']);
-    Route::post('consent-templates', [ConsentTemplateController::class, 'store']);
-    Route::put('consent-templates/{template}', [ConsentTemplateController::class, 'update']);
-    Route::delete('consent-templates/{template}', [ConsentTemplateController::class, 'destroy']);
+    Route::get('consent-templates', [ConsentTemplateController::class, 'index'])->middleware('subscription.feature:consent_templates');
+    Route::post('consent-templates', [ConsentTemplateController::class, 'store'])->middleware('subscription.feature:consent_templates');
+    Route::put('consent-templates/{template}', [ConsentTemplateController::class, 'update'])->middleware('subscription.feature:consent_templates');
+    Route::delete('consent-templates/{template}', [ConsentTemplateController::class, 'destroy'])->middleware('subscription.feature:consent_templates');
     Route::get('clients/{client}/ai-conversation', [AiTreatmentPlanController::class, 'conversationHistory']);
     // Every one of these sends the patient's case description (and/or a
     // voice recording) to OpenAI -- gated behind the KVKK Açık Rıza Beyanı.
@@ -158,6 +182,11 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('clients/{client}/prenatal-care-plan/confirm', [PrenatalCarePlanController::class, 'confirm']);
     Route::post('clients/{client}/chronic-care-plan/confirm', [ChronicCarePlanController::class, 'confirm']);
     Route::post('clients/{client}/rehab-care-plan/confirm', [RehabCarePlanController::class, 'confirm']);
+    Route::post('clients/{client}/well-child-care-plan/confirm', [WellChildCarePlanController::class, 'confirm']);
+    Route::post('clients/{client}/physio-session-care-plan/confirm', [PhysioSessionCarePlanController::class, 'confirm']);
+    Route::post('clients/{client}/blood-count-care-plan/confirm', [BloodCountCarePlanController::class, 'confirm']);
+    Route::post('clients/{client}/perioperative-care-plan/confirm', [PerioperativeCarePlanController::class, 'confirm']);
+    Route::post('clients/{client}/general-followup-care-plan/confirm', [GeneralFollowupCarePlanController::class, 'confirm']);
     Route::post('clients/{client}/cosmetic-care-plan/confirm', [CosmeticCarePlanController::class, 'confirm']);
     // Dietavaria prototype -- see NutritionCarePlanService's docblock.
     Route::post('clients/{client}/nutrition-care-plan/confirm', [NutritionCarePlanController::class, 'confirm']);
@@ -174,6 +203,7 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     // with Laravel trying (and failing) to resolve an Appointment by that
     // literal string as an id.
     Route::get('appointments/whatsapp-reminders', [AppointmentController::class, 'whatsappReminderCandidates']);
+    Route::post('appointments/whatsapp-reminders/send', [AppointmentController::class, 'sendWhatsappReminders'])->middleware('throttle:10,1');
     Route::apiResource('appointments', AppointmentController::class);
     Route::post('appointments/{appointment}/check-in', [ClientVisitController::class, 'checkIn']);
     Route::post('appointments/{appointment}/no-show', [ClientVisitController::class, 'noShow']);
@@ -262,33 +292,38 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::get('satisfaction-surveys', [SatisfactionSurveyController::class, 'index']);
     Route::get('satisfaction-surveys/summary', [SatisfactionSurveyController::class, 'summary']);
 
-    Route::get('call-logs', [CallLogController::class, 'index']);
-    Route::post('call-logs', [CallLogController::class, 'store']);
-    Route::delete('call-logs/{callLog}', [CallLogController::class, 'destroy']);
-    Route::post('call-logs/{callLog}/follow-up', [CallLogController::class, 'markFollowedUp']);
-    Route::get('call-logs/summary', [CallLogController::class, 'summary']);
+    Route::get('call-logs', [CallLogController::class, 'index'])->middleware('subscription.feature:call_webhook');
+    Route::post('call-logs', [CallLogController::class, 'store'])->middleware('subscription.feature:call_webhook');
+    Route::delete('call-logs/{callLog}', [CallLogController::class, 'destroy'])->middleware('subscription.feature:call_webhook');
+    Route::post('call-logs/{callLog}/follow-up', [CallLogController::class, 'markFollowedUp'])->middleware('subscription.feature:call_webhook');
+    Route::get('call-logs/summary', [CallLogController::class, 'summary'])->middleware('subscription.feature:call_webhook');
     Route::post('clients/{client}/send-recall', [PatientRecallController::class, 'send']);
     Route::put('companies/{company}/recall-settings', [CompanyController::class, 'updateRecallSettings']);
 
-    Route::get('settings/whatsapp', [WhatsAppSettingsController::class, 'show']);
-    Route::put('settings/whatsapp', [WhatsAppSettingsController::class, 'update']);
-    Route::delete('settings/whatsapp', [WhatsAppSettingsController::class, 'destroy']);
-    Route::post('settings/whatsapp/test', [WhatsAppSettingsController::class, 'test']);
+    Route::get('settings/whatsapp', [WhatsAppSettingsController::class, 'show'])->middleware('subscription.feature:whatsapp');
+    Route::put('settings/whatsapp', [WhatsAppSettingsController::class, 'update'])->middleware('subscription.feature:whatsapp');
+    Route::delete('settings/whatsapp', [WhatsAppSettingsController::class, 'destroy'])->middleware('subscription.feature:whatsapp');
+    Route::post('settings/whatsapp/test', [WhatsAppSettingsController::class, 'test'])->middleware('subscription.feature:whatsapp');
 
-    Route::get('settings/call-webhook', [CallWebhookSettingsController::class, 'show']);
-    Route::post('settings/call-webhook/regenerate', [CallWebhookSettingsController::class, 'regenerate']);
+    Route::get('settings/call-webhook', [CallWebhookSettingsController::class, 'show'])->middleware('subscription.feature:call_webhook');
+    Route::post('settings/call-webhook/regenerate', [CallWebhookSettingsController::class, 'regenerate'])->middleware('subscription.feature:call_webhook');
 
-    Route::get('settings/message-templates', [MessageTemplateController::class, 'index']);
-    Route::put('settings/message-templates', [MessageTemplateController::class, 'update']);
+    Route::get('message-groups', [CustomMessageController::class, 'index']);
+    Route::post('message-groups', [CustomMessageController::class, 'storeGroup']);
+    Route::put('message-groups/{group:uuid}', [CustomMessageController::class, 'updateGroup']);
+    Route::delete('message-groups/{group:uuid}', [CustomMessageController::class, 'destroyGroup']);
+    Route::post('message-groups/{group:uuid}/messages', [CustomMessageController::class, 'storeMessage']);
+    Route::put('custom-messages/{message:uuid}', [CustomMessageController::class, 'updateMessage']);
+    Route::delete('custom-messages/{message:uuid}', [CustomMessageController::class, 'destroyMessage']);
 
-    Route::get('settings/crm', [CrmSettingsController::class, 'show']);
-    Route::put('settings/crm', [CrmSettingsController::class, 'update']);
-    Route::delete('settings/crm', [CrmSettingsController::class, 'destroy']);
-    Route::post('settings/crm/test', [CrmSettingsController::class, 'test']);
+    Route::get('settings/crm', [CrmSettingsController::class, 'show'])->middleware('subscription.feature:crm');
+    Route::put('settings/crm', [CrmSettingsController::class, 'update'])->middleware('subscription.feature:crm');
+    Route::delete('settings/crm', [CrmSettingsController::class, 'destroy'])->middleware('subscription.feature:crm');
+    Route::post('settings/crm/test', [CrmSettingsController::class, 'test'])->middleware('subscription.feature:crm');
 
-    Route::get('settings/api-tokens', [ApiTokenController::class, 'index']);
-    Route::post('settings/api-tokens', [ApiTokenController::class, 'store']);
-    Route::delete('settings/api-tokens/{token}', [ApiTokenController::class, 'destroy']);
+    Route::get('settings/api-tokens', [ApiTokenController::class, 'index'])->middleware('subscription.feature:api_tokens');
+    Route::post('settings/api-tokens', [ApiTokenController::class, 'store'])->middleware('subscription.feature:api_tokens');
+    Route::delete('settings/api-tokens/{token}', [ApiTokenController::class, 'destroy'])->middleware('subscription.feature:api_tokens');
 
     Route::get('inventory-items', [InventoryItemController::class, 'index']);
     Route::post('inventory-items', [InventoryItemController::class, 'store']);
@@ -302,7 +337,7 @@ Route::middleware(['auth:sanctum', 'active.clinic'])->group(function () {
     Route::post('inventory-purchase-orders/batch', [InventoryPurchaseOrderController::class, 'storeBatch']);
     Route::put('inventory-purchase-orders/{purchaseOrder}/status', [InventoryPurchaseOrderController::class, 'updateStatus']);
 
-    Route::post('clients/{client}/inventory-sales', [InventorySaleController::class, 'store']);
+    Route::post('inventory-sales', [InventorySaleController::class, 'store']);
 
     Route::get('treatment-catalog/{catalogEntry}/inventory-links', [TreatmentCatalogInventoryLinkController::class, 'index']);
     Route::put('treatment-catalog/{catalogEntry}/inventory-links', [TreatmentCatalogInventoryLinkController::class, 'update']);
@@ -340,6 +375,8 @@ Route::middleware('signed')->group(function () {
     Route::get('users/{user}/signature-file', [DoctorSignatureController::class, 'signatureFile'])->name('users.signature-file');
     Route::get('users/{user}/stamp-file', [DoctorSignatureController::class, 'stampFile'])->name('users.stamp-file');
     Route::get('nutrition/body-metrics/{bodyMetric}/file', [NutritionBodyMetricController::class, 'file'])->name('nutrition.body-metrics.file');
+    Route::get('gynecology/ultrasound-exams/{record}/file/{field}', [GynecologyUltrasoundExamController::class, 'file'])->name('gynecology.ultrasound-exams.file');
+    Route::get('cosmetic/procedure-logs/{record}/file/{field}', [CosmeticProcedureLogController::class, 'file'])->name('cosmetic.procedure-logs.file');
 });
 
 // Split from the 'signed' group above: opening one real CBCT scan means the
@@ -358,3 +395,8 @@ require __DIR__.'/api/internal_medicine.php';
 require __DIR__.'/api/orthopedics.php';
 require __DIR__.'/api/cosmetic.php';
 require __DIR__.'/api/nutrition.php';
+require __DIR__.'/api/pediatrics.php';
+require __DIR__.'/api/physiotherapy.php';
+require __DIR__.'/api/hematology.php';
+require __DIR__.'/api/general_surgery.php';
+require __DIR__.'/api/general_practice.php';

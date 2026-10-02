@@ -11,10 +11,15 @@ use App\Models\UserOtp;
 use App\Services\MobileOtpService;
 use App\Specialties\Cosmetic\CosmeticModule;
 use App\Specialties\Dental\DentalModule;
+use App\Specialties\GeneralPractice\GeneralPracticeModule;
+use App\Specialties\GeneralSurgery\GeneralSurgeryModule;
 use App\Specialties\Gynecology\GynecologyModule;
+use App\Specialties\Hematology\HematologyModule;
 use App\Specialties\InternalMedicine\InternalMedicineModule;
 use App\Specialties\Nutrition\NutritionModule;
 use App\Specialties\Orthopedics\OrthopedicsModule;
+use App\Specialties\Pediatrics\PediatricsModule;
+use App\Specialties\Physiotherapy\PhysiotherapyModule;
 use App\Specialties\SpecialtyModuleRegistry;
 use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -194,6 +199,11 @@ class AuthOtpFlowTest extends TestCase
             $app->make(OrthopedicsModule::class),
             $app->make(CosmeticModule::class),
             $app->make(NutritionModule::class),
+            $app->make(PediatricsModule::class),
+            $app->make(PhysiotherapyModule::class),
+            $app->make(HematologyModule::class),
+            $app->make(GeneralSurgeryModule::class),
+            $app->make(GeneralPracticeModule::class),
         ));
 
         $this->fakeGeneratedOtp('999111');

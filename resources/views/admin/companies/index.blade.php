@@ -52,7 +52,7 @@
                         <td>
                             @if ($company->currentSubscription)
                                 {{ $company->currentSubscription->plan_name }}<br>
-                                <span class="muted">{{ $company->currentSubscription->active_users }}/{{ $company->currentSubscription->max_users }} active users</span>
+                                <span class="muted">{{ $company->currentSubscription->active_users }} active users · {{ $company->currentSubscription->max_doctors ?? '∞' }} doctors + {{ $company->currentSubscription->max_assistants ?? '∞' }} assistants</span>
                             @else
                                 <span class="muted">No active subscription</span>
                             @endif
@@ -62,6 +62,7 @@
                                 <a class="btn-link" href="{{ route('admin.companies.show', $company) }}">Open Company</a>
                                 @if ($company->trashed())
                                     <button class="btn btn-soft" type="button" data-open-modal="restore-company-{{ $company->id }}">Restore</button>
+                                    <button class="btn btn-danger" type="button" data-open-modal="force-delete-company-{{ $company->id }}">Delete Permanently</button>
                                 @else
                                     <button class="btn-muted" type="button" data-open-modal="toggle-company-{{ $company->id }}">
                                         Make {{ $company->status === 'active' ? 'Inactive' : 'Active' }}
@@ -103,6 +104,20 @@
                     <option value="inactive" @selected(old('status') === 'inactive')>inactive</option>
                 </select>
                 @error('status', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <select name="currency" required>
+                    <option value="" disabled @selected(old('currency') === null)>Select currency...</option>
+                    <option value="SYP" @selected(old('currency') === 'SYP')>Syrian Pound (SYP)</option>
+                    <option value="TRY" @selected(old('currency') === 'TRY')>Turkish Lira (TRY)</option>
+                    <option value="USD" @selected(old('currency') === 'USD')>US Dollar (USD)</option>
+                </select>
+                @error('currency', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
+                <select name="language" required>
+                    <option value="" disabled @selected(old('language') === null)>Select language...</option>
+                    <option value="ar" @selected(old('language') === 'ar')>العربية (Arabic)</option>
+                    <option value="tr" @selected(old('language') === 'tr')>Türkçe (Turkish)</option>
+                    <option value="en" @selected(old('language') === 'en')>English</option>
+                </select>
+                @error('language', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <textarea name="notes" placeholder="Notes">{{ old('notes') }}</textarea>
                 @error('notes', 'create-company-modal') <span class="field-error">{{ $message }}</span> @enderror
                 <button class="btn" type="submit">Create Company</button>
@@ -196,6 +211,21 @@
                     @csrf
                     @method('PATCH')
                     <button class="btn" type="submit">Restore Company</button>
+                </form>
+            </div>
+        </dialog>
+
+        <dialog id="force-delete-company-{{ $company->id }}" class="modal">
+            <div class="modal-card">
+                <div class="modal-head">
+                    <h3>Permanently Delete Company</h3>
+                    <button class="close-btn" type="button" data-close-modal>&times;</button>
+                </div>
+                <p><strong>This cannot be undone.</strong> Permanently delete <strong>{{ $company->name }}</strong>? This erases it from the database for good, along with its users, subscriptions, and every patient, appointment, visit, payment, and invoice that belonged to it.</p>
+                <form method="POST" action="{{ route('admin.companies.force-delete', $company) }}">
+                    @csrf
+                    @method('DELETE')
+                    <button class="btn btn-danger" type="submit">Delete Permanently</button>
                 </form>
             </div>
         </dialog>

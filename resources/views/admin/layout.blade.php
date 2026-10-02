@@ -270,6 +270,7 @@
                 <a href="{{ route('admin.companies.index') }}" class="{{ request()->routeIs('admin.companies.*') ? 'active' : '' }}">Companies</a>
                 <a href="{{ route('admin.landing-page.edit') }}" class="{{ request()->routeIs('admin.landing-page.*') ? 'active' : '' }}">Landing Page</a>
                 <a href="{{ route('admin.inquiries.index') }}" class="{{ request()->routeIs('admin.inquiries.*') ? 'active' : '' }}">Inquiries</a>
+                <a href="{{ route('admin.system.show') }}" class="{{ request()->routeIs('admin.system.*') ? 'active' : '' }}">System Status</a>
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
                     <button type="submit">Logout</button>
@@ -279,6 +280,9 @@
         <main class="main">
             @if (session('status'))
                 <div class="flash">{{ session('status') }}</div>
+            @endif
+            @if (session('error'))
+                <div class="errors">{{ session('error') }}</div>
             @endif
             {{-- A form inside a modal (see the "reopen the failed modal"
                  script below) shows its own errors inline, next to each

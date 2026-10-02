@@ -9,13 +9,12 @@ use App\Models\Company;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CompanyUserLimitService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function __construct(protected CompanyUserLimitService $companyUserLimit)
-    {
-    }
+    public function __construct(protected CompanyUserLimitService $companyUserLimit) {}
 
     public function index()
     {
@@ -32,7 +31,7 @@ class UserController extends Controller
         $company = Company::findOrFail($data['company_id']);
 
         if (($data['status'] ?? 'active') === 'active') {
-            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company);
+            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, null, (bool) ($data['is_doctor'] ?? false));
         }
 
         $user = User::create([
@@ -56,7 +55,7 @@ class UserController extends Controller
         $company = Company::findOrFail($data['company_id'] ?? $user->company_id);
 
         if (($data['status'] ?? ($user->status->value ?? $user->status)) === 'active') {
-            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user);
+            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user, (bool) ($data['is_doctor'] ?? $user->is_doctor));
         }
 
         if (empty($data['password'])) {
@@ -109,13 +108,47 @@ class UserController extends Controller
         return redirect()->route('admin.companies.show', $company)->with('status', 'User restored successfully.');
     }
 
+    /**
+     * The real, irreversible version of destroy() -- only reachable for an
+     * already soft-deleted user (the view only shows this next to Restore;
+     * the guard below protects the route itself). Appointments, visits,
+     * prescriptions, and lab records all deliberately restrict-delete their
+     * doctor_id -- a historical clinical record must keep naming a real
+     * doctor -- so this will fail (caught below, flashed as a friendly
+     * message instead of a raw 500) for any doctor who has ever had a
+     * patient. That's correct, not a bug: a company's own force-delete
+     * (Admin\CompanyController::forceDestroy()) clears those records first
+     * by erasing the whole company, which is the only way such a doctor can
+     * ever be permanently removed.
+     */
+    public function forceDestroy(User $user)
+    {
+        $company = Company::withTrashed()->find($user->company_id);
+
+        if (! $user->trashed()) {
+            return redirect()->route('admin.companies.show', $company)->with('error', 'Only an already-deleted user can be permanently deleted.');
+        }
+
+        try {
+            $user->forceDelete();
+        } catch (QueryException $e) {
+            return redirect()->route('admin.companies.show', $company)->with('error', 'User could not be permanently deleted -- they still have appointments, visits, or other clinical records on file.');
+        }
+
+        if ($company) {
+            $this->companyUserLimit->syncActiveUsers($company);
+        }
+
+        return redirect()->route('admin.companies.show', $company)->with('status', 'User permanently deleted.');
+    }
+
     public function toggleStatus(User $user)
     {
         $company = $user->company;
         $newStatus = ($user->status->value ?? $user->status) === 'active' ? 'inactive' : 'active';
 
         if ($newStatus === 'active' && $company) {
-            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user);
+            $this->companyUserLimit->assertCanHaveAnotherActiveUser($company, $user, (bool) $user->is_doctor);
         }
 
         $user->update(['status' => $newStatus]);

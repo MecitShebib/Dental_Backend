@@ -14,6 +14,11 @@
         'orthopedics' => 'orthovaria_logo.png',
         'cosmetic' => 'estevaria_logo.png',
         'nutrition' => 'dietavaria_logo.png',
+        'pediatrics' => 'pediavaria_logo.png?v=20260928',
+        'physiotherapy' => 'physiovaria_logo.png?v=20260928',
+        'hematology' => 'hemavaria_logo.png?v=20260928',
+        'general_surgery' => 'surgivaria_logo.png?v=20260928',
+        'general_practice' => 'genervaria_logo.png?v=20260928',
         default => 'dentavaria_logo.png',
     };
 
@@ -25,7 +30,7 @@
             'features_eyebrow' => 'Features', 'features_headline' => "Everything a modern practice needs, nothing it doesn't.",
             'how_eyebrow' => 'How it works', 'how_headline' => 'From setup to a confirmed plan, in four steps.',
             'pricing_eyebrow' => 'Pricing', 'pricing_headline' => 'Simple pricing that scales with your clinic.',
-            'billing_monthly' => 'Monthly', 'billing_yearly' => 'Yearly', 'billing_save' => '— save 20%', 'price_suffix' => '/ mo per clinic', 'most_popular' => 'Most popular',
+            'billing_monthly' => 'Monthly', 'billing_yearly' => 'Yearly', 'billing_save' => '— save 20%', 'pricing_ai_title' => 'AI assistant — pay as you go', 'pricing_ai_note' => 'AI is not bundled into any plan. Top up AI tokens from inside the app whenever you need them, on any plan: :price per 1,000,000 tokens.', 'price_suffix' => '/ mo per clinic', 'most_popular' => 'Most popular', 'plans_included' => 'Included in every plan',
             'testimonials_eyebrow' => 'Testimonials', 'testimonials_headline' => 'Clinics that switched, and never looked back.',
             'faq_eyebrow' => 'FAQ', 'faq_headline' => 'Questions, answered.',
             'footer_product' => 'Product', 'footer_company' => 'Company', 'footer_legal' => 'Legal',
@@ -42,7 +47,7 @@
             'features_eyebrow' => 'المزايا', 'features_headline' => 'كل ما تحتاجه ممارسة حديثة، ولا شيء أكثر من ذلك.',
             'how_eyebrow' => 'كيف يعمل', 'how_headline' => 'من الإعداد إلى خطة مؤكدة، في أربع خطوات.',
             'pricing_eyebrow' => 'الأسعار', 'pricing_headline' => 'تسعير بسيط يتناسب مع نمو ممارستك.',
-            'billing_monthly' => 'شهري', 'billing_yearly' => 'سنوي', 'billing_save' => '— وفّر 20%', 'price_suffix' => '/ شهريًا لكل عيادة', 'most_popular' => 'الأكثر شيوعًا',
+            'billing_monthly' => 'شهري', 'billing_yearly' => 'سنوي', 'billing_save' => '— وفّر 20%', 'pricing_ai_title' => 'مساعد الذكاء الاصطناعي — ادفع حسب الاستخدام', 'pricing_ai_note' => 'الذكاء الاصطناعي غير مشمول في أي باقة. اشحن رصيد التوكنات من داخل التطبيق متى احتجت، مع أي باقة: :price لكل 1,000,000 توكن.', 'price_suffix' => '/ شهريًا لكل عيادة', 'most_popular' => 'الأكثر شيوعًا', 'plans_included' => 'مشمول في جميع الباقات',
             'testimonials_eyebrow' => 'آراء العملاء', 'testimonials_headline' => 'ممارسات انتقلت إلينا ولم تندم أبدًا.',
             'faq_eyebrow' => 'الأسئلة الشائعة', 'faq_headline' => 'أسئلة، وأجوبتها.',
             'footer_product' => 'المنتج', 'footer_company' => 'الشركة', 'footer_legal' => 'قانوني',
@@ -59,7 +64,7 @@
             'features_eyebrow' => 'Özellikler', 'features_headline' => 'Modern bir pratiğin ihtiyaç duyduğu her şey, fazlası değil.',
             'how_eyebrow' => 'Nasıl çalışır', 'how_headline' => 'Kurulumdan onaylı bir plana, dört adımda.',
             'pricing_eyebrow' => 'Fiyatlandırma', 'pricing_headline' => 'Pratiğinizle birlikte ölçeklenen basit fiyatlandırma.',
-            'billing_monthly' => 'Aylık', 'billing_yearly' => 'Yıllık', 'billing_save' => '— %20 tasarruf', 'price_suffix' => '/ ay, klinik başına', 'most_popular' => 'En popüler',
+            'billing_monthly' => 'Aylık', 'billing_yearly' => 'Yıllık', 'billing_save' => '— %20 tasarruf', 'pricing_ai_title' => 'Yapay zeka asistanı — kullandıkça öde', 'pricing_ai_note' => 'Yapay zeka hiçbir pakete dahil değildir. İhtiyaç duyduğunuzda, her pakette, uygulama içinden token yükleyin: 1.000.000 token için :price.', 'price_suffix' => '/ ay, klinik başına', 'most_popular' => 'En popüler', 'plans_included' => 'Tüm paketlere dahil',
             'testimonials_eyebrow' => 'Referanslar', 'testimonials_headline' => 'Geçiş yapan ve asla geri dönmeyen pratikler.',
             'faq_eyebrow' => 'SSS', 'faq_headline' => 'Sorular, yanıtlandı.',
             'footer_product' => 'Ürün', 'footer_company' => 'Şirket', 'footer_legal' => 'Yasal',
@@ -234,6 +239,12 @@
         html[data-theme="light"] [class~="bg-[#111a2c]/95"] { background-color: rgba(255, 255, 255, 0.97); }
 
         html[data-theme="light"] [class~="text-white"] { color: #0f172a; }
+        /* The 2026-09-27 specialties (Pediavaria/Physiovaria/Hemavaria/Surgivaria/
+           Genervaria) have darker accents (e.g. Surgivaria's slate) where the
+           light-theme dark-text rule above leaves solid accent buttons unreadable,
+           so keep white text on those buttons for them only -- scoped so the
+           existing six specialties' pages are unchanged. */
+        html[data-theme="light"] body[data-accent-light-cta] [class~="from-blue-400"][class~="text-white"] { color: #ffffff; }
         html[data-theme="light"] [class~="text-slate-200"] { color: #1e293b; }
         html[data-theme="light"] [class~="text-slate-300"] { color: #334155; }
         html[data-theme="light"] [class~="text-slate-400"] { color: #475569; }
@@ -367,7 +378,7 @@
         }
     </style>
 </head>
-<body id="top" data-accent style="--accent: {{ $accent }};" class="bg-[#0a0f1a] text-slate-200 font-sans antialiased selection:bg-blue-500/30 selection:text-white">
+<body id="top" data-accent @if(in_array($specialty ?? null, ['pediatrics', 'physiotherapy', 'hematology', 'general_surgery', 'general_practice'], true)) data-accent-light-cta @endif style="--accent: {{ $accent }};" class="bg-[#0a0f1a] text-slate-200 font-sans antialiased selection:bg-blue-500/30 selection:text-white">
 
     {{-- Ambient background: one restrained glow in this specialty's own color --}}
     <div class="pointer-events-none fixed inset-0 overflow-hidden">
@@ -565,14 +576,28 @@
             </div>
         </section>
 
-        {{-- Pricing --}}
+        {{-- Pricing: shared features card, billing toggle, plan cards, AI note --}}
         <section id="pricing" class="border-t border-white/5 px-6 py-28">
             <div class="mx-auto max-w-7xl">
                 <div class="mx-auto max-w-2xl text-center" data-reveal>
                     <p class="text-sm font-semibold uppercase tracking-widest text-blue-400">{{ $ui['pricing_eyebrow'] }}</p>
                     <h2 class="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">{{ $ui['pricing_headline'] }}</h2>
+                </div>
 
-                    <label class="mt-8 inline-flex cursor-pointer items-center gap-3">
+                @php($pricingLayout = \App\Models\LandingPageContent::pricingLayout($content['pricing']))
+                @if ($pricingLayout['shared'])
+                    <div class="ls-card mt-14 rounded-2xl border border-white/10 bg-white/[0.02] p-8" data-reveal>
+                        <h3 class="text-center text-lg font-semibold text-white">{{ $ui['plans_included'] }}</h3>
+                        <ul class="mt-6 grid gap-x-8 gap-y-3 text-sm text-slate-400" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
+                            @foreach ($pricingLayout['shared'] as $line)
+                                <li class="flex items-start gap-2"><span class="text-blue-400" aria-hidden="true">✓</span><span>{{ $line }}</span></li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <div class="mt-10 text-center" data-reveal>
+                    <label class="inline-flex cursor-pointer items-center gap-3">
                         <span class="text-sm text-slate-400">{{ $ui['billing_monthly'] }}</span>
                         <span class="relative inline-block">
                             <input type="checkbox" id="billing-toggle" class="peer sr-only">
@@ -583,8 +608,8 @@
                     </label>
                 </div>
 
-                <div class="plans mt-14 grid gap-6 lg:grid-cols-3">
-                    @foreach ($content['pricing'] as $tier)
+                <div class="plans mt-8 grid gap-6" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));">
+                    @foreach ($pricingLayout['tiers'] as $tier)
                         @if ($tier['highlighted'])
                             <div class="ls-card-highlight relative rounded-2xl border border-blue-400/40 bg-gradient-to-b from-blue-400/[0.07] to-transparent p-8 shadow-2xl shadow-blue-500/10" data-reveal>
                                 <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 px-3 py-1 text-xs font-semibold text-white">{{ $ui['most_popular'] }}</span>
@@ -624,6 +649,11 @@
                             </div>
                         @endif
                     @endforeach
+                </div>
+
+                <div class="ls-card mx-auto mt-10 max-w-6xl rounded-2xl border border-blue-400/30 bg-white/[0.02] p-6 text-center" data-reveal>
+                    <h3 class="text-base font-semibold text-white">{{ $ui['pricing_ai_title'] }}</h3>
+                    <p class="mt-2 text-sm leading-relaxed text-slate-400">{{ str_replace(':price', config('services.support.ai_token_price_per_million'), $ui['pricing_ai_note']) }}</p>
                 </div>
             </div>
         </section>
@@ -723,7 +753,7 @@
     {{-- Footer --}}
     <footer class="border-t border-white/5 px-6 py-14">
         <div class="mx-auto max-w-7xl">
-            <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="grid gap-10" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));">
                 <div>
                     <div class="flex h-7 items-center">
                         <img src="{{ $wordmarkSrc }}" alt="{{ $brandName }}" class="block h-12 w-auto">
@@ -760,6 +790,13 @@
                     <ul class="mt-4 space-y-3 text-sm text-slate-500">
                         <li><a href="{{ route('privacy', $locale) }}" class="transition hover:text-slate-300">{{ $ui['footer_privacy'] }}</a></li>
                         <li><a href="{{ route('terms', $locale) }}" class="transition hover:text-slate-300">{{ $ui['footer_terms'] }}</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <p class="text-sm font-semibold text-white">{{ $ui['footer_contact'] }}</p>
+                    <ul class="mt-4 space-y-3 text-sm text-slate-500">
+                        @include('partials.landing-contact-links', ['locale' => $locale, 'linkClass' => 'transition hover:text-slate-300'])
                     </ul>
                 </div>
             </div>

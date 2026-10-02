@@ -43,6 +43,29 @@
             'change_phone' => 'Telefon numarasını değiştir',
         ],
     ][$locale];
+
+    // MOBILE_OTP_CHANNEL: with "email" the code is emailed, email is required
+    // and the phone optional; with "sms" it's the other way round.
+    $otpChannel = config('services.otp.channel') === 'email' ? 'email' : 'sms';
+    if ($otpChannel === 'email') {
+        $t = array_merge($t, [
+            'en' => [
+                'phone' => 'Phone number (optional)', 'email' => 'Email',
+                'otp_title' => 'Verify your email', 'change_phone' => 'Change email address',
+                'success_body' => 'We look forward to seeing you.',
+            ],
+            'ar' => [
+                'phone' => 'رقم الهاتف (اختياري)', 'email' => 'البريد الإلكتروني',
+                'otp_title' => 'تحقق من بريدك الإلكتروني', 'change_phone' => 'تغيير البريد الإلكتروني',
+                'success_body' => 'بانتظار زيارتكم.',
+            ],
+            'tr' => [
+                'phone' => 'Telefon numarası (isteğe bağlı)', 'email' => 'E-posta',
+                'otp_title' => 'E-postanızı doğrulayın', 'otp_sent_to' => 'Şu adrese bir kod gönderdik:',
+                'change_phone' => 'E-posta adresini değiştir', 'success_body' => 'Sizi görmekten mutluluk duyarız.',
+            ],
+        ][$locale]);
+    }
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
@@ -89,6 +112,7 @@
     <script>
         (function () {
             var t = @json($t);
+            var otpChannel = @json($otpChannel);
             var isRtl = @json($isRtl);
             var slug = @json($company->booking_slug);
             var apiBase = '/api/public/companies/' + encodeURIComponent(slug);
@@ -213,10 +237,10 @@
                 var nameInput = el('input', { type: 'text', id: 'client_name', required: 'required' });
                 nameInput.value = state.clientName;
                 var phoneLabel = el('label', { text: t.phone });
-                var phoneInput = el('input', { type: 'tel', id: 'client_phone', required: 'required' });
+                var phoneInput = el('input', otpChannel === 'email' ? { type: 'tel', id: 'client_phone' } : { type: 'tel', id: 'client_phone', required: 'required' });
                 phoneInput.value = state.clientPhone;
                 var emailLabel = el('label', { text: t.email });
-                var emailInput = el('input', { type: 'email', id: 'client_email' });
+                var emailInput = el('input', otpChannel === 'email' ? { type: 'email', id: 'client_email', required: 'required' } : { type: 'email', id: 'client_email' });
                 emailInput.value = state.clientEmail;
 
                 var honeypot = el('div', { class: 'hp-field' });
@@ -247,7 +271,7 @@
                     fetch(apiBase + '/book/request-otp', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                        body: JSON.stringify({ client_phone: phoneInput.value }),
+                        body: JSON.stringify({ client_phone: phoneInput.value || null, client_email: emailInput.value || null }),
                     })
                         .then(function (response) {
                             if (!response.ok) {
@@ -261,7 +285,7 @@
                             state.clientEmail = emailInput.value;
                             state.website = honeypotInput.value;
                             state.otpReference = body.data.otp_reference;
-                            state.maskedMobile = body.data.masked_mobile;
+                            state.maskedMobile = body.data.masked_destination || body.data.masked_mobile;
                             render();
                         })
                         .catch(function (body) {
@@ -318,7 +342,7 @@
                             date: state.date,
                             start_time: state.time,
                             client_name: state.clientName,
-                            client_phone: state.clientPhone,
+                            client_phone: state.clientPhone || null,
                             client_email: state.clientEmail || null,
                             otp: otpInput.value,
                             otp_reference: state.otpReference,

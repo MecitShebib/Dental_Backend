@@ -9,6 +9,11 @@
         'orthopedics' => 'orthovaria_logo.png',
         'cosmetic' => 'estevaria_logo.png',
         'nutrition' => 'dietavaria_logo.png',
+        'pediatrics' => 'pediavaria_logo.png?v=20260928',
+        'physiotherapy' => 'physiovaria_logo.png?v=20260928',
+        'hematology' => 'hemavaria_logo.png?v=20260928',
+        'general_surgery' => 'surgivaria_logo.png?v=20260928',
+        'general_practice' => 'genervaria_logo.png?v=20260928',
         default => 'dentavaria_logo.png',
     };
 @endphp

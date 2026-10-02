@@ -11,11 +11,11 @@ use App\Models\InventoryPurchaseOrder;
  * Medical Supplies-category Expense (and therefore the fund ledger via
  * FundTransactionService) -- modeled 1:1 on LabPaymentCostSyncService, the
  * existing template for "a real-world cost event should also create an
- * Expense + post a FundTransaction". Without this, receiving stock had zero
- * accounting effect even though a patient's later inventory purchase (see
- * InventorySaleService) already flows through as ordinary revenue via the
- * existing Payment -> FundTransaction path -- so profit never showed up
- * anywhere in Accounting.
+ * Expense + post a FundTransaction". Called immediately on every purchase
+ * order now (see InventoryService::createPurchaseOrder() -- creating an
+ * order IS receiving it, no more manual follow-up), so this is what makes a
+ * restock actually move the fund balance. See InventorySaleService for the
+ * revenue side.
  */
 class InventoryPurchaseCostSyncService
 {

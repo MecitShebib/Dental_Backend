@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\ClientLanguage;
+use App\Enums\CompanyCurrency;
 use App\Http\Requests\Concerns\ScopesErrorsToModal;
 use App\Rules\ValidPhone;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,6 +29,8 @@ class UpdateCompanyRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:100', new ValidPhone],
             'address' => ['nullable', 'string'],
             'status' => ['required', 'in:active,inactive'],
+            'currency' => ['required', Rule::enum(CompanyCurrency::class)],
+            'language' => ['required', Rule::enum(ClientLanguage::class)],
             'notes' => ['nullable', 'string'],
         ];
     }

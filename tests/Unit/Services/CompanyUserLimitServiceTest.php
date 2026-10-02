@@ -22,7 +22,7 @@ class CompanyUserLimitServiceTest extends TestCase
         $this->seed(SpecialtySeeder::class);
     }
 
-    protected function subscriptionFor(Company $company, string $specialtyKey, int $maxUsers): Subscription
+    protected function subscriptionFor(Company $company, string $specialtyKey, int $maxDoctors): Subscription
     {
         $specialty = Specialty::query()->where('key', $specialtyKey)->firstOrFail();
 
@@ -32,23 +32,24 @@ class CompanyUserLimitServiceTest extends TestCase
             'plan_name' => ucfirst($specialtyKey),
             'status' => 'active',
             'starts_at' => now()->subDay()->toDateString(),
-            'max_users' => $maxUsers,
+            'max_doctors' => $maxDoctors,
+            'max_assistants' => null,
         ]);
     }
 
-    public function test_the_max_users_limit_is_the_sum_of_every_active_specialty_subscription(): void
+    public function test_the_doctor_limit_is_the_sum_of_every_active_specialty_subscription(): void
     {
         $company = Company::factory()->create();
         $company->subscriptions()->delete();
         $this->subscriptionFor($company, Specialty::DENTAL, 2);
         $this->subscriptionFor($company, Specialty::GYNECOLOGY, 2);
 
-        // 3 existing active users + 1 new one = 4, which is over either
-        // subscription's own max_users (2) alone but within the pooled
+        // 3 existing active doctors + 1 new one = 4, which is over either
+        // subscription's own max_doctors (2) alone but within the pooled
         // total (2 + 2 = 4) -- confirms the two specialties share one cap.
-        User::factory()->count(3)->create(['company_id' => $company->id, 'status' => 'active']);
+        User::factory()->count(3)->create(['company_id' => $company->id, 'status' => 'active', 'is_doctor' => true]);
 
-        app(CompanyUserLimitService::class)->assertCanHaveAnotherActiveUser($company);
+        app(CompanyUserLimitService::class)->assertCanHaveAnotherActiveUser($company, null, true);
         $this->assertTrue(true);
     }
 
@@ -59,11 +60,11 @@ class CompanyUserLimitServiceTest extends TestCase
         $this->subscriptionFor($company, Specialty::DENTAL, 2);
         $this->subscriptionFor($company, Specialty::GYNECOLOGY, 2);
 
-        User::factory()->count(4)->create(['company_id' => $company->id, 'status' => 'active']);
+        User::factory()->count(4)->create(['company_id' => $company->id, 'status' => 'active', 'is_doctor' => true]);
 
         $this->expectException(ValidationException::class);
 
-        app(CompanyUserLimitService::class)->assertCanHaveAnotherActiveUser($company);
+        app(CompanyUserLimitService::class)->assertCanHaveAnotherActiveUser($company, null, true);
     }
 
     public function test_sync_active_users_writes_the_same_company_wide_count_to_every_active_subscription(): void

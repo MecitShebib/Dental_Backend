@@ -5,8 +5,11 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Specialty;
 use App\Models\User;
+use App\Services\SystemMessageService;
 use Carbon\Carbon;
+use Database\Seeders\SpecialtySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -26,6 +29,9 @@ class PublicBookingTest extends TestCase
             // A fixed OTP means booking tests can drive the real
             // request-otp -> book flow without mocking OTP generation.
             'services.otp.fixed_code' => '123456',
+            // SMS-channel behaviour; the email channel is covered by
+            // PublicBookingEmailOtpTest (local .env may set email).
+            'services.otp.channel' => 'sms',
         ]);
 
         Http::fake([
@@ -33,6 +39,8 @@ class PublicBookingTest extends TestCase
                 'response' => ['status' => ['code' => 200, 'message' => 'OK'], 'order' => ['id' => 'test']],
             ], 200),
         ]);
+
+        $this->seed(SpecialtySeeder::class);
     }
 
     /**
@@ -49,7 +57,10 @@ class PublicBookingTest extends TestCase
 
     protected function makeBookableDoctor(Company $company, string $weekday = 'monday'): User
     {
-        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'status' => 'active']);
+        $dental = Specialty::query()->where('key', Specialty::DENTAL)->firstOrFail();
+        app(SystemMessageService::class)->seedForCompanySpecialty($company, $dental);
+
+        $doctor = User::factory()->create(['company_id' => $company->id, 'is_doctor' => true, 'status' => 'active', 'specialty_id' => $dental->id]);
         $doctor->doctorSchedule()->create([
             'start_time' => '09:00:00',
             'end_time' => '12:00:00',

@@ -18,6 +18,8 @@ class CompanyResource extends JsonResource
             'phone' => $this->phone,
             'address' => $this->address,
             'status' => $this->status,
+            'currency' => $this->currency?->value,
+            'language' => $this->language?->value ?? 'tr',
             'notes' => $this->notes,
             'recall_interval_days' => $this->recall_interval_days,
             'effective_recall_interval_days' => $this->recallIntervalDays(),
@@ -25,6 +27,7 @@ class CompanyResource extends JsonResource
             'booking_url' => $this->bookingUrl(),
             'users_count' => $this->whenCounted('users', $this->users_count),
             'active_users_count' => $this->when(isset($this->active_users_count), $this->active_users_count),
+            'seat_usage' => $this->when(isset($this->seat_usage), fn () => $this->seat_usage),
             'latest_active_subscription' => $this->whenLoaded('currentSubscription', function () {
                 return $this->currentSubscription
                     ? SubscriptionResource::make($this->currentSubscription)

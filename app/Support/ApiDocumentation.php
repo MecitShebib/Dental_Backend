@@ -38,12 +38,12 @@ class ApiDocumentation
 
     /**
      * @param  string|null  $specialtyKey  One of the Specialty model's key
-     *   constants (e.g. 'dental', 'gynecology'), or null for the full,
-     *   unfiltered set. A group with no 'specialties' key is shared by every
-     *   specialty (the generic CRM/scheduling/billing surface); a group that
-     *   sets one (e.g. dental's X-Ray/DICOM/Lab groups) only appears for
-     *   those specialties, since those features don't exist outside dental
-     *   today.
+     *                                     constants (e.g. 'dental', 'gynecology'), or null for the full,
+     *                                     unfiltered set. A group with no 'specialties' key is shared by every
+     *                                     specialty (the generic CRM/scheduling/billing surface); a group that
+     *                                     sets one (e.g. dental's X-Ray/DICOM/Lab groups) only appears for
+     *                                     those specialties, since those features don't exist outside dental
+     *                                     today.
      */
     public static function groups(?string $specialtyKey = null): array
     {
@@ -181,7 +181,7 @@ class ApiDocumentation
             [
                 'id' => 'activity-log',
                 'title' => 'Activity Log',
-                'intro' => "System manager/admin only. Every AuditLog row for your company across every audited model (patients, appointments, visits, payments, accounting, password changes, ...), newest first, 100 per page.",
+                'intro' => 'System manager/admin only. Every AuditLog row for your company across every audited model (patients, appointments, visits, payments, accounting, password changes, ...), newest first, 100 per page.',
                 'endpoints' => [
                     [
                         'method' => 'GET', 'path' => '/activity-log', 'auth' => 'Bearer token · system manager/admin only',
@@ -221,7 +221,7 @@ class ApiDocumentation
                         ['name' => 'id, company_id, plan_name', 'type' => ''],
                         ['name' => 'status', 'type' => 'enum', 'enum' => 'SubscriptionStatus'],
                         ['name' => 'starts_at, ends_at', 'type' => 'date'],
-                        ['name' => 'max_users, active_users, max_ai_tokens, ai_tokens_used, price', 'type' => 'number'],
+                        ['name' => 'max_doctors, max_assistants, active_users, max_ai_tokens, ai_tokens_used, price', 'type' => 'number'],
                         ['name' => 'is_currently_active', 'type' => 'boolean'],
                     ]],
                     ['method' => 'GET', 'path' => '/companies/{id}/treatment-products', 'auth' => 'Bearer token', 'summary' => 'Lists every priced item: company-managed services and odontogram-widget procedures.', 'request' => [], 'response' => [
@@ -737,8 +737,12 @@ class ApiDocumentation
             'orthopedics' => 'Orthovaria',
             'cosmetic' => 'Estevaria',
             'nutrition' => 'Dietavaria',
+            'pediatrics' => 'Pediavaria',
+            'physiotherapy' => 'Physiovaria',
+            'hematology' => 'Hemavaria',
+            'general_surgery' => 'Surgivaria',
+            'general_practice' => 'Genervaria',
             default => 'Doctovaria',
         };
     }
-
 }

@@ -58,10 +58,20 @@ class ReportController extends Controller
             ))
             ->withSum('treatmentCharges as total_services', 'amount')
             ->withSum('payments as total_paid', 'amount')
+            ->with('specialtyRecords.specialty')
             ->get()
-            ->map(function (Client $client) {
+            ->map(function (Client $client) use ($specialtyId) {
                 $totalServices = round((float) ($client->total_services ?? 0), 2);
                 $totalPaid = round((float) ($client->total_paid ?? 0), 2);
+
+                // Which specialty's own Client Details page "View" should open
+                // -- the one this report was filtered to, when given, since
+                // every row is already scoped to it; otherwise whichever
+                // specialty this client is enrolled in (first one, for the
+                // rare case of more than one -- see ClientSpecialtyRecord).
+                $specialtyRecord = $specialtyId
+                    ? $client->specialtyRecords->firstWhere('specialty_id', $specialtyId)
+                    : $client->specialtyRecords->first();
 
                 return [
                     'client_id' => $client->id,
@@ -70,6 +80,7 @@ class ReportController extends Controller
                     'total_services_amount' => $totalServices,
                     'total_paid_amount' => $totalPaid,
                     'remaining_amount' => round($totalServices - $totalPaid, 2),
+                    'specialty_key' => $specialtyRecord?->specialty?->key,
                 ];
             })
             ->filter(fn (array $row) => $row['remaining_amount'] > 0)

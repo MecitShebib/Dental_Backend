@@ -9,11 +9,13 @@ use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\VerifyForgotPasswordOtpRequest;
 use App\Http\Requests\Auth\VerifyLoginOtpRequest;
 use App\Http\Resources\UserResource;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\UserOtp;
 use App\Services\MobileOtpService;
 use App\Services\SubscriptionAccessService;
 use App\Specialties\SpecialtyModuleRegistry;
+use App\Support\LegalContent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -107,7 +109,9 @@ class AuthController extends Controller
         // (name 'api-token') -- deliberately leaves Settings > API Token's
         // named integration tokens alone (see ApiTokenController).
         $user->tokens()->where('name', 'api-token')->delete();
-        $token = $user->createToken('api-token')->plainTextToken;
+        // Login tokens expire (LOGIN_TOKEN_DAYS, default 30) -- integration
+        // tokens from Settings > API Token are created without an expiry.
+        $token = $user->createToken('api-token', ['*'], now()->addDays((int) config('services.auth.login_token_days', 30)))->plainTextToken;
 
         $user->setAttribute('requires_specialty_selection', $this->requiresSpecialtySelection($user));
 
@@ -219,6 +223,33 @@ class AuthController extends Controller
         $user->setAttribute('requires_specialty_selection', $this->requiresSpecialtySelection($user));
 
         return $this->success(UserResource::make($user));
+    }
+
+    /**
+     * The signed-in person accepts the current Terms of Service, including
+     * the personal-account clause (no sharing; every action under this
+     * account is attributed to them). Must be the current version -- a stale
+     * SPA tab can't accept text the user never saw. Logged to the audit log
+     * with IP/user agent as the evidentiary record of acceptance.
+     */
+    public function acceptTerms(Request $request)
+    {
+        $validated = $request->validate([
+            'version' => ['required', 'string', 'in:'.LegalContent::TERMS_VERSION],
+            'personal_account_confirmed' => ['required', 'accepted'],
+        ]);
+
+        $user = $request->user();
+        // Quietly: the explicit 'terms_accepted' audit entry below is the
+        // meaningful record; the generic 'updated' one would just duplicate it.
+        $user->forceFill([
+            'terms_accepted_version' => $validated['version'],
+            'terms_accepted_at' => now(),
+        ])->saveQuietly();
+
+        AuditLog::record('terms_accepted', $user, $user, ['version' => $validated['version']]);
+
+        return $this->me($request);
     }
 
     protected function requiresSpecialtySelection(User $user): bool

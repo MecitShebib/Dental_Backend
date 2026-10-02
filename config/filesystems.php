@@ -1,5 +1,13 @@
 <?php
 
+// FILES_ROOT: an optional folder OUTSIDE the code (e.g. /home/technova/files)
+// holding every uploaded file -- private/ (X-rays, signatures, shared PDFs...)
+// and public/ (message attachments...). Keeps uploads out of the deployed /
+// WinSCP-synced project tree so a deploy can never overwrite or delete them.
+// Unset = the original in-project locations (storage/app/private and
+// public/storage). public/migrate.php copies existing files across.
+$filesRoot = rtrim((string) env('FILES_ROOT', ''), '/\\');
+
 return [
 
     /*
@@ -32,7 +40,7 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            'root' => $filesRoot !== '' ? $filesRoot.'/private' : storage_path('app/private'),
             // Deliberately false (KVKK/veri güvenliği): this disk holds X-ray
             // images, consent signatures, and expense attachments. Laravel's
             // auto "serve" route (GET+PUT /storage/{path}) has no auth check
@@ -54,8 +62,12 @@ return [
             // unconditionally (Laravel's Filesystem::link() falls back to exec('ln -s')
             // when symlink() is missing, and that call itself fails the same way).
             // Writing straight into the web root sidesteps the need for a link at all.
-            'root' => public_path('storage'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            //
+            // With FILES_ROOT set, this folder sits outside the web root, so
+            // its files are served by the app's /files/{path} route
+            // (PublicFileController) instead of directly by the web server.
+            'root' => $filesRoot !== '' ? $filesRoot.'/public' : public_path('storage'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').($filesRoot !== '' ? '/files' : '/storage'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

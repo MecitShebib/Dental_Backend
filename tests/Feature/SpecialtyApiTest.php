@@ -21,7 +21,7 @@ class SpecialtyApiTest extends TestCase
         $this->seed(SpecialtySeeder::class);
     }
 
-    public function test_it_lists_all_six_specialties_flagged_with_subscription_and_build_status(): void
+    public function test_it_lists_all_eleven_specialties_flagged_with_subscription_and_build_status(): void
     {
         $company = Company::factory()->create();
         $user = User::factory()->create(['company_id' => $company->id]);
@@ -29,7 +29,7 @@ class SpecialtyApiTest extends TestCase
 
         $response = $this->getJson('/api/specialties')->assertOk();
 
-        $response->assertJsonCount(6, 'data');
+        $response->assertJsonCount(11, 'data');
 
         $dental = collect($response->json('data'))->firstWhere('key', Specialty::DENTAL);
         $this->assertSame('Dentavaria', $dental['brand_name']);

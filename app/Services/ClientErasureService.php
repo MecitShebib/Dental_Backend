@@ -36,6 +36,8 @@ class ClientErasureService
             });
             $client->consents()->delete();
 
+            $this->eraseSpecialtyClinicalData($client);
+
             $client->update([
                 'name' => 'Silinmiş Hasta #'.$client->id,
                 'email' => null,
@@ -49,5 +51,26 @@ class ClientErasureService
 
             $client->delete();
         });
+    }
+
+    /**
+     * Per-specialty clinical profiles and repeating records (2026-09-27, spec
+     * Aşama 3) are health data with no separate retention duty, so they are
+     * deleted outright -- uploaded images included -- rather than masked.
+     */
+    protected function eraseSpecialtyClinicalData(Client $client): void
+    {
+        $relations = ['gynecologyProfile' => [], 'gynecologyUltrasoundExams' => ['image'], 'internalMedicineProfile' => [], 'internalMedicineVitals' => [], 'orthopedicsProfile' => [], 'orthopedicsAssessments' => [], 'cosmeticProfile' => [], 'cosmeticProcedureLogs' => ['before_photo', 'after_photo'], 'pediatricsProfile' => [], 'pediatricsGrowthMeasurements' => [], 'pediatricsVaccinations' => [], 'physiotherapyProfile' => [], 'physiotherapySessions' => [], 'hematologyProfile' => [], 'hematologyBloodCounts' => [], 'hematologyTransfusions' => [], 'generalSurgeryProfile' => [], 'generalSurgeryOperations' => [], 'generalSurgeryFollowups' => [], 'generalPracticeProfile' => [], 'generalPracticeVitals' => [], 'generalPracticeReferrals' => []];
+
+        foreach ($relations as $relation => $fileFields) {
+            $client->{$relation}()->get()->each(function ($record) use ($fileFields) {
+                foreach ($fileFields as $field) {
+                    if ($record->{$field.'_path'}) {
+                        Storage::disk('local')->delete($record->{$field.'_path'});
+                    }
+                }
+                $record->delete();
+            });
+        }
     }
 }

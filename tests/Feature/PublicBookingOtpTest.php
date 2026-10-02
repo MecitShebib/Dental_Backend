@@ -25,6 +25,9 @@ class PublicBookingOtpTest extends TestCase
             'services.iletimerkezi.api_key' => 'test-api-key',
             'services.iletimerkezi.api_hash' => 'test-api-hash',
             'services.otp.fixed_code' => '123456',
+            // SMS-channel behaviour; the email channel is covered by
+            // PublicBookingEmailOtpTest (local .env may set email).
+            'services.otp.channel' => 'sms',
         ]);
 
         Http::fake([

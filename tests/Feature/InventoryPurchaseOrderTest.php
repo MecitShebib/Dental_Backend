@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Mail\LowStockAlertMail;
 use App\Models\Company;
+use App\Models\FundTransaction;
 use App\Models\InventoryItem;
 use App\Models\InventoryPurchaseOrder;
 use App\Models\User;
@@ -27,11 +29,11 @@ class InventoryPurchaseOrderTest extends TestCase
         ]);
     }
 
-    public function test_a_purchase_order_can_be_created_manually(): void
+    public function test_a_purchase_order_is_instantly_received_on_creation(): void
     {
         $company = Company::factory()->create();
         Sanctum::actingAs(User::factory()->create(['company_id' => $company->id]));
-        $item = $this->makeItem($company);
+        $item = $this->makeItem($company, ['quantity_on_hand' => 20, 'supplier_name' => 'Acme Supplies']);
 
         $response = $this->postJson("/api/inventory-items/{$item->id}/purchase-orders", [
             'quantity' => 10,
@@ -39,8 +41,20 @@ class InventoryPurchaseOrderTest extends TestCase
             'notes' => 'Restocking',
         ])->assertCreated();
 
-        $response->assertJsonPath('data.status', 'pending');
+        // No more order follow-up: creating a purchase order IS receiving
+        // it -- stock, the fund, and accounting all update immediately.
+        $response->assertJsonPath('data.status', 'received');
         $this->assertEquals(50.0, $response->json('data.total_cost'));
+        $this->assertEquals(30.0, $item->fresh()->quantity_on_hand);
+        $this->assertDatabaseHas('expenses', [
+            'company_id' => $company->id,
+            'vendor_name' => 'Acme Supplies',
+            'amount' => 50,
+        ]);
+        $this->assertDatabaseHas('fund_transactions', [
+            'company_id' => $company->id,
+            'amount' => -50,
+        ]);
     }
 
     public function test_marking_an_order_received_creates_an_inventory_transaction_and_updates_stock(): void
@@ -99,12 +113,12 @@ class InventoryPurchaseOrderTest extends TestCase
         ]);
     }
 
-    public function test_a_purchase_order_batch_creates_one_independent_order_per_item(): void
+    public function test_a_purchase_order_batch_instantly_receives_every_line(): void
     {
         $company = Company::factory()->create();
         Sanctum::actingAs(User::factory()->create(['company_id' => $company->id]));
-        $itemA = $this->makeItem($company, ['name' => 'Gloves']);
-        $itemB = $this->makeItem($company, ['name' => 'Masks']);
+        $itemA = $this->makeItem($company, ['name' => 'Gloves', 'quantity_on_hand' => 20]);
+        $itemB = $this->makeItem($company, ['name' => 'Masks', 'quantity_on_hand' => 20]);
 
         $response = $this->postJson('/api/inventory-purchase-orders/batch', [
             'notes' => 'Monthly restock',
@@ -119,13 +133,13 @@ class InventoryPurchaseOrderTest extends TestCase
         $this->assertNotEmpty($batchUuid);
         $this->assertSame($batchUuid, $response->json('data.1.batch_uuid'));
 
-        $orderAId = $response->json('data.0.id');
-        $orderBId = $response->json('data.1.id');
-
-        // Each line in the batch still transitions status independently.
-        $this->putJson("/api/inventory-purchase-orders/{$orderAId}/status", ['status' => 'received'])->assertOk();
-        $this->assertDatabaseHas('inventory_purchase_orders', ['id' => $orderAId, 'status' => 'received']);
-        $this->assertDatabaseHas('inventory_purchase_orders', ['id' => $orderBId, 'status' => 'pending']);
+        // No follow-up needed: both lines are already 'received', stock is
+        // already bumped, and both costs are already posted to the fund.
+        $this->assertSame('received', $response->json('data.0.status'));
+        $this->assertSame('received', $response->json('data.1.status'));
+        $this->assertEquals(30.0, $itemA->fresh()->quantity_on_hand);
+        $this->assertEquals(40.0, $itemB->fresh()->quantity_on_hand);
+        $this->assertEquals(-40.0, FundTransaction::where('company_id', $company->id)->sum('amount'));
     }
 
     public function test_a_received_order_cannot_be_transitioned_again(): void
@@ -146,7 +160,7 @@ class InventoryPurchaseOrderTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_crossing_the_reorder_threshold_auto_creates_exactly_one_open_purchase_order(): void
+    public function test_crossing_the_reorder_threshold_only_sends_an_alert_and_never_auto_creates_a_purchase_order(): void
     {
         Mail::fake();
 
@@ -155,23 +169,15 @@ class InventoryPurchaseOrderTest extends TestCase
         Sanctum::actingAs($user);
         $item = $this->makeItem($company, ['quantity_on_hand' => 10, 'reorder_threshold' => 5, 'reorder_quantity' => 20]);
 
+        // Purchase orders no longer have any follow-up/tracking lifecycle,
+        // so dipping below threshold must never draft one on its own --
+        // restocking is now always an explicit, instant staff action.
         $this->postJson("/api/inventory-items/{$item->id}/transactions", [
             'type' => 'out', 'quantity' => 8, 'occurred_on' => now()->toDateString(),
         ])->assertCreated();
 
-        $this->assertDatabaseCount('inventory_purchase_orders', 1);
-        $this->assertDatabaseHas('inventory_purchase_orders', [
-            'inventory_item_id' => $item->id,
-            'quantity' => 20,
-            'status' => 'pending',
-        ]);
-
-        // Dipping further while already below threshold must not create a second order.
-        $this->postJson("/api/inventory-items/{$item->id}/transactions", [
-            'type' => 'out', 'quantity' => 1, 'occurred_on' => now()->toDateString(),
-        ])->assertCreated();
-
-        $this->assertDatabaseCount('inventory_purchase_orders', 1);
+        $this->assertDatabaseCount('inventory_purchase_orders', 0);
+        Mail::assertSent(LowStockAlertMail::class, 1);
     }
 
     public function test_purchase_orders_are_scoped_to_the_companys_own_data(): void

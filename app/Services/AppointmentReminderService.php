@@ -4,18 +4,17 @@ namespace App\Services;
 
 use App\Enums\AppointmentStatus;
 use App\Enums\ClientLanguage;
-use App\Mail\AppointmentReminderMail;
 use App\Models\Appointment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class AppointmentReminderService
 {
     public function __construct(
         protected AppointmentActionStateService $actionState,
         protected MessagingService $messaging,
-        protected MessageTemplateService $templates,
+        protected SystemMessageService $systemMessages,
+        protected MessageTemplateVariableBuilder $templateVariables,
     ) {}
 
     /**
@@ -101,43 +100,31 @@ class AppointmentReminderService
     }
 
     /**
-     * Sends the reminder over every channel the client has.
-     *
-     * Returns whether the reminder can be considered delivered: true if at
-     * least one channel accepted it, or if the client has no phone and no
-     * email at all (nothing to deliver -- retrying would never help). False
-     * means every channel that was tried failed, which the job turns into a
-     * retry, and ultimately into a visible failed_jobs row with
-     * reminder_sent_at still null so the appointment stays retryable.
+     * SMS only now (see SystemMessageService) -- email reminders were
+     * removed outright, not just disabled. Returns whether the reminder can
+     * be considered delivered: true if the SMS was sent, or if the client
+     * has no phone at all, or if the "System Messages" wording for this
+     * language was deleted by staff (nothing meaningful to retry). False
+     * means the SMS send itself failed, which the job turns into a retry.
      */
     public function send(Appointment $appointment): bool
     {
         $client = $appointment->client;
 
-        if (! $client) {
+        if (! $client || ! $client->phone || ! $appointment->company) {
             return true;
         }
 
-        $smsAttempted = (bool) ($client->phone && $appointment->company);
-        $emailAttempted = (bool) $client->email;
+        $text = $this->smsText($appointment);
 
-        if (! $smsAttempted && ! $emailAttempted) {
+        if ($text === null) {
             return true;
         }
 
-        $smsSent = $smsAttempted
-            && $this->messaging->send($appointment->company, $client->phone, $this->smsText($appointment));
+        $sent = $this->messaging->send($appointment->company, $client->phone, $text);
 
-        // Mail::send() throws on a transport failure rather than returning
-        // false, which the job already treats as a retryable failure.
-        if ($emailAttempted) {
-            Mail::to($client->email)->send(new AppointmentReminderMail($appointment));
-        }
-
-        $delivered = $smsSent || $emailAttempted;
-
-        if (! $delivered) {
-            Log::warning('Appointment reminder could not be delivered on any channel.', [
+        if (! $sent) {
+            Log::warning('Appointment reminder could not be delivered.', [
                 'appointment_id' => $appointment->id,
                 'client_id' => $client->id,
             ]);
@@ -148,65 +135,50 @@ class AppointmentReminderService
         Log::info('Appointment reminder sent.', [
             'appointment_id' => $appointment->id,
             'client_id' => $client->id,
-            'sms' => $smsSent,
-            'email' => $emailAttempted,
         ]);
 
         return true;
     }
 
-    public function smsText(Appointment $appointment): string
+    /**
+     * Null means there's no "System Messages" wording for this language any
+     * more (staff deleted it) -- callers treat that the same as "nothing to
+     * send", not an error.
+     */
+    public function smsText(Appointment $appointment): ?string
     {
-        return $this->render($appointment, 'sms')['body'];
-    }
+        if (! $appointment->company) {
+            return null;
+        }
 
-    public function emailSubject(Appointment $appointment): string
-    {
-        return $this->render($appointment, 'email')['subject'] ?? '';
-    }
+        $start = $this->actionState->startDateTime($appointment);
+        $variables = $appointment->client
+            ? $this->templateVariables->build(
+                $appointment->client,
+                $appointment->doctor,
+                $appointment->company,
+                $appointment->doctor?->specialty?->key,
+                ['date' => $start->format('d/m/Y'), 'time' => $start->format('H:i')],
+            )
+            : [
+                'client_name' => '',
+                'doctor_name' => $appointment->doctor?->name ?? '',
+                'company_name' => $appointment->company->name ?? '',
+                'date' => $start->format('d/m/Y'),
+                'time' => $start->format('H:i'),
+            ];
 
-    public function emailBody(Appointment $appointment): string
-    {
-        return $this->render($appointment, 'email')['body'];
+        return $this->systemMessages->bodyFor(
+            $appointment->company,
+            $appointment->doctor?->specialty_id,
+            'appointment_reminder',
+            $this->languageFor($appointment)->value,
+            $variables,
+        );
     }
 
     public function languageFor(Appointment $appointment): ClientLanguage
     {
         return $appointment->client?->preferred_language ?? ClientLanguage::English;
-    }
-
-    /**
-     * @return array{subject: ?string, body: string}
-     */
-    protected function render(Appointment $appointment, string $channel): array
-    {
-        if (! $appointment->company) {
-            return ['subject' => null, 'body' => ''];
-        }
-
-        return $this->templates->render(
-            $appointment->company,
-            'appointment_reminder',
-            $channel,
-            $this->languageFor($appointment),
-            $this->variables($appointment),
-            $appointment->doctor?->specialty_id,
-        );
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function variables(Appointment $appointment): array
-    {
-        $start = $this->actionState->startDateTime($appointment);
-
-        return [
-            'client_name' => $appointment->client?->name ?? '',
-            'doctor_name' => $appointment->doctor?->name ?? '',
-            'company_name' => $appointment->company?->name ?? '',
-            'date' => $start->format('d/m/Y'),
-            'time' => $start->format('H:i'),
-        ];
     }
 }

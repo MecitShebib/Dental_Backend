@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Nutrition;
 
-use App\Models\CarePlan;
 use App\Models\Client;
 use App\Models\Specialty;
 use App\Models\Subscription;
@@ -107,9 +106,13 @@ class DietExercisePlanTest extends TestCase
             'text' => 'Client wants to lose weight.',
         ]);
 
+        // Plans are table-shaped now (StructuredDietExercisePlanTest); a
+        // plain-string answer (older AI output) is kept as the table's notes
+        // rather than dropped, and still readable in the text rendering.
         $response->assertOk();
-        $response->assertJsonPath('data.diet_plan', 'Day 1: oatmeal, salad, grilled chicken.');
-        $response->assertJsonPath('data.exercise_plan', 'Mon/Wed/Fri: 30 min brisk walk.');
+        $this->assertStringContainsString('Day 1: oatmeal, salad, grilled chicken.', $response->json('data.diet_plan'));
+        $this->assertStringContainsString('Mon/Wed/Fri: 30 min brisk walk.', $response->json('data.exercise_plan'));
+        $response->assertJsonPath('data.diet_plan_data.notes', 'Day 1: oatmeal, salad, grilled chicken.');
     }
 
     public function test_confirm_persists_a_care_plan_with_diet_and_exercise_plan(): void

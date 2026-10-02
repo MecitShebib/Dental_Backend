@@ -75,6 +75,8 @@ class AiConversationController extends Controller
             'sessions' => $result['plan']['sessions'],
             'diet_plan' => $result['plan']['diet_plan'] ?? null,
             'exercise_plan' => $result['plan']['exercise_plan'] ?? null,
+            'diet_plan_data' => $result['plan']['diet_plan_data'] ?? null,
+            'exercise_plan_data' => $result['plan']['exercise_plan_data'] ?? null,
             'user_message' => AiConversationMessageResource::make($result['user_message']),
             'assistant_message' => AiConversationMessageResource::make($result['assistant_message']),
         ], 'AI treatment plan generated successfully.');
@@ -104,6 +106,8 @@ class AiConversationController extends Controller
             $actingUser->id,
             $request->validated('diet_plan'),
             $request->validated('exercise_plan'),
+            $request->validated('diet_plan_data'),
+            $request->validated('exercise_plan_data'),
         );
 
         return $this->success([

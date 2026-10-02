@@ -20,7 +20,7 @@ class ZohoCrmService
     {
         $integration = $company->crmIntegration;
 
-        return (bool) ($integration && $integration->status === 'active');
+        return (bool) ($integration && $integration->status === 'active') && $company->hasFeature('crm');
     }
 
     /**

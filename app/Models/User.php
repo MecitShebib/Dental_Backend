@@ -6,6 +6,7 @@ use App\Enums\UserStatus;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasUuid;
+use App\Support\LegalContent;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,6 +45,8 @@ class User extends Authenticatable
         'ai_enabled',
         'notes',
         'last_login_at',
+        'terms_accepted_version',
+        'terms_accepted_at',
         'monthly_salary',
         'commission_percentage',
         'signature_path',
@@ -70,6 +73,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'password' => 'hashed',
             'status' => UserStatus::class,
             'is_project_admin' => 'boolean',
@@ -164,6 +168,17 @@ class User extends Authenticatable
     public function isProjectAdmin(): bool
     {
         return $this->is_project_admin === true;
+    }
+
+    /**
+     * Whether this user has personally accepted the current Terms of Service
+     * (LegalContent::TERMS_VERSION). Bumping that constant re-asks everyone.
+     * Project admins aren't clinic users and are never asked.
+     */
+    public function hasAcceptedCurrentTerms(): bool
+    {
+        return $this->isProjectAdmin()
+            || $this->terms_accepted_version === LegalContent::TERMS_VERSION;
     }
 
     public function isSystemManager(): bool

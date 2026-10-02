@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\AdminLoginOtpMail;
 use App\Mail\OtpCodeMail;
 use App\Models\User;
 use App\Models\UserOtp;
@@ -49,6 +50,49 @@ class MobileOtpService
             'channel' => $channel,
             'mobile' => $mobile,
             'otp' => ($channel === 'email' || $this->providerEnabled()) ? 'sent' : $otp,
+            'reference' => $challenge->reference,
+        ]);
+
+        return $challenge;
+    }
+
+    /**
+     * The admin panel's own second factor -- unlike issue() above (which
+     * sends to the logging-in user's own mobile/email, chosen by
+     * MOBILE_OTP_CHANNEL), this always emails a fixed, project-wide inbox
+     * (ADMIN_LOGIN_OTP_EMAIL) that no admin ever sees or types; whoever
+     * holds that inbox is the real gatekeeper for admin access. Kept
+     * separate from issue() since it doesn't participate in the
+     * SMS-vs-email channel toggle at all -- it's always email, always to
+     * this one address, regardless of MOBILE_OTP_CHANNEL.
+     */
+    public function issueAdminLoginOtp(User $user, ?string $ip): UserOtp
+    {
+        UserOtp::query()
+            ->where('user_id', $user->id)
+            ->where('purpose', UserOtp::PURPOSE_ADMIN_LOGIN)
+            ->whereNull('used_at')
+            ->update(['used_at' => now()]);
+
+        $otp = $this->generateOtp();
+        $destination = (string) config('services.admin_login.otp_email');
+
+        if (! $this->usesFixedCode()) {
+            Mail::to($destination)->send(new AdminLoginOtpMail($user, $otp, $ip));
+        }
+
+        $challenge = UserOtp::query()->create([
+            'user_id' => $user->id,
+            'mobile' => $destination,
+            'otp_code' => Hash::make($otp),
+            'purpose' => UserOtp::PURPOSE_ADMIN_LOGIN,
+            'reference' => $this->referenceFor(UserOtp::PURPOSE_ADMIN_LOGIN),
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        Log::info('Admin login OTP sent.', [
+            'user_id' => $user->id,
+            'ip' => $ip,
             'reference' => $challenge->reference,
         ]);
 
@@ -117,6 +161,7 @@ class MobileOtpService
         $prefix = match ($purpose) {
             UserOtp::PURPOSE_LOGIN => 'login_otp_ref',
             UserOtp::PURPOSE_FORGOT_PASSWORD => 'forgot_otp_ref',
+            UserOtp::PURPOSE_ADMIN_LOGIN => 'admin_login_otp_ref',
             default => 'otp_ref',
         };
 

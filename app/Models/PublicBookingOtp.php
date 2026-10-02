@@ -18,6 +18,7 @@ class PublicBookingOtp extends Model
     protected $fillable = [
         'company_id',
         'mobile',
+        'email',
         'otp_code',
         'attempts',
         'reference',

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\ClientLanguage;
 use App\Mail\NegativeSatisfactionAlertMail;
-use App\Mail\SatisfactionSurveyInviteMail;
 use App\Models\SatisfactionSurvey;
 use App\Models\Specialty;
 use App\Models\User;
@@ -32,17 +31,26 @@ class SatisfactionSurveyService
     }
 
     /**
-     * @return array{subject: ?string, body: string}
+     * Null means there's no "System Messages" wording for this language any
+     * more (staff deleted it) -- see SystemMessageService.
      */
-    public function renderInvite(SatisfactionSurvey $survey, MessageTemplateService $templates, string $channel): array
+    public function renderInvite(SatisfactionSurvey $survey, SystemMessageService $systemMessages, ?MessageTemplateVariableBuilder $templateVariables = null): ?string
     {
         $client = $survey->client;
+        $doctor = $survey->visit?->doctor;
+        $templateVariables ??= app(MessageTemplateVariableBuilder::class);
 
-        return $templates->render($client->company, 'satisfaction_survey', $channel, $client->preferred_language ?? ClientLanguage::English, [
-            'client_name' => $client->name,
-            'company_name' => $client->company->name,
+        $variables = $templateVariables->build($client, $doctor, $client->company, $doctor?->specialty?->key, [
             'survey_link' => url('/survey/'.$survey->token),
-        ], $survey->visit?->doctor?->specialty_id);
+        ]);
+
+        return $systemMessages->bodyFor(
+            $client->company,
+            $doctor?->specialty_id,
+            'satisfaction_survey',
+            $this->languageFor($survey)->value,
+            $variables,
+        );
     }
 
     public function languageFor(SatisfactionSurvey $survey): ClientLanguage
@@ -51,29 +59,24 @@ class SatisfactionSurveyService
     }
 
     /**
-     * Sends on every channel the client has -- same "no channel left behind"
-     * approach as AppointmentReminderService, so a client without a phone but
-     * with an email (or vice versa) still gets invited.
+     * SMS only now (see SystemMessageService) -- email invites were removed
+     * outright, not just disabled.
      */
-    public function sendInvite(SatisfactionSurvey $survey, MessagingService $messaging, MessageTemplateService $templates): void
+    public function sendInvite(SatisfactionSurvey $survey, MessagingService $messaging, SystemMessageService $systemMessages): void
     {
         $client = $survey->client;
 
-        if (! $client || ! $client->company) {
+        if (! $client || ! $client->company || ! $client->phone) {
             return;
         }
 
-        if ($client->phone) {
-            $messaging->send($client->company, $client->phone, $this->renderInvite($survey, $templates, 'sms')['body']);
-        }
+        $text = $this->renderInvite($survey, $systemMessages);
 
-        if ($client->email) {
-            Mail::to($client->email)->send(new SatisfactionSurveyInviteMail($survey));
-        }
-
-        if (! $client->phone && ! $client->email) {
+        if ($text === null) {
             return;
         }
+
+        $messaging->send($client->company, $client->phone, $text);
 
         $survey->update(['invite_sent_at' => now()]);
 

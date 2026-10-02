@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ClientLanguage;
+use App\Enums\CompanyCurrency;
 use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,9 +27,19 @@ class Company extends Model
         'phone',
         'address',
         'status',
+        'currency',
+        'language',
         'notes',
         'recall_interval_days',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'currency' => CompanyCurrency::class,
+            'language' => ClientLanguage::class,
+        ];
+    }
 
     public function users(): HasMany
     {
@@ -198,7 +210,7 @@ class Company extends Model
 
     /**
      * Company-wide policy for every per-subscription capacity limit
-     * (max_users/max_ai_tokens/max_branches): a company with multiple active
+     * (max_doctors/max_assistants/max_ai_tokens/max_branches): a company with multiple active
      * specialty subscriptions is capped by the SUM of that column across all
      * of them, not by any single one -- confirmed with the product owner
      * 2026-08-17 ("şirket genelinde tek bir toplam", a single company-wide
@@ -207,6 +219,25 @@ class Company extends Model
      * company is treated as unlimited for it too, rather than silently
      * capping at the sum of just the non-null ones.
      */
+    /**
+     * Optional features (Subscription::FEATURES) the company currently has:
+     * the union across its active subscriptions, same company-wide pooling
+     * as the capacity limits below.
+     */
+    public function enabledFeatures(): array
+    {
+        return $this->activeSubscriptions()
+            ->flatMap(fn (Subscription $subscription) => $subscription->enabledFeatures())
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasFeature(string $feature): bool
+    {
+        return in_array($feature, $this->enabledFeatures(), true);
+    }
+
     public function aggregatedSubscriptionLimit(string $column): ?int
     {
         $subscriptions = $this->activeSubscriptions();

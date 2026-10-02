@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\AppointmentStatus;
 use App\Enums\AttendanceStatus;
 use App\Enums\ClientLanguage;
-use App\Mail\PatientRecallMail;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\PatientRecall;
@@ -14,13 +13,13 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class PatientRecallService
 {
     public function __construct(
         protected MessagingService $messaging,
-        protected MessageTemplateService $templates,
+        protected SystemMessageService $systemMessages,
+        protected MessageTemplateVariableBuilder $templateVariables,
     ) {}
 
     /**
@@ -96,77 +95,63 @@ class PatientRecallService
         }
     }
 
+    /**
+     * SMS only now (see SystemMessageService) -- email recalls were removed
+     * outright, not just disabled.
+     */
     public function send(PatientRecall $recall): void
     {
         $client = $recall->client;
 
-        if (! $client) {
+        if (! $client || ! $client->phone || ! $client->company) {
             return;
         }
 
-        if ($client->phone && $client->company) {
-            $this->messaging->send($client->company, $client->phone, $this->smsText($client));
+        $text = $this->smsText($client);
+
+        if ($text === null) {
+            return;
         }
 
-        if ($client->email) {
-            Mail::to($client->email)->send(new PatientRecallMail($recall));
-        }
+        $this->messaging->send($client->company, $client->phone, $text);
 
         $recall->update(['sent_at' => now()]);
 
         Log::info('Patient recall sent.', [
             'client_id' => $client->id,
             'visit_id' => $recall->visit_id,
-            'sms' => (bool) $client->phone,
-            'email' => (bool) $client->email,
         ]);
     }
 
-    public function smsText(Client $client): string
+    /**
+     * Null means there's no "System Messages" wording for this language any
+     * more (staff deleted it).
+     */
+    public function smsText(Client $client): ?string
     {
-        return $this->render($client, 'sms')['body'];
-    }
+        if (! $client->company) {
+            return null;
+        }
 
-    public function emailSubject(Client $client): string
-    {
-        return $this->render($client, 'email')['subject'] ?? '';
-    }
+        $lastDoctor = $client->visits()
+            ->where('attendance_status', AttendanceStatus::Attended->value)
+            ->latest('visit_date')
+            ->latest('id')
+            ->first()?->doctor;
 
-    public function emailBody(Client $client): string
-    {
-        return $this->render($client, 'email')['body'];
+        $variables = $this->templateVariables->build($client, $lastDoctor, $client->company, $lastDoctor?->specialty?->key);
+
+        return $this->systemMessages->bodyFor(
+            $client->company,
+            $lastDoctor?->specialty_id,
+            'patient_recall',
+            $this->languageFor($client)->value,
+            $variables,
+        );
     }
 
     public function languageFor(Client $client): ClientLanguage
     {
         return $client->preferred_language ?? ClientLanguage::English;
-    }
-
-    /**
-     * @return array{subject: ?string, body: string}
-     */
-    protected function render(Client $client, string $channel): array
-    {
-        if (! $client->company) {
-            return ['subject' => null, 'body' => ''];
-        }
-
-        $specialtyId = $client->visits()
-            ->where('attendance_status', AttendanceStatus::Attended->value)
-            ->latest('visit_date')
-            ->latest('id')
-            ->first()?->doctor?->specialty_id;
-
-        return $this->templates->render(
-            $client->company,
-            'patient_recall',
-            $channel,
-            $this->languageFor($client),
-            [
-                'client_name' => $client->name,
-                'company_name' => $client->company->name,
-            ],
-            $specialtyId,
-        );
     }
 }

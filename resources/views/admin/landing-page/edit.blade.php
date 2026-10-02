@@ -9,6 +9,11 @@
         'orthopedics' => 'Orthovaria',
         'cosmetic' => 'Estevaria',
         'nutrition' => 'Dietavaria',
+        'pediatrics' => 'Pediavaria',
+        'physiotherapy' => 'Physiovaria',
+        'hematology' => 'Hemavaria',
+        'general_surgery' => 'Surgivaria',
+        'general_practice' => 'Genervaria',
     ];
 @endphp
 
@@ -73,6 +78,18 @@
         <div class="actions-row" style="margin-bottom: 1.25rem;">
             <button class="btn" type="submit">Save all changes</button>
         </div>
+
+        <section class="panel">
+            <h3>Pricing plans (all specialties)</h3>
+            <p class="muted" style="margin-top: 0;">Unticked plans are hidden everywhere: every specialty landing page in every language, plus the proposal and pitch documents.</p>
+            @foreach ($plans as $plan => $label)
+                <label class="checkbox-option">
+                    <input type="hidden" name="content[plans][{{ $plan }}]" value="0">
+                    <input type="checkbox" name="content[plans][{{ $plan }}]" value="1" @checked($planVisibility[$plan])>
+                    {{ $label }}
+                </label>
+            @endforeach
+        </section>
 
         <div class="product-tabs">
             <button type="button" class="product-tab active" data-product-tab="hub">Hub (product list)</button>
@@ -213,9 +230,10 @@
                             <h3>Pricing</h3>
                             @foreach ($loc['pricing'] as $i => $tier)
                                 <div style="margin-bottom: 1.25rem; padding-bottom: 1.25rem; {{ $loop->last ? '' : 'border-bottom: 1px solid var(--border);' }}">
+                                    <input type="hidden" name="content[{{ $specialty }}][{{ $locale }}][pricing][{{ $i }}][plan]" value="{{ $tier['plan'] }}">
                                     <div class="grid-2">
                                         <div>
-                                            <label class="field-label">Plan {{ $i + 1 }} — name</label>
+                                            <label class="field-label">Plan {{ $i + 1 }} ({{ $tier['plan'] }}) — name</label>
                                             <input name="content[{{ $specialty }}][{{ $locale }}][pricing][{{ $i }}][name]" value="{{ $tier['name'] }}">
                                         </div>
                                         <div>

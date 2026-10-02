@@ -7,9 +7,9 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * The six specialties the Doctovaria platform is designed around. All six
+ * The eleven specialties the Doctovaria platform is designed around. All eleven
  * now have a real (if v1/narrow) backend+frontend -- see each
- * App\Specialties\*\*Module::isBuilt() -- so all six are seeded active
+ * App\Specialties\*\*Module::isBuilt() -- so all eleven are seeded active
  * (company-subscribable). is_active is a separate, admin-toggleable
  * "available for subscription" flag from isBuilt() ("does real
  * functionality exist"); it just happens both are true for every specialty
@@ -79,6 +79,56 @@ class SpecialtySeeder extends Seeder
                 'icon' => 'nutrition',
                 'is_active' => true,
                 'sort_order' => 6,
+            ],
+            [
+                'key' => Specialty::PEDIATRICS,
+                'brand_name' => 'Pediavaria',
+                'name_ar' => 'طب الأطفال',
+                'name_en' => 'Pediatrics',
+                'name_tr' => 'Çocuk Sağlığı ve Hastalıkları',
+                'icon' => 'pediatrics',
+                'is_active' => true,
+                'sort_order' => 7,
+            ],
+            [
+                'key' => Specialty::PHYSIOTHERAPY,
+                'brand_name' => 'Physiovaria',
+                'name_ar' => 'العلاج الفيزيائي',
+                'name_en' => 'Physiotherapy',
+                'name_tr' => 'Fizyoterapi',
+                'icon' => 'physiotherapy',
+                'is_active' => true,
+                'sort_order' => 8,
+            ],
+            [
+                'key' => Specialty::HEMATOLOGY,
+                'brand_name' => 'Hemavaria',
+                'name_ar' => 'أمراض الدم',
+                'name_en' => 'Hematology',
+                'name_tr' => 'Hematoloji',
+                'icon' => 'hematology',
+                'is_active' => true,
+                'sort_order' => 9,
+            ],
+            [
+                'key' => Specialty::GENERAL_SURGERY,
+                'brand_name' => 'Surgivaria',
+                'name_ar' => 'الجراحة العامة',
+                'name_en' => 'General Surgery',
+                'name_tr' => 'Genel Cerrahi',
+                'icon' => 'general-surgery',
+                'is_active' => true,
+                'sort_order' => 10,
+            ],
+            [
+                'key' => Specialty::GENERAL_PRACTICE,
+                'brand_name' => 'Genervaria',
+                'name_ar' => 'الطب العام',
+                'name_en' => 'General Practice',
+                'name_tr' => 'Pratisyen Hekimlik',
+                'icon' => 'general-practice',
+                'is_active' => true,
+                'sort_order' => 11,
             ],
         ];
 

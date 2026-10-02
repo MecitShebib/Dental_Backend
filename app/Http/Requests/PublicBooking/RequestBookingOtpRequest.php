@@ -13,8 +13,13 @@ class RequestBookingOtpRequest extends FormRequest
 
     public function rules(): array
     {
+        // MOBILE_OTP_CHANNEL decides which contact the code goes to, so that
+        // one is required and the other optional.
+        $emailChannel = config('services.otp.channel') === 'email';
+
         return [
-            'client_phone' => ['required', 'string', 'max:50'],
+            'client_phone' => [$emailChannel ? 'nullable' : 'required', 'string', 'max:50'],
+            'client_email' => [$emailChannel ? 'required' : 'nullable', 'email', 'max:255'],
         ];
     }
 }

@@ -16,7 +16,7 @@ class ClientObserver
     {
         $company = $client->company;
 
-        if ($company && $company->crmIntegration?->status === 'active') {
+        if ($company && $company->crmIntegration?->status === 'active' && $company->hasFeature('crm')) {
             PushClientToCrmJob::dispatch($client);
         }
     }
